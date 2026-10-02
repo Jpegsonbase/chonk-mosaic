@@ -44,10 +44,8 @@
     vp.hidden = false;
     const cols = canvas.width, rows = canvas.height;
     vp.style.aspectRatio = `${cols} / ${rows}`;
-    requestAnimationFrame(() => {
-      fit = Math.min(vp.clientWidth / cols, vp.clientHeight / rows);
-      s = fit; atFit = true; clamp(); apply();
-    });
+    atFit = true;
+    requestAnimationFrame(refit);
   }
 
   // ---- wheel
@@ -122,13 +120,20 @@
     fsBtn.textContent = document.fullscreenElement ? "Exit full screen" : "Full screen";
     reset();
   });
-  // Keep the current zoom when the window changes size (e.g. phone toolbars).
-  window.addEventListener("resize", () => {
-    if (vp.hidden) return;
+  // Refit whenever the frame changes size (window resize, phone toolbars,
+  // layout settling); keep the person's zoom unless they were at fit.
+  function refit() {
+    if (vp.hidden || !vp.clientWidth || !vp.clientHeight) return;
     fit = Math.min(vp.clientWidth / canvas.width, vp.clientHeight / canvas.height);
-    if (atFit || s < fit) s = fit;
+    if (atFit || s < fit) { s = fit; atFit = true; }
     clamp(); apply();
-  });
+  }
+  new ResizeObserver(refit).observe(vp);
+
+  // Reset automatically whenever a new mosaic is drawn (canvas resized),
+  // so the viewer works even if another script forgets to call reset().
+  new MutationObserver(() => { if (canvas.width && canvas.height) reset(); })
+    .observe(canvas, { attributes: true, attributeFilter: ["width", "height"] });
 
   window.MosaicZoom = { reset };
 })();

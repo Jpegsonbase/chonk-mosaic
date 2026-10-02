@@ -46,7 +46,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js");
+      state.worker = new Worker("worker.js?v=4");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -249,7 +249,13 @@
       ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
       el.empty.style.display = "none"; canvas.style.display = "block";
-      window.MosaicZoom && MosaicZoom.reset();
+      if (window.MosaicZoom) MosaicZoom.reset();
+      else {
+        // zoom.js missing: just show the picture scaled to fit.
+        const vp = document.getElementById("viewport");
+        if (vp) vp.hidden = false;
+        Object.assign(canvas.style, { position: "static", width: "100%", height: "auto" });
+      }
 
       await drawFromAtlases(ctx, used, cols, tile);
       if (state.source === "chain") await drawFromChain(ctx, used, cols, tile);
