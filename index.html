@@ -207,11 +207,14 @@
   .row { display: flex; gap: 8px; margin-top: 14px; }
   .row input { flex: 1; min-width: 0; }
   .traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-  .traits span { font-size: 13px; background: var(--soft); border-radius: 999px; padding: 4px 11px; }
-  .traits span:nth-child(4n+1) { background: #E5EDFF; }
-  .traits span:nth-child(4n+2) { background: #FFE3F1; }
-  .traits span:nth-child(4n+3) { background: #FFF3D1; }
-  .traits span:nth-child(4n+4) { background: #D9F8EE; }
+  .traits > * { font-size: 13px; background: var(--soft); border-radius: 999px; padding: 4px 11px; color: var(--ink); text-decoration: none; }
+  .traits > :nth-child(4n+1) { background: #E5EDFF; }
+  .traits > :nth-child(4n+2) { background: #FFE3F1; }
+  .traits > :nth-child(4n+3) { background: #FFF3D1; }
+  .traits > :nth-child(4n+4) { background: #D9F8EE; }
+  .traits a { font-weight: 600; box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .15s; }
+  .traits a::after { content: " ↗"; font-weight: 500; opacity: .6; }
+  .traits a:hover { box-shadow: inset 0 0 0 1.5px var(--ink); }
 
   #tip {
     position: fixed; pointer-events: none; background: var(--ink); color: #fff; z-index: 10;
@@ -370,8 +373,8 @@
 </div>
 
 <div id="tip"></div>
-<script src="chain.js?v=4"></script>
-<script src="zoom.js?v=4"></script>
-<script src="app.js?v=4"></script>
+<script src="chain.js?v=5"></script>
+<script src="zoom.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

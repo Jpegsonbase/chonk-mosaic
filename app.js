@@ -46,7 +46,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=4");
+      state.worker = new Worker("worker.js?v=5");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -382,6 +382,29 @@
     if (id != null) { el.vId.value = id; showChonk(id); }
   });
 
+  // ---------------------------------------------------------------- trait links
+  // Chonks market trait pages: https://www.chonks.xyz/traits/<slug>?category=<n>
+  // Category numbers follow the contract's TraitCategory order (Shoes = 7 is confirmed
+  // by the market URL; the others follow the same order). Edit here if one is off.
+  const TRAIT_CATEGORIES = {
+    head: 1, hat: 1,
+    hair: 2,
+    face: 3,
+    accessory: 4, accessories: 4,
+    top: 5, tops: 5, shirt: 5,
+    bottom: 6, bottoms: 6, pants: 6,
+    shoes: 7, shoe: 7, footwear: 7,
+  };
+  const slugify = (v) => String(v).toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/['’]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  function traitUrl(t) {
+    if (!t || !t.trait_type || t.value == null || t.value === "") return null;
+    const cat = TRAIT_CATEGORIES[String(t.trait_type).trim().toLowerCase()];
+    if (!cat) return null;               // not a tradeable trait (e.g. body, background)
+    const slug = slugify(t.value);
+    return slug ? `https://www.chonks.xyz/traits/${slug}?category=${cat}` : null;
+  }
+
   async function showChonk(id) {
     id = parseInt(id, 10);
     if (!Number.isFinite(id)) return;
@@ -398,9 +421,17 @@
       el.vArt.appendChild(img);
       el.vInfo.textContent = meta.name || `Chonk #${id}`;
       for (const t of meta.attributes || []) {
-        const s = document.createElement("span");
-        s.textContent = t.trait_type ? `${t.trait_type}: ${t.value}` : String(t.value);
-        el.vTraits.appendChild(s);
+        const text = t.trait_type ? `${t.trait_type}: ${t.value}` : String(t.value);
+        const url = traitUrl(t);
+        const chip = document.createElement(url ? "a" : "span");
+        chip.textContent = text;
+        if (url) {
+          chip.href = url;
+          chip.target = "_blank";
+          chip.rel = "noopener";
+          chip.title = `See ${t.value} on the Chonks market`;
+        }
+        el.vTraits.appendChild(chip);
       }
     } catch (err) {
       el.vInfo.textContent = `Couldn't read Chonk #${id}: ${err.message}`;
