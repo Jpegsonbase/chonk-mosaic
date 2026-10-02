@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chonk Mosaic</title>
+<meta name="description" content="Turn any picture into a mosaic made of Chonks. Free, runs in your browser, art straight from the Base contract.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f6f1e7;
+    --panel: #fffdf8;
+    --ink: #1d1a16;
+    --muted: #6d655a;
+    --line: #1d1a16;
+    --accent: #ff5c39;
+    --accent-ink: #fff;
+    --soft: #efe7d8;
+    --ok: #2f9e62;
+    --shadow: 4px 4px 0 var(--line);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #16140f; --panel: #201d17; --ink: #f3ecdf; --muted: #a59b8b;
+      --line: #f3ecdf; --soft: #2b2720; --accent: #ff7452;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 15px/1.5 "Space Grotesk", system-ui, sans-serif;
+  }
+  header {
+    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    padding: 22px 24px 8px; max-width: 1400px; margin: 0 auto;
+  }
+  h1 {
+    font-family: "Pixelify Sans", monospace; font-weight: 700; margin: 0;
+    font-size: clamp(28px, 5vw, 44px); letter-spacing: 1px;
+  }
+  h1 span { color: var(--accent); }
+  header p { margin: 0; color: var(--muted); }
+  main {
+    display: grid; grid-template-columns: 340px 1fr; gap: 24px;
+    padding: 16px 24px 40px; max-width: 1400px; margin: 0 auto;
+  }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 12px 16px 32px; } header { padding: 18px 16px 4px; } }
+  .card {
+    background: var(--panel); border: 2px solid var(--line); border-radius: 10px;
+    box-shadow: var(--shadow); padding: 18px;
+  }
+  .controls { display: flex; flex-direction: column; gap: 18px; align-self: start; }
+  .step-label {
+    font-family: "Pixelify Sans", monospace; font-size: 13px; letter-spacing: .5px;
+    text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between;
+  }
+  .step-label b { color: var(--ink); font-weight: 500; }
+  .drop {
+    border: 2px dashed var(--line); border-radius: 8px; min-height: 130px;
+    display: grid; place-items: center; text-align: center; cursor: pointer;
+    background: var(--soft); overflow: hidden; position: relative;
+  }
+  .drop.over { border-color: var(--accent); }
+  .drop img { max-width: 100%; max-height: 220px; display: block; }
+  .drop .hint { padding: 16px; color: var(--muted); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { border: 0; background: transparent; color: var(--ink); padding: 9px 6px; font: inherit; cursor: pointer; }
+  .seg button + button { border-left: 2px solid var(--line); }
+  .seg button.on { background: var(--ink); color: var(--bg); }
+  .note { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  details summary { cursor: pointer; font-weight: 500; }
+  details .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 12px; }
+  label.f { display: flex; flex-direction: column; font-size: 12.5px; color: var(--muted); gap: 3px; }
+  label.f.wide { grid-column: 1 / -1; }
+  input[type=number], input[type=text] {
+    font: inherit; color: var(--ink); background: var(--soft); border: 1.5px solid var(--line);
+    border-radius: 6px; padding: 6px 8px; width: 100%;
+  }
+  .btn {
+    font-family: "Pixelify Sans", monospace; font-size: 20px; letter-spacing: 1px;
+    background: var(--accent); color: var(--accent-ink); border: 2px solid var(--line);
+    border-radius: 10px; padding: 12px; cursor: pointer; box-shadow: var(--shadow); width: 100%;
+    transition: transform .06s, box-shadow .06s;
+  }
+  .btn:active:not(:disabled) { transform: translate(3px,3px); box-shadow: 1px 1px 0 var(--line); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+  .btn.ghost { background: var(--panel); color: var(--ink); font-size: 16px; padding: 9px 14px; width: auto; }
+  .stage { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .output {
+    position: relative; min-height: 360px; display: grid; place-items: center; overflow: auto;
+    background:
+      conic-gradient(var(--soft) 25%, transparent 0 50%, var(--soft) 0 75%, transparent 0) 0 0 / 24px 24px,
+      var(--panel);
+  }
+  #mosaic { max-width: 100%; height: auto; image-rendering: pixelated; display: none; cursor: crosshair; }
+  .empty { text-align: center; color: var(--muted); padding: 40px 16px; }
+  .empty .big { font-family: "Pixelify Sans", monospace; font-size: 22px; color: var(--ink); }
+  .bar { height: 12px; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--soft); }
+  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
+  .status { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; }
+  .status .msg { color: var(--muted); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+  .stats { display: flex; gap: 22px; flex-wrap: wrap; }
+  .stat b { display: block; font-family: "Pixelify Sans", monospace; font-size: 22px; }
+  .stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  #tip {
+    position: fixed; pointer-events: none; background: var(--ink); color: var(--bg);
+    padding: 4px 8px; border-radius: 6px; font-size: 13px; display: none; z-index: 5;
+  }
+  .viewer { display: grid; grid-template-columns: 160px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 520px) { .viewer { grid-template-columns: 1fr; } }
+  .viewer .art {
+    width: 160px; height: 160px; border: 2px solid var(--line); border-radius: 8px; background: var(--soft);
+    display: grid; place-items: center; overflow: hidden;
+  }
+  .viewer .art img { width: 100%; height: 100%; image-rendering: pixelated; }
+  .traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .traits span { font-size: 12px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
+  .row { display: flex; gap: 8px; }
+  .row input { flex: 1; }
+  .warn { color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 0 16px 32px; }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CHONK<span>·</span>MOSAIC</h1>
+  <p>Turn any picture into art made of Chonks. Free, private, runs in your browser.</p>
+</header>
+
+<main>
+  <section class="controls card">
+    <div>
+      <div class="step-label">1 · Your picture</div>
+      <label class="drop" id="drop">
+        <input type="file" id="file" accept="image/*" hidden>
+        <div class="hint" id="dropHint">Drop an image here<br>or tap to choose one</div>
+      </label>
+    </div>
+
+    <div>
+      <div class="step-label">2 · Detail <b id="colsOut">80 across</b></div>
+      <input type="range" id="cols" min="20" max="240" value="80">
+      <div class="note" id="gridNote">Pick an image to see the grid.</div>
+    </div>
+
+    <div>
+      <div class="step-label">3 · Chonk size <b id="tileOut">48 px</b></div>
+      <input type="range" id="tile" min="12" max="120" step="4" value="48">
+      <div class="note" id="sizeNote"></div>
+    </div>
+
+    <div>
+      <div class="step-label">4 · Art source</div>
+      <div class="seg" id="source">
+        <button data-v="atlas" class="on">Fast (cached)</button>
+        <button data-v="chain">Onchain (live)</button>
+      </div>
+      <div class="note" id="sourceNote">Uses pre-rendered Chonk thumbnails — instant.</div>
+    </div>
+
+    <div>
+      <div class="step-label">5 · Variety <b id="varOut">balanced</b></div>
+      <input type="range" id="variety" min="0" max="100" value="30">
+      <div class="note">Left: closest colour match. Right: more different Chonks.</div>
+    </div>
+
+    <details>
+      <summary>Advanced</summary>
+      <div class="grid2">
+        <label class="f">Colour weight<input type="number" step="0.05" id="w_color" value="0.45"></label>
+        <label class="f">Shape weight<input type="number" step="0.05" id="w_fp" value="0.30"></label>
+        <label class="f">Brightness weight<input type="number" step="0.05" id="w_bright" value="0.10"></label>
+        <label class="f">Saturation weight<input type="number" step="0.05" id="w_sat" value="0.10"></label>
+        <label class="f">Edge weight<input type="number" step="0.05" id="w_edge" value="0.05"></label>
+        <label class="f">Palette adaptation<input type="number" step="0.05" min="0" max="1" id="p_adapt" value="0.65"></label>
+        <label class="f">Recent memory<input type="number" step="1" min="0" id="r_mem" value="20"></label>
+        <label class="f">Search depth<input type="number" step="250" min="100" id="cands" value="1500"></label>
+        <label class="f wide">Only use these Chonk IDs (e.g. <code>1-500, 777</code>)<input type="text" id="only" placeholder="all Chonks"></label>
+        <label class="f wide">Base RPC URL<input type="text" id="rpc"></label>
+      </div>
+    </details>
+
+    <button class="btn" id="go" disabled>Loading Chonks…</button>
+  </section>
+
+  <section class="stage">
+    <div class="card output" id="output">
+      <div class="empty" id="empty">
+        <div class="big">No mosaic yet</div>
+        Pick a picture on the left and hit <b>Make mosaic</b>.
+      </div>
+      <canvas id="mosaic"></canvas>
+    </div>
+
+    <div class="card">
+      <div class="status"><span id="phase">Ready</span><span class="msg" id="msg"></span></div>
+      <div class="bar" style="margin-top:8px"><div id="progress"></div></div>
+      <div class="stats" id="stats" style="margin-top:14px; display:none">
+        <div class="stat"><b id="sTiles">–</b><span>tiles</span></div>
+        <div class="stat"><b id="sUnique">–</b><span>unique Chonks</span></div>
+        <div class="stat"><b id="sSize">–</b><span>pixels</span></div>
+        <div class="stat"><b id="sTime">–</b><span>match time</span></div>
+      </div>
+      <div class="actions" style="margin-top:14px">
+        <button class="btn ghost" id="dl" disabled>Download PNG</button>
+        <button class="btn ghost" id="dlList" disabled>Chonk list (CSV)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="step-label">Chonk viewer · rendered from the contract</div>
+      <div class="viewer">
+        <div class="art" id="vArt"><span class="note">#?</span></div>
+        <div>
+          <div class="row">
+            <input type="number" id="vId" min="1" placeholder="Chonk ID, or click a tile">
+            <button class="btn ghost" id="vGo">Show</button>
+          </div>
+          <div id="vInfo" class="note" style="margin-top:10px">Click any Chonk in your mosaic to load it live from Base.</div>
+          <div class="traits" id="vTraits"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="tip"></div>
+<footer>
+  Chonks art is read from the <a id="contractLink" target="_blank" rel="noopener">Chonks contract on Base</a>.
+  Your picture never leaves your device.
+</footer>
+
+<script src="chain.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
