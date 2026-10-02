@@ -5,236 +5,334 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chonk Mosaic</title>
 <meta name="description" content="Turn any picture into a mosaic made of Chonks. Free, runs in your browser, art straight from the Base contract.">
+<meta name="theme-color" content="#FAFBFF">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:ital,wght@0,400;0,500;0,700;1,500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f1e7;
-    --panel: #fffdf8;
-    --ink: #1d1a16;
-    --muted: #6d655a;
-    --line: #1d1a16;
-    --accent: #ff5c39;
-    --accent-ink: #fff;
-    --soft: #efe7d8;
-    --ok: #2f9e62;
-    --shadow: 4px 4px 0 var(--line);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #16140f; --panel: #201d17; --ink: #f3ecdf; --muted: #a59b8b;
-      --line: #f3ecdf; --soft: #2b2720; --accent: #ff7452;
-    }
+    --paper: #FAFBFF;
+    --white: #FFFFFF;
+    --ink: #0E1230;
+    --muted: #5B6185;
+    --line: #E3E6F2;
+    --soft: #F1F3FB;
+    --blue: #0052FF;
+    --blue-press: #0041CC;
+    --pink: #FF4FA3;
+    --yellow: #FFC93C;
+    --mint: #22D3A0;
+    --violet: #8B5CFF;
+    --display: "Unbounded", "Arial Black", sans-serif;
+    --body: "Manrope", system-ui, sans-serif;
+    color-scheme: light;
   }
   * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font: 15px/1.5 "Space Grotesk", system-ui, sans-serif;
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 16px/1.55 var(--body); overflow-x: hidden;
   }
-  header {
-    display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
-    padding: 22px 24px 8px; max-width: 1400px; margin: 0 auto;
+  a { color: var(--blue); }
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 28px; }
+  @media (max-width: 700px) { .wrap { padding: 0 16px; } }
+
+  /* ---------- nav ---------- */
+  nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; font-size: 18px; text-decoration: none; color: var(--ink); }
+  .logo i { display: grid; grid-template-columns: repeat(2, 9px); gap: 2px; }
+  .logo i b { width: 9px; height: 9px; border-radius: 2px; }
+  .logo i b:nth-child(1) { background: var(--blue); }
+  .logo i b:nth-child(2) { background: var(--pink); }
+  .logo i b:nth-child(3) { background: var(--yellow); }
+  .logo i b:nth-child(4) { background: var(--mint); }
+  .chain-pill {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink);
+    font-size: 14px; font-weight: 500; border: 1px solid var(--line); background: var(--white);
+    padding: 7px 14px; border-radius: 999px;
   }
-  h1 {
-    font-family: "Pixelify Sans", monospace; font-weight: 700; margin: 0;
-    font-size: clamp(28px, 5vw, 44px); letter-spacing: 1px;
+  .chain-pill::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--blue); }
+
+  /* ---------- hero ---------- */
+  .hero { display: grid; grid-template-columns: 1.05fr 1fr; gap: 48px; align-items: center; padding: 28px 0 56px; }
+  .hero h1 {
+    font-family: var(--display); font-weight: 800; letter-spacing: -0.02em;
+    font-size: clamp(36px, 5.4vw, 72px); line-height: 1.02; margin: 0 0 22px;
   }
-  h1 span { color: var(--accent); }
-  header p { margin: 0; color: var(--muted); }
-  main {
-    display: grid; grid-template-columns: 340px 1fr; gap: 24px;
-    padding: 16px 24px 40px; max-width: 1400px; margin: 0 auto;
+  .hero p { font-size: 19px; color: var(--muted); max-width: 46ch; margin: 0 0 28px; }
+  .hero-facts { display: flex; gap: 28px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+  .hero-facts span { display: inline-flex; align-items: center; gap: 8px; }
+  .hero-facts span::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+  .hero-art {
+    position: relative; border-radius: 28px; overflow: hidden; aspect-ratio: 4 / 3;
+    background: var(--soft); box-shadow: 0 30px 60px -30px rgba(14, 18, 48, .35);
   }
-  @media (max-width: 860px) { main { grid-template-columns: 1fr; padding: 12px 16px 32px; } header { padding: 18px 16px 4px; } }
-  .card {
-    background: var(--panel); border: 2px solid var(--line); border-radius: 10px;
-    box-shadow: var(--shadow); padding: 18px;
+  #hero { width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity .9s ease; }
+  #hero.on { opacity: 1; }
+  .hero-art figcaption {
+    position: absolute; left: 16px; bottom: 16px; background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+    padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
   }
-  .controls { display: flex; flex-direction: column; gap: 18px; align-self: start; }
-  .step-label {
-    font-family: "Pixelify Sans", monospace; font-size: 13px; letter-spacing: .5px;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: flex; justify-content: space-between;
+  @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding-bottom: 40px; } }
+
+  /* ---------- studio ---------- */
+  .studio { display: grid; grid-template-columns: 360px 1fr; gap: 28px; align-items: start; }
+  @media (max-width: 960px) { .studio { grid-template-columns: 1fr; } }
+  .panel { background: var(--white); border: 1px solid var(--line); border-radius: 22px; padding: 22px; }
+  .controls { display: flex; flex-direction: column; gap: 22px; position: sticky; top: 16px; }
+  @media (max-width: 960px) { .controls { position: static; } }
+  .controls h2, .side h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0; letter-spacing: -0.01em; }
+  .step-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-weight: 700; font-size: 15px; }
+  .step-head .n {
+    width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center;
+    font-family: var(--display); font-size: 12px; font-weight: 700; color: var(--ink); background: var(--c);
   }
-  .step-label b { color: var(--ink); font-weight: 500; }
+  .step-head .val { margin-left: auto; font-weight: 500; color: var(--muted); font-size: 14px; }
   .drop {
-    border: 2px dashed var(--line); border-radius: 8px; min-height: 130px;
-    display: grid; place-items: center; text-align: center; cursor: pointer;
-    background: var(--soft); overflow: hidden; position: relative;
+    display: grid; place-items: center; text-align: center; cursor: pointer; min-height: 150px;
+    border: 2px dashed #C9CEE6; border-radius: 16px; background: var(--soft); overflow: hidden;
+    transition: border-color .15s, background .15s;
   }
-  .drop.over { border-color: var(--accent); }
-  .drop img { max-width: 100%; max-height: 220px; display: block; }
-  .drop .hint { padding: 16px; color: var(--muted); }
-  input[type=range] { width: 100%; accent-color: var(--accent); }
-  .seg { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--line); border-radius: 8px; overflow: hidden; }
-  .seg button { border: 0; background: transparent; color: var(--ink); padding: 9px 6px; font: inherit; cursor: pointer; }
-  .seg button + button { border-left: 2px solid var(--line); }
-  .seg button.on { background: var(--ink); color: var(--bg); }
-  .note { font-size: 13px; color: var(--muted); margin-top: 6px; }
-  details summary { cursor: pointer; font-weight: 500; }
-  details .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 12px; }
-  label.f { display: flex; flex-direction: column; font-size: 12.5px; color: var(--muted); gap: 3px; }
+  .drop:hover, .drop.over { border-color: var(--blue); background: #EEF3FF; }
+  .drop img { max-width: 100%; max-height: 240px; display: block; }
+  .drop .hint { padding: 20px; color: var(--muted); font-size: 15px; }
+  .drop .hint strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 2px; }
+  input[type=range] { width: 100%; accent-color: var(--blue); height: 28px; margin: 0; }
+  .note { font-size: 13.5px; color: var(--muted); margin-top: 4px; }
+  .warn { color: #D6336C; }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; background: var(--soft); border-radius: 14px; }
+  .seg button {
+    border: 0; background: transparent; color: var(--muted); padding: 10px 8px; font: 600 14px var(--body);
+    border-radius: 10px; cursor: pointer; transition: background .15s, color .15s;
+  }
+  .seg button.on { background: var(--white); color: var(--ink); box-shadow: 0 1px 3px rgba(14,18,48,.12); }
+  details { border-top: 1px solid var(--line); padding-top: 16px; }
+  details summary { cursor: pointer; font-weight: 700; font-size: 15px; list-style: none; display: flex; justify-content: space-between; }
+  details summary::after { content: "+"; font-family: var(--display); color: var(--muted); }
+  details[open] summary::after { content: "–"; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  label.f { display: flex; flex-direction: column; font-size: 13px; color: var(--muted); gap: 4px; }
   label.f.wide { grid-column: 1 / -1; }
   input[type=number], input[type=text] {
-    font: inherit; color: var(--ink); background: var(--soft); border: 1.5px solid var(--line);
-    border-radius: 6px; padding: 6px 8px; width: 100%;
+    font: 500 15px var(--body); color: var(--ink); background: var(--soft); border: 1px solid transparent;
+    border-radius: 10px; padding: 9px 11px; width: 100%;
   }
+  input[type=number]:focus, input[type=text]:focus { border-color: var(--blue); background: var(--white); outline: none; }
   .btn {
-    font-family: "Pixelify Sans", monospace; font-size: 20px; letter-spacing: 1px;
-    background: var(--accent); color: var(--accent-ink); border: 2px solid var(--line);
-    border-radius: 10px; padding: 12px; cursor: pointer; box-shadow: var(--shadow); width: 100%;
-    transition: transform .06s, box-shadow .06s;
+    font: 700 16px var(--body); border: 0; border-radius: 999px; cursor: pointer;
+    padding: 15px 22px; background: var(--blue); color: #fff; width: 100%;
+    transition: background .15s, transform .1s;
   }
-  .btn:active:not(:disabled) { transform: translate(3px,3px); box-shadow: 1px 1px 0 var(--line); }
-  .btn:disabled { opacity: .45; cursor: not-allowed; }
-  .btn.ghost { background: var(--panel); color: var(--ink); font-size: 16px; padding: 9px 14px; width: auto; }
-  .stage { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+  .btn:hover:not(:disabled) { background: var(--blue-press); }
+  .btn:active:not(:disabled) { transform: scale(.98); }
+  .btn:disabled { background: #B9C4E6; cursor: not-allowed; }
+  .btn.quiet { background: var(--soft); color: var(--ink); width: auto; padding: 11px 18px; font-size: 15px; }
+  .btn.quiet:hover:not(:disabled) { background: #E4E8F7; }
+  .btn.quiet:disabled { background: var(--soft); color: #A9AECB; }
+
+  /* ---------- canvas / gallery wall ---------- */
+  .stage { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+  .wall {
+    background: #EEF0F8; border-radius: 28px; padding: clamp(18px, 4vw, 48px);
+    display: grid; place-items: center; min-height: 440px;
+  }
   .output {
-    position: relative; min-height: 360px; display: grid; place-items: center; overflow: auto;
-    background:
-      conic-gradient(var(--soft) 25%, transparent 0 50%, var(--soft) 0 75%, transparent 0) 0 0 / 24px 24px,
-      var(--panel);
+    background: var(--white); padding: clamp(10px, 2vw, 22px); border-radius: 6px; max-width: 100%;
+    box-shadow: 0 2px 4px rgba(14,18,48,.06), 0 30px 60px -25px rgba(14,18,48,.35);
+    display: grid; place-items: center;
   }
-  #mosaic { max-width: 100%; height: auto; image-rendering: pixelated; display: none; cursor: crosshair; }
-  .empty { text-align: center; color: var(--muted); padding: 40px 16px; }
-  .empty .big { font-family: "Pixelify Sans", monospace; font-size: 22px; color: var(--ink); }
-  .bar { height: 12px; border: 2px solid var(--line); border-radius: 6px; overflow: hidden; background: var(--soft); }
-  .bar > div { height: 100%; width: 0; background: var(--accent); transition: width .15s; }
-  .status { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; }
-  .status .msg { color: var(--muted); }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; }
-  .stats { display: flex; gap: 22px; flex-wrap: wrap; }
-  .stat b { display: block; font-family: "Pixelify Sans", monospace; font-size: 22px; }
-  .stat span { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
-  #tip {
-    position: fixed; pointer-events: none; background: var(--ink); color: var(--bg);
-    padding: 4px 8px; border-radius: 6px; font-size: 13px; display: none; z-index: 5;
+  #mosaic { max-width: 100%; max-height: 72vh; height: auto; image-rendering: pixelated; display: none; cursor: crosshair; }
+  .empty { text-align: center; padding: 56px 36px; color: var(--muted); max-width: 360px; }
+  .empty .squares { display: inline-grid; grid-template-columns: repeat(3, 18px); gap: 4px; margin-bottom: 18px; }
+  .empty .squares b { width: 18px; height: 18px; border-radius: 4px; background: var(--c); }
+  .empty .big { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--ink); margin-bottom: 6px; }
+
+  .label-card {
+    display: grid; grid-template-columns: 1fr auto; gap: 18px 24px; align-items: end;
+    background: var(--white); border: 1px solid var(--line); border-radius: 22px; padding: 20px 22px;
   }
-  .viewer { display: grid; grid-template-columns: 160px 1fr; gap: 16px; align-items: start; }
-  @media (max-width: 520px) { .viewer { grid-template-columns: 1fr; } }
+  @media (max-width: 640px) { .label-card { grid-template-columns: 1fr; } }
+  .label-card .title { font-style: italic; font-weight: 500; font-size: 18px; }
+  .label-card .status { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 14px; }
+  #phase { font-weight: 700; }
+  #msg { color: var(--muted); }
+  .bar { grid-column: 1 / -1; height: 6px; background: var(--soft); border-radius: 999px; overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--blue); border-radius: inherit; transition: width .2s; }
+  #stats { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  @media (max-width: 640px) { #stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--soft); border-radius: 14px; padding: 12px 14px; }
+  .stat b { display: block; font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat span { font-size: 13px; color: var(--muted); }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
+  @media (max-width: 640px) { .actions { justify-content: flex-start; } }
+
+  /* ---------- viewer ---------- */
+  .viewer { display: grid; grid-template-columns: 180px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 560px) { .viewer { grid-template-columns: 1fr; } }
   .viewer .art {
-    width: 160px; height: 160px; border: 2px solid var(--line); border-radius: 8px; background: var(--soft);
-    display: grid; place-items: center; overflow: hidden;
+    width: 180px; height: 180px; border-radius: 18px; background: var(--soft); overflow: hidden;
+    display: grid; place-items: center; color: var(--muted); font-family: var(--display); font-weight: 700;
   }
   .viewer .art img { width: 100%; height: 100%; image-rendering: pixelated; }
-  .traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-  .traits span { font-size: 12px; background: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 2px 8px; }
-  .row { display: flex; gap: 8px; }
-  .row input { flex: 1; }
-  .warn { color: var(--accent); }
-  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 0 16px 32px; }
-  footer a { color: inherit; }
+  .side h2 { margin-bottom: 4px; }
+  .row { display: flex; gap: 8px; margin-top: 14px; }
+  .row input { flex: 1; min-width: 0; }
+  .traits { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .traits span { font-size: 13px; background: var(--soft); border-radius: 999px; padding: 4px 11px; }
+  .traits span:nth-child(4n+1) { background: #E5EDFF; }
+  .traits span:nth-child(4n+2) { background: #FFE3F1; }
+  .traits span:nth-child(4n+3) { background: #FFF3D1; }
+  .traits span:nth-child(4n+4) { background: #D9F8EE; }
+
+  #tip {
+    position: fixed; pointer-events: none; background: var(--ink); color: #fff; z-index: 10;
+    padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
+  }
+  footer { padding: 56px 0 40px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
 <body>
-<header>
-  <h1>CHONK<span>·</span>MOSAIC</h1>
-  <p>Turn any picture into art made of Chonks. Free, private, runs in your browser.</p>
-</header>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="./"><i><b></b><b></b><b></b><b></b></i>Chonk Mosaic</a>
+    <a class="chain-pill" id="contractLink" target="_blank" rel="noopener">Chonks on Base</a>
+  </nav>
 
-<main>
-  <section class="controls card">
+  <section class="hero">
     <div>
-      <div class="step-label">1 · Your picture</div>
-      <label class="drop" id="drop">
-        <input type="file" id="file" accept="image/*" hidden>
-        <div class="hint" id="dropHint">Drop an image here<br>or tap to choose one</div>
-      </label>
-    </div>
-
-    <div>
-      <div class="step-label">2 · Detail <b id="colsOut">80 across</b></div>
-      <input type="range" id="cols" min="20" max="240" value="80">
-      <div class="note" id="gridNote">Pick an image to see the grid.</div>
-    </div>
-
-    <div>
-      <div class="step-label">3 · Chonk size <b id="tileOut">48 px</b></div>
-      <input type="range" id="tile" min="12" max="120" step="4" value="48">
-      <div class="note" id="sizeNote"></div>
-    </div>
-
-    <div>
-      <div class="step-label">4 · Art source</div>
-      <div class="seg" id="source">
-        <button data-v="atlas" class="on">Fast (cached)</button>
-        <button data-v="chain">Onchain (live)</button>
+      <h1>Your picture, rebuilt from Chonks.</h1>
+      <p>Drop in any image and every pixel block gets swapped for the Chonk that matches it best, picked from the whole collection.</p>
+      <div class="hero-facts">
+        <span style="--c: var(--blue)">Art read from the contract</span>
+        <span style="--c: var(--pink)">Runs in your browser</span>
+        <span style="--c: var(--mint)">Free, no wallet needed</span>
       </div>
-      <div class="note" id="sourceNote">Uses pre-rendered Chonk thumbnails — instant.</div>
     </div>
-
-    <div>
-      <div class="step-label">5 · Variety <b id="varOut">balanced</b></div>
-      <input type="range" id="variety" min="0" max="100" value="30">
-      <div class="note">Left: closest colour match. Right: more different Chonks.</div>
-    </div>
-
-    <details>
-      <summary>Advanced</summary>
-      <div class="grid2">
-        <label class="f">Colour weight<input type="number" step="0.05" id="w_color" value="0.45"></label>
-        <label class="f">Shape weight<input type="number" step="0.05" id="w_fp" value="0.30"></label>
-        <label class="f">Brightness weight<input type="number" step="0.05" id="w_bright" value="0.10"></label>
-        <label class="f">Saturation weight<input type="number" step="0.05" id="w_sat" value="0.10"></label>
-        <label class="f">Edge weight<input type="number" step="0.05" id="w_edge" value="0.05"></label>
-        <label class="f">Palette adaptation<input type="number" step="0.05" min="0" max="1" id="p_adapt" value="0.65"></label>
-        <label class="f">Recent memory<input type="number" step="1" min="0" id="r_mem" value="20"></label>
-        <label class="f">Search depth<input type="number" step="250" min="100" id="cands" value="1500"></label>
-        <label class="f wide">Only use these Chonk IDs (e.g. <code>1-500, 777</code>)<input type="text" id="only" placeholder="all Chonks"></label>
-        <label class="f wide">Base RPC URL<input type="text" id="rpc"></label>
-      </div>
-    </details>
-
-    <button class="btn" id="go" disabled>Loading Chonks…</button>
+    <figure class="hero-art" style="margin:0">
+      <canvas id="hero" width="640" height="480" aria-label="A wall of Chonks"></canvas>
+      <figcaption id="heroCap">Chonks from the collection</figcaption>
+    </figure>
   </section>
 
-  <section class="stage">
-    <div class="card output" id="output">
-      <div class="empty" id="empty">
-        <div class="big">No mosaic yet</div>
-        Pick a picture on the left and hit <b>Make mosaic</b>.
+  <section class="studio" id="studio">
+    <div class="controls panel">
+      <h2>Make your mosaic</h2>
+
+      <div>
+        <div class="step-head"><span class="n" style="--c: var(--yellow)">1</span>Choose a picture</div>
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="image/*" hidden>
+          <div class="hint" id="dropHint"><strong>Drop an image here</strong>or click to browse. You can also paste.</div>
+        </label>
       </div>
-      <canvas id="mosaic"></canvas>
+
+      <div>
+        <div class="step-head"><span class="n" style="--c: var(--pink)">2</span>Detail<span class="val" id="colsOut">80 across</span></div>
+        <input type="range" id="cols" min="20" max="240" value="80" aria-label="Chonks across">
+        <div class="note" id="gridNote">Choose a picture to see the grid.</div>
+      </div>
+
+      <div>
+        <div class="step-head"><span class="n" style="--c: var(--mint)">3</span>Chonk size<span class="val" id="tileOut">48 px</span></div>
+        <input type="range" id="tile" min="12" max="120" step="4" value="48" aria-label="Chonk size in pixels">
+        <div class="note" id="sizeNote"></div>
+      </div>
+
+      <div>
+        <div class="step-head"><span class="n" style="--c: #B9D0FF">4</span>Art source</div>
+        <div class="seg" id="source">
+          <button data-v="atlas" class="on">Fast</button>
+          <button data-v="chain">Onchain live</button>
+        </div>
+        <div class="note" id="sourceNote">Uses saved Chonk images. Instant.</div>
+      </div>
+
+      <div>
+        <div class="step-head"><span class="n" style="--c: #D8C8FF">5</span>Variety<span class="val" id="varOut">balanced</span></div>
+        <input type="range" id="variety" min="0" max="100" value="30" aria-label="Variety">
+        <div class="note">Lower keeps the closest colour match. Higher uses more different Chonks.</div>
+      </div>
+
+      <details>
+        <summary>Advanced settings</summary>
+        <div class="grid2">
+          <label class="f">Colour weight<input type="number" step="0.05" id="w_color" value="0.45"></label>
+          <label class="f">Shape weight<input type="number" step="0.05" id="w_fp" value="0.30"></label>
+          <label class="f">Brightness weight<input type="number" step="0.05" id="w_bright" value="0.10"></label>
+          <label class="f">Saturation weight<input type="number" step="0.05" id="w_sat" value="0.10"></label>
+          <label class="f">Edge weight<input type="number" step="0.05" id="w_edge" value="0.05"></label>
+          <label class="f">Palette adaptation<input type="number" step="0.05" min="0" max="1" id="p_adapt" value="0.65"></label>
+          <label class="f">Recent memory<input type="number" step="1" min="0" id="r_mem" value="20"></label>
+          <label class="f">Search depth<input type="number" step="250" min="100" id="cands" value="1500"></label>
+          <label class="f wide">Only use these Chonk IDs, e.g. 1-500, 777<input type="text" id="only" placeholder="All Chonks"></label>
+          <label class="f wide">Base RPC URL<input type="text" id="rpc"></label>
+        </div>
+      </details>
+
+      <button class="btn" id="go" disabled>Loading Chonks…</button>
     </div>
 
-    <div class="card">
-      <div class="status"><span id="phase">Ready</span><span class="msg" id="msg"></span></div>
-      <div class="bar" style="margin-top:8px"><div id="progress"></div></div>
-      <div class="stats" id="stats" style="margin-top:14px; display:none">
-        <div class="stat"><b id="sTiles">–</b><span>tiles</span></div>
-        <div class="stat"><b id="sUnique">–</b><span>unique Chonks</span></div>
-        <div class="stat"><b id="sSize">–</b><span>pixels</span></div>
-        <div class="stat"><b id="sTime">–</b><span>match time</span></div>
-      </div>
-      <div class="actions" style="margin-top:14px">
-        <button class="btn ghost" id="dl" disabled>Download PNG</button>
-        <button class="btn ghost" id="dlList" disabled>Chonk list (CSV)</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="step-label">Chonk viewer · rendered from the contract</div>
-      <div class="viewer">
-        <div class="art" id="vArt"><span class="note">#?</span></div>
-        <div>
-          <div class="row">
-            <input type="number" id="vId" min="1" placeholder="Chonk ID, or click a tile">
-            <button class="btn ghost" id="vGo">Show</button>
+    <div class="stage">
+      <div class="wall">
+        <div class="output" id="output">
+          <div class="empty" id="empty">
+            <div class="squares">
+              <b style="--c: var(--blue)"></b><b style="--c: var(--pink)"></b><b style="--c: var(--yellow)"></b>
+              <b style="--c: var(--mint)"></b><b style="--c: var(--violet)"></b><b style="--c: var(--blue)"></b>
+              <b style="--c: var(--yellow)"></b><b style="--c: var(--mint)"></b><b style="--c: var(--pink)"></b>
+            </div>
+            <div class="big">Your mosaic hangs here</div>
+            Choose a picture, then press Make mosaic.
           </div>
-          <div id="vInfo" class="note" style="margin-top:10px">Click any Chonk in your mosaic to load it live from Base.</div>
-          <div class="traits" id="vTraits"></div>
+          <canvas id="mosaic"></canvas>
+        </div>
+      </div>
+
+      <div class="label-card">
+        <div>
+          <div class="title">Untitled, Chonks on canvas</div>
+          <div class="status"><span id="phase">Ready</span><span id="msg"></span></div>
+        </div>
+        <div class="actions">
+          <button class="btn quiet" id="dlList" disabled>Download Chonk list</button>
+          <button class="btn quiet" id="dl" disabled>Download PNG</button>
+        </div>
+        <div class="bar"><div id="progress"></div></div>
+        <div id="stats" style="display:none">
+          <div class="stat"><b id="sTiles">–</b><span>Chonks placed</span></div>
+          <div class="stat"><b id="sUnique">–</b><span>Different Chonks</span></div>
+          <div class="stat"><b id="sSize">–</b><span>Pixels</span></div>
+          <div class="stat"><b id="sTime">–</b><span>Matching time</span></div>
+        </div>
+      </div>
+
+      <div class="panel side">
+        <div class="viewer">
+          <div class="art" id="vArt">#?</div>
+          <div>
+            <h2>Inspect a Chonk</h2>
+            <div class="note">Click any Chonk in your mosaic, or enter an ID. It loads live from the contract on Base.</div>
+            <div class="row">
+              <input type="number" id="vId" min="1" placeholder="Chonk ID" aria-label="Chonk ID">
+              <button class="btn quiet" id="vGo">Show Chonk</button>
+            </div>
+            <div id="vInfo" class="note" style="margin-top:10px"></div>
+            <div class="traits" id="vTraits"></div>
+          </div>
         </div>
       </div>
     </div>
   </section>
-</main>
+
+  <footer>
+    <span>Your picture never leaves your device.</span>
+    <span>Chonk art is read from the Chonks contract on Base.</span>
+  </footer>
+</div>
 
 <div id="tip"></div>
-<footer>
-  Chonks art is read from the <a id="contractLink" target="_blank" rel="noopener">Chonks contract on Base</a>.
-  Your picture never leaves your device.
-</footer>
-
 <script src="chain.js"></script>
 <script src="app.js"></script>
 </body>

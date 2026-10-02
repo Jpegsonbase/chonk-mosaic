@@ -49,10 +49,33 @@
       state.worker = new Worker("worker.js");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
+      paintHero();
     } catch (err) {
       setPhase("Chonk data not found", "Run prep/build_dataset.py to create web/data/ — see README.", 0);
       el.go.textContent = "Data missing";
     }
+  }
+
+  // Hero: a wall of random Chonks from the first sprite sheet.
+  async function paintHero() {
+    const canvas = document.getElementById("hero");
+    if (!canvas) return;
+    try {
+      const img = await loadAtlas(0);
+      const { thumb, perAtlasSide, count } = state.meta;
+      const per = Math.min(count, perAtlasSide * perAtlasSide);
+      const cols = 8, rows = 6, size = canvas.width / cols;
+      const ctx = canvas.getContext("2d");
+      ctx.imageSmoothingEnabled = false;
+      for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
+        const slot = Math.floor(Math.random() * per);
+        ctx.drawImage(img, (slot % perAtlasSide) * thumb, Math.floor(slot / perAtlasSide) * thumb, thumb, thumb,
+          c * size, r * size, size, size);
+      }
+      canvas.classList.add("on");
+      const cap = document.getElementById("heroCap");
+      if (cap) cap.textContent = `${cols * rows} of ${count.toLocaleString()} Chonks`;
+    } catch (_) { /* hero stays plain */ }
   }
 
   let buildResolve = null, buildReject = null;
@@ -180,6 +203,7 @@
   async function build() {
     if (!state.ready || !state.image || state.busy) return;
     state.busy = true; refreshButton();
+    if (window.innerWidth < 960) document.querySelector(".wall")?.scrollIntoView({ behavior: "smooth", block: "start" });
     el.dl.disabled = el.dlList.disabled = true;
     try {
       const { cols, rows } = gridSize();
