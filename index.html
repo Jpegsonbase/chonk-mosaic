@@ -142,7 +142,35 @@
     box-shadow: 0 2px 4px rgba(14,18,48,.06), 0 30px 60px -25px rgba(14,18,48,.35);
     display: grid; place-items: center;
   }
-  #mosaic { max-width: 100%; max-height: 72vh; height: auto; image-rendering: pixelated; display: none; cursor: crosshair; }
+  .output { width: 100%; }
+  .viewport {
+    position: relative; width: 100%; max-height: 72vh; overflow: hidden; background: var(--white);
+    touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none;
+  }
+  .viewport[hidden] { display: none; }
+  .viewport.grabbing { cursor: grabbing; }
+  #mosaic { position: absolute; left: 0; top: 0; transform-origin: 0 0; display: none; max-width: none; }
+  .zoombar {
+    position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 2px;
+    background: rgba(255,255,255,.94); backdrop-filter: blur(8px); border-radius: 999px; padding: 4px;
+    box-shadow: 0 4px 16px rgba(14,18,48,.18); font-size: 13px; font-weight: 700; cursor: default; z-index: 2;
+  }
+  .zoombar button {
+    border: 0; background: transparent; color: var(--ink); font: 700 18px/1 var(--body);
+    width: 34px; height: 34px; border-radius: 999px; cursor: pointer;
+  }
+  .zoombar button.txt { width: auto; padding: 0 12px; font-size: 13px; }
+  .zoombar button:hover { background: var(--soft); }
+  #zoomLevel { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
+  .wall:fullscreen { border-radius: 0; padding: 0; background: #EEF0F8; }
+  .wall:fullscreen .output { padding: 0; border-radius: 0; height: 100vh; box-shadow: none; }
+  .wall:fullscreen .viewport { max-height: none; height: 100vh; aspect-ratio: auto !important; }
+  @media (max-width: 520px) {
+    .zoombar button.txt#zoomFull { display: none; }
+    .zoombar { right: 8px; bottom: 8px; padding: 2px; }
+    .zoombar button { width: 28px; height: 28px; font-size: 16px; }
+    #zoomLevel { min-width: 40px; font-size: 12px; }
+  }
   .empty { text-align: center; padding: 56px 36px; color: var(--muted); max-width: 360px; }
   .empty .squares { display: inline-grid; grid-template-columns: repeat(3, 18px); gap: 4px; margin-bottom: 18px; }
   .empty .squares b { width: 18px; height: 18px; border-radius: 4px; background: var(--c); }
@@ -286,7 +314,16 @@
             <div class="big">Your mosaic hangs here</div>
             Choose a picture, then press Make mosaic.
           </div>
-          <canvas id="mosaic"></canvas>
+          <div class="viewport" id="viewport" tabindex="0" hidden aria-label="Your mosaic. Scroll or pinch to zoom, drag to move.">
+            <canvas id="mosaic"></canvas>
+            <div class="zoombar">
+              <button id="zoomOut" aria-label="Zoom out">−</button>
+              <span id="zoomLevel">100%</span>
+              <button id="zoomIn" aria-label="Zoom in">+</button>
+              <button id="zoomFit" class="txt">Fit</button>
+              <button id="zoomFull" class="txt">Full screen</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -334,6 +371,7 @@
 
 <div id="tip"></div>
 <script src="chain.js"></script>
+<script src="zoom.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

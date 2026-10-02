@@ -249,6 +249,7 @@
       ctx.imageSmoothingEnabled = false;
       ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
       el.empty.style.display = "none"; canvas.style.display = "block";
+      window.MosaicZoom && MosaicZoom.reset();
 
       await drawFromAtlases(ctx, used, cols, tile);
       if (state.source === "chain") await drawFromChain(ctx, used, cols, tile);
