@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=20");
+      state.worker = new Worker("worker.js?v=21");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -455,7 +455,7 @@
     if (window.innerWidth < 960) document.querySelector(".wall")?.scrollIntoView({ behavior: "smooth", block: "start" });
     el.dl.disabled = true;
     if (el.dlFull) el.dlFull.disabled = true;
-    el.share.disabled = true;
+    setShareEnabled(false);
     if (window.MosaicZoom && MosaicZoom.setCompare) MosaicZoom.setCompare(false);
     saveSettings();
     try {
@@ -523,8 +523,8 @@
 
       drawOriginal(crop, cols * tile, rows * tile);
       el.artTitle.textContent = state.label ? `${state.label}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
-      el.share.disabled = false;
-      preparePng();
+      setShareEnabled(true);
+      preparePhoto();
       if (state.source !== "chain") state.onchainNote = "";
       setPhase("Done", state.missingSheets
         ? `Some Chonks couldn't load (blank squares). Check your connection and press Make mosaic again.`
@@ -673,35 +673,54 @@
   }
 
   // ---------------------------------------------------------------- save to Photos (phones)
-  // iPhone saves downloads to Files. The share sheet has "Save Image", which
-  // puts it in Photos, so on phones that can share files we use that instead.
+  // iPhone sends downloads to Files, and Photos refuses very large PNGs. So on
+  // phones "Save to Photos" shares a Photos-sized JPEG (max 4096 px a side)
+  // through the share sheet, whose "Save Image" puts it in Photos. If sharing
+  // isn't possible, the picture opens full screen to press-and-hold save.
+  // Download PNG is hidden on phones because it would only go to Files.
+  const PHOTO_MAX = 4096;
   const canShareFiles = (() => {
     try {
       return !!(navigator.canShare && navigator.share &&
-        navigator.canShare({ files: [new File([new Blob(["x"])], "t.png", { type: "image/png" })] }));
+        navigator.canShare({ files: [new File([new Blob(["x"])], "t.jpg", { type: "image/jpeg" })] }));
     } catch (_) { return false; }
   })();
-  const useShareSheet = DEVICE.mobile && canShareFiles;
   const savePhotos = document.getElementById("savePhotos");
-  if (savePhotos && useShareSheet) {
+  if (DEVICE.mobile && savePhotos) {
     savePhotos.hidden = false;
-    savePhotos.textContent = DEVICE.ios ? "Save to Photos" : "Save / share image";
+    savePhotos.textContent = DEVICE.ios ? "Save to Photos" : "Save image";
+    el.dl.hidden = true;
   }
   const pngName = (w, h) => `chonk-mosaic-${w}x${h}.png`;
-  // Share must start straight from a tap, so the PNG is prepared right after each build.
-  function preparePng() {
-    state.pngBlob = null;
-    if (!useShareSheet) return;
+
+  // Prepared right after each build, because sharing must start straight from a tap.
+  function preparePhoto() {
+    state.photo = null;
+    if (!DEVICE.mobile || !savePhotos) return;
     savePhotos.disabled = true;
-    el.canvas.toBlob((b) => { state.pngBlob = b; savePhotos.disabled = !b; }, "image/png");
+    const src = el.canvas;
+    const k = Math.min(1, PHOTO_MAX / Math.max(src.width, src.height));
+    let out = src;
+    if (k < 1) {
+      out = document.createElement("canvas");
+      out.width = Math.round(src.width * k); out.height = Math.round(src.height * k);
+      const c = out.getContext("2d");
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+      c.drawImage(src, 0, 0, out.width, out.height);
+    }
+    out.toBlob((b) => {
+      if (!b) return;
+      state.photo = { blob: b, name: `chonk-mosaic-${out.width}x${out.height}.jpg` };
+      savePhotos.disabled = false;
+    }, "image/jpeg", 0.92);
   }
-  async function shareBlob(blob, name, extra = {}) {
+
+  async function shareFile(blob, name, type) {
     try {
-      await navigator.share({ files: [new File([blob], name, { type: "image/png" })], ...extra });
+      await navigator.share({ files: [new File([blob], name, { type })] });
       return true;
     } catch (err) {
-      if (err && err.name === "AbortError") return true;   // they closed the sheet
-      return false;
+      return !!(err && err.name === "AbortError");   // closing the sheet isn't a failure
     }
   }
   function downloadBlob(blob, name) {
@@ -711,27 +730,52 @@
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 60000);
   }
+  // Fallback: show the picture so it can be pressed and held → Save to Photos.
+  function showHoldToSave(blob) {
+    const dlg = document.getElementById("holdDialog");
+    const img = document.getElementById("holdImg");
+    if (!dlg || !img || !dlg.showModal) { downloadBlob(blob, "chonk-mosaic.jpg"); return; }
+    const fr = new FileReader();
+    fr.onload = () => { img.src = fr.result; dlg.showModal(); };
+    fr.readAsDataURL(blob);
+  }
   if (savePhotos) savePhotos.addEventListener("click", async () => {
-    if (!state.pngBlob) return;
-    const name = pngName(el.canvas.width, el.canvas.height);
-    if (!(await shareBlob(state.pngBlob, name))) downloadBlob(state.pngBlob, name);
+    if (!state.photo) return;
+    if (canShareFiles && await shareFile(state.photo.blob, state.photo.name, "image/jpeg")) return;
+    showHoldToSave(state.photo.blob);
   });
 
   // ---------------------------------------------------------------- share on X
-  el.share.addEventListener("click", () => {
-    if (!state.last) return;
+  // Share on X is a real link to X's post composer. On phones, tapping it opens
+  // the X app (if installed) with the post written; websites can't attach a
+  // picture to it, so the post links back here and the image is added from Photos.
+  function shareText() {
     const placed = state.last.result.length.toLocaleString();
-    const text = state.last.label
+    return state.last.label
       ? `${state.last.label}, rebuilt from ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`
       : `I turned my picture into a mosaic of ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`;
-    const url = location.origin + location.pathname;
-    if (useShareSheet && state.pngBlob) {
-      // The share sheet can hand the picture and text straight to the X app.
-      shareBlob(state.pngBlob, pngName(el.canvas.width, el.canvas.height), { text: `${text}\n${url}` });
+  }
+  function setShareEnabled(on) {
+    el.share.setAttribute("aria-disabled", String(!on));
+    el.share.tabIndex = on ? 0 : -1;
+    if (on && state.last) {
+      const url = location.origin + location.pathname;
+      el.share.href = `https://x.com/intent/tweet?text=${encodeURIComponent(shareText())}&url=${encodeURIComponent(url)}`;
+    } else {
+      el.share.removeAttribute("href");
+    }
+  }
+  setShareEnabled(false);
+  el.share.addEventListener("click", (e) => {
+    if (el.share.getAttribute("aria-disabled") === "true" || !state.last) { e.preventDefault(); return; }
+    if (DEVICE.mobile) {
+      // Let the link open the X app. Remind them to add the picture.
+      setPhase("Opening X…", DEVICE.ios
+        ? "Tap Save to Photos first if you haven't, then add the picture to your post from Photos."
+        : "Save the image first if you haven't, then add it to your post.", 1);
       return;
     }
-    window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
-    el.dl.click(); // download the PNG so it's ready to attach
+    el.dl.click(); // desktop: download the PNG so it's ready to attach
     setPhase("Post opened on X", "Your PNG is downloading. Attach it to the post.", 1);
   });
 
@@ -825,8 +869,8 @@
         indexAt: (pos) => result[pos],
         onProgress: (p) => setPhase("Building full-size PNG…", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${Math.round(p * 100)}%`, 0.1 + p * 0.9),
       });
-      if (useShareSheet) {
-        // The share sheet needs a fresh tap, so ask with a small "ready" pop-up.
+      if (DEVICE.mobile) {
+        // Phones need a fresh tap to save, so ask with a small "ready" pop-up.
         state.fullBlob = blob; state.fullName = pngName(W, H);
         const rd = document.getElementById("readyDialog");
         document.getElementById("readyDims").textContent = `${W.toLocaleString()} × ${H.toLocaleString()} px`;
@@ -834,7 +878,7 @@
       } else {
         downloadBlob(blob, pngName(W, H));
       }
-      setPhase(useShareSheet ? "Full size ready" : "Full size saved", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${(blob.size / 1e6).toFixed(1)} MB · ${((performance.now() - t0) / 1000).toFixed(0)}s`, 1);
+      setPhase(DEVICE.mobile ? "Full size ready" : "Full size saved", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${(blob.size / 1e6).toFixed(1)} MB · ${((performance.now() - t0) / 1000).toFixed(0)}s`, 1);
     } catch (err) {
       console.error(err);
       setPhase("Full-size download failed", err.message || String(err));
@@ -867,7 +911,6 @@
   if (readyDlg) readyDlg.addEventListener("close", async () => {
     const blob = state.fullBlob; state.fullBlob = null;
     if (!blob) return;
-    if (readyDlg.returnValue === "save" && !(await shareBlob(blob, state.fullName))) downloadBlob(blob, state.fullName);
     if (readyDlg.returnValue === "file") downloadBlob(blob, state.fullName);
   });
 
@@ -983,6 +1026,7 @@
   darkQuery.addEventListener("change", syncTheme);
   syncTheme();
 
+  document.getElementById("dlList")?.remove();   // old button, in case an old page is cached
   restoreSettings();
   updateNotes();
   loadDataset();

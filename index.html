@@ -12,7 +12,7 @@
 <meta property="og:title" content="Chonk Mosaic: your picture, rebuilt from Chonks">
 <meta property="og:description" content="Drop in any image and get it back as a mosaic made of Chonks. Free, runs in your browser.">
 <meta property="og:url" content="https://jpegsonbase.github.io/chonk-mosaic/">
-<meta property="og:image" content="https://jpegsonbase.github.io/chonk-mosaic/og.png">
+<meta property="og:image" content="https://jpegsonbase.github.io/chonk-mosaic/og.png?v=2">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -204,6 +204,10 @@
   .drop canvas.preview.cropping:active { cursor: grabbing; }
   .link-btn { border: 0; background: none; padding: 0; font: 600 14px var(--body); color: var(--blue); cursor: pointer; }
   .link-btn[hidden], .btn[hidden] { display: none; }
+  a.btn { text-decoration: none; }
+  a.btn[aria-disabled="true"] { opacity: .45; pointer-events: none; cursor: not-allowed; }
+  dialog#holdDialog img { display: block; width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; margin-top: 8px;
+    -webkit-touch-callout: default; user-select: auto; }
   .link-btn:hover { text-decoration: underline; }
   .drop .hint { padding: 20px; color: var(--muted); font-size: 15px; }
   .drop .hint strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 2px; }
@@ -353,14 +357,14 @@
     padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
   }
   footer { align-items: center; }
-  dialog#fullDialog, dialog#readyDialog {
+  dialog#fullDialog, dialog#readyDialog, dialog#holdDialog {
     border: 0; border-radius: 22px; padding: 26px; max-width: 420px; width: calc(100% - 32px);
     background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px var(--shadow);
   }
-  dialog#fullDialog::backdrop, dialog#readyDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
-  dialog#fullDialog h2, dialog#readyDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
-  dialog#fullDialog p, dialog#readyDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
-  dialog#fullDialog p strong, dialog#readyDialog p strong { color: var(--ink); white-space: nowrap; }
+  dialog#fullDialog::backdrop, dialog#readyDialog::backdrop, dialog#holdDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
+  dialog#fullDialog h2, dialog#readyDialog h2, dialog#holdDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
+  dialog#fullDialog p, dialog#readyDialog p, dialog#holdDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  dialog#fullDialog p strong, dialog#readyDialog p strong, dialog#holdDialog p strong { color: var(--ink); white-space: nowrap; }
   .dlg-warn {
     width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 14px;
     background: var(--yellow); color: #0E1230; font-family: var(--display); font-weight: 800; font-size: 20px;
@@ -567,7 +571,7 @@
           <button class="btn quiet" id="savePhotos" hidden disabled>Save to Photos</button>
           <button class="btn quiet" id="dl" disabled>Download PNG</button>
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
-          <button class="btn quiet share" id="share" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</button>
+          <a class="btn quiet share" id="share" target="_blank" rel="noopener" role="button" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</a>
         </div>
         <div class="bar"><div id="progress"></div></div>
         <div id="stats" style="display:none">
@@ -625,16 +629,25 @@
 <dialog id="readyDialog" class="dlg" aria-labelledby="readyTitle">
   <form method="dialog">
     <h2 id="readyTitle">Your full-size image is ready</h2>
-    <p><strong id="readyDims"></strong>. Save it to your photos, or keep it as a file.</p>
+    <p><strong id="readyDims"></strong>. Full-size images are too big for Photos, so this one saves to your Files app.</p>
+    <p>For a copy in Photos, use <strong>Save to Photos</strong> instead.</p>
     <div class="dlg-actions">
-      <button class="btn quiet" value="file">Save as file</button>
-      <button class="btn" value="save" autofocus>Save to Photos</button>
+      <button class="btn quiet" value="cancel">Cancel</button>
+      <button class="btn" value="file" autofocus>Save to Files</button>
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=20"></script>
-<script src="zoom.js?v=20"></script>
-<script src="export.js?v=20"></script>
-<script src="app.js?v=20"></script>
+<dialog id="holdDialog" class="dlg hold" aria-labelledby="holdTitle">
+  <form method="dialog">
+    <h2 id="holdTitle">Press and hold to save</h2>
+    <p>Press and hold the picture, then tap <strong>Save to Photos</strong>.</p>
+    <img id="holdImg" alt="Your mosaic">
+    <div class="dlg-actions"><button class="btn" value="done">Done</button></div>
+  </form>
+</dialog>
+<script src="chain.js?v=21"></script>
+<script src="zoom.js?v=21"></script>
+<script src="export.js?v=21"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>
