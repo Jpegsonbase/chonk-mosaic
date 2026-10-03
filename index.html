@@ -209,6 +209,7 @@
   dialog#holdDialog img { display: block; width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; margin-top: 8px;
     -webkit-touch-callout: default; user-select: auto; }
   .link-btn:hover { text-decoration: underline; }
+  .reset-btn { margin-top: 8px; font-size: 13px; }
   .drop .hint { padding: 20px; color: var(--muted); font-size: 15px; }
   .drop .hint strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 2px; }
   input[type=range] { width: 100%; accent-color: var(--blue); height: 28px; margin: 0; }
@@ -511,6 +512,7 @@
         <div class="step-head"><span class="n" style="--c: #B9D0FF">4</span>Chonk size<span class="val" id="tileOut">60 px</span></div>
         <input type="range" id="tile" min="0" max="4" step="1" value="2" aria-label="Chonk size">
         <div class="note" id="sizeNote"></div>
+        <button class="link-btn reset-btn" id="resetSize" type="button" hidden>&#8634; Reset detail &amp; size to default</button>
       </div>
 
       <div>
@@ -702,11 +704,11 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=28"></script>
-<script src="zoom.js?v=28"></script>
-<script src="export.js?v=28"></script>
-<script src="vendor/gifenc.js?v=28"></script>
-<script src="gif.js?v=28"></script>
-<script src="app.js?v=28"></script>
+<script src="chain.js?v=29"></script>
+<script src="zoom.js?v=29"></script>
+<script src="export.js?v=29"></script>
+<script src="vendor/gifenc.js?v=29"></script>
+<script src="gif.js?v=29"></script>
+<script src="app.js?v=29"></script>
 </body>
 </html>

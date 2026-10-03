@@ -22,7 +22,7 @@
   const el = {
     drop: $("drop"), file: $("file"), dropHint: $("dropHint"),
     cols: $("cols"), colsOut: $("colsOut"), gridNote: $("gridNote"),
-    tile: $("tile"), tileOut: $("tileOut"), sizeNote: $("sizeNote"),
+    tile: $("tile"), tileOut: $("tileOut"), sizeNote: $("sizeNote"), resetSize: $("resetSize"),
     source: $("source"), sourceNote: $("sourceNote"),
     variety: $("variety"), varOut: $("varOut"),
     go: $("go"), canvas: $("mosaic"), empty: $("empty"),
@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=28");
+      state.worker = new Worker("worker.js?v=29");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -164,6 +164,10 @@
     return { cols, rows };
   }
 
+  // Defaults for Detail and Chonk size (phones start at 30 px so the default fits their canvas).
+  const DEFAULT_COLS = 80;
+  const defaultTileIndex = () => (DEVICE.mobile ? 1 : 2);
+
   // Chonk sizes that keep every art pixel square (Chonks are drawn on a 30 px grid).
   const SIZES = [15, 30, 60, 90, 120];
   const chosenTile = () => SIZES[Math.min(SIZES.length - 1, Math.max(0, +el.tile.value | 0))];
@@ -180,6 +184,7 @@
     const { cols, rows } = gridSize();
     el.colsOut.textContent = `${cols} across`;
     el.tileOut.textContent = `${chosenTile()} px`;
+    el.resetSize.hidden = cols === DEFAULT_COLS && +el.tile.value === defaultTileIndex();
     if (!rows) return;
     el.gridNote.textContent = `${cols} × ${rows} grid = ${(cols * rows).toLocaleString()} Chonks`;
     const t = effectiveTile(cols, rows);
@@ -362,6 +367,13 @@
   });
   el.cols.addEventListener("input", updateNotes);
   el.tile.addEventListener("input", updateNotes);
+  el.resetSize.addEventListener("click", () => {
+    el.cols.value = DEFAULT_COLS;
+    el.tile.value = defaultTileIndex();
+    updateNotes();
+    saveSettings();
+    el.cols.focus();
+  });
   el.variety.addEventListener("input", varietySettings);
   el.source.addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
