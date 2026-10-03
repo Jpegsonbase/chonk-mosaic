@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=15");
+      state.worker = new Worker("worker.js?v=16");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -382,22 +382,33 @@
     el.walletRow.hidden = v !== "wallet";
     if (v === "all") el.poolNote.textContent = "Picks from the whole collection.";
     else if (state.walletIdx) showWalletNote();
-    else el.poolNote.textContent = "Paste a wallet address to build only from the Chonks it holds.";
+    else el.poolNote.textContent = "Paste a wallet address or ENS name to build only from the Chonks it holds.";
     saveSettings();
   }
   function showWalletNote() {
-    const n = state.walletIdx.length, short = `${state.walletAddr.slice(0, 6)}…${state.walletAddr.slice(-4)}`;
+    const n = state.walletIdx.length;
+    const shortAddr = `${state.walletAddr.slice(0, 6)}…${state.walletAddr.slice(-4)}`;
+    const short = state.walletName ? `${state.walletName} (${shortAddr})` : shortAddr;
     el.poolNote.innerHTML = n
       ? `<span class="ok">${n.toLocaleString()} Chonk${n === 1 ? "" : "s"}</span> found in ${short}.` +
         (n < 40 ? " Mosaics look best with 40 or more, so expect lots of repeats." : "")
       : `No Chonks found in ${short}. Chonks listed for sale on a market may be held by the market instead.`;
   }
   async function loadWallet() {
-    const addr = el.wallet.value.trim();
-    el.poolNote.textContent = "Looking up wallet on Base…";
+    let input = el.wallet.value.trim();
+    let addr = input, name = "";
     try {
+      // Names: "jpegsonbase.eth", "name.base.eth", or just "jpegsonbase" (assumes .eth).
+      if (input && !/^0x/i.test(input)) {
+        name = input.includes(".") ? input : `${input}.eth`;
+        el.poolNote.textContent = `Looking up ${name}…`;
+        addr = await ChonkChain.resolveName(name, el.rpc.value.trim() || undefined);
+        if (!addr) throw new Error(`${name} isn't linked to a wallet address.`);
+      }
+      el.poolNote.textContent = "Looking up wallet on Base…";
       const ids = await ChonkChain.getWalletChonks(addr, el.rpc.value.trim() || undefined);
       state.walletAddr = addr;
+      state.walletName = name;
       state.walletIdx = ids.map((id) => state.idToIndex.get(id)).filter((i) => i !== undefined);
       showWalletNote();
       saveSettings();

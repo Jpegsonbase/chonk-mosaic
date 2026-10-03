@@ -164,5 +164,46 @@
     return ids;
   }
 
-  root.ChonkChain = { CHONKS_CONTRACT, DEFAULT_RPC, getChonkImage, getChonkMeta, getManyChonkImages, getWalletChonks, decodeAbiString };
+  // ---- ENS (.eth) and Basenames (.base.eth)
+  // viem is loaded only when someone types a name, so normal visits stay light.
+  const VIEM = "https://esm.sh/viem@2.57.2";
+  const MAINNET_RPCS = ["https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com", "https://cloudflare-eth.com"];
+  const BASENAME_RESOLVER = "0xC6d566A56A1aFf6508b41f6c90ff131615583BCD"; // Basenames L2 resolver on Base
+  let viemLoad = null;
+  const loadViem = () => (viemLoad ||= Promise.all([import(VIEM), import(`${VIEM}/chains`), import(`${VIEM}/ens`)])
+    .catch((e) => { viemLoad = null; throw e; }));
+
+  /** Turn "name.eth" / "name.base.eth" into a 0x address, or null if it isn't set. */
+  async function resolveName(name, baseRpc) {
+    let viem, chains, ens;
+    try { [viem, chains, ens] = await loadViem(); }
+    catch (_) { throw new Error("Couldn't load the name lookup. Check your connection, or paste the 0x address instead."); }
+    let norm;
+    try { norm = ens.normalize(name.trim()); }
+    catch (_) { throw new Error(`"${name}" isn't a valid name.`); }
+
+    // 1. ENS on Ethereum (also covers names that point elsewhere via offchain resolvers).
+    try {
+      const l1 = viem.createPublicClient({ chain: chains.mainnet, transport: viem.fallback(MAINNET_RPCS.map((u) => viem.http(u))) });
+      const addr = await l1.getEnsAddress({ name: norm });
+      if (addr) return addr;
+    } catch (_) { /* try Base below */ }
+
+    // 2. Basenames, read directly on Base.
+    if (norm.endsWith(".base.eth")) {
+      try {
+        const l2 = viem.createPublicClient({ chain: chains.base, transport: viem.http(baseRpc || DEFAULT_RPC) });
+        const addr = await l2.readContract({
+          address: BASENAME_RESOLVER,
+          abi: [{ name: "addr", type: "function", stateMutability: "view", inputs: [{ name: "node", type: "bytes32" }], outputs: [{ type: "address" }] }],
+          functionName: "addr",
+          args: [ens.namehash(norm)],
+        });
+        if (addr && !/^0x0{40}$/i.test(addr)) return addr;
+      } catch (_) { /* fall through */ }
+    }
+    return null;
+  }
+
+  root.ChonkChain = { CHONKS_CONTRACT, DEFAULT_RPC, getChonkImage, getChonkMeta, getManyChonkImages, getWalletChonks, resolveName, decodeAbiString };
 })(window);
