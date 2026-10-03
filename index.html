@@ -209,7 +209,7 @@
   dialog#holdDialog img { display: block; width: 100%; max-height: 60vh; object-fit: contain; border-radius: 10px; margin-top: 8px;
     -webkit-touch-callout: default; user-select: auto; }
   .link-btn:hover { text-decoration: underline; }
-  .reset-btn { margin-top: 8px; font-size: 13px; }
+  .reset-btn { margin-top: 12px; font-size: 13px; }
   .drop .hint { padding: 20px; color: var(--muted); font-size: 15px; }
   .drop .hint strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 2px; }
   input[type=range] { width: 100%; accent-color: var(--blue); height: 28px; margin: 0; }
@@ -404,6 +404,7 @@
     transition: background .15s, color .15s, border-color .15s;
   }
   footer .credit svg { width: 15px; height: 15px; }
+  footer .credits { display: flex; gap: 8px; flex-wrap: wrap; }
   footer .credit:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
   footer { padding: 56px 0 40px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
@@ -565,6 +566,7 @@
           <label class="f">Search depth<input type="number" step="250" min="100" id="cands" value="1500"></label>
           <label class="f wide">Base RPC URL<input type="text" id="rpc"></label>
         </div>
+        <button class="link-btn reset-btn" id="resetAdv" type="button" hidden>&#8634; Reset advanced settings to default</button>
       </details>
 
       <button class="btn" id="go" disabled>Loading Chonks…</button>
@@ -640,10 +642,14 @@
       <span>Your picture never leaves your device. <span id="dataDate"></span></span>
       <span>Art is read directly from the Chonks contract on Base.</span>
     </div>
+    <div class="credits">
+    <a class="credit" href="https://chonks.xyz" target="_blank" rel="noopener">Chonks</a>
+    <a class="credit" href="https://dailychonk.xyz" target="_blank" rel="noopener">Daily Chonk</a>
     <a class="credit" href="https://x.com/jpegsonbase" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>
       Made by @jpegsonbase
     </a>
+    </div>
   </footer>
 </div>
 
@@ -701,11 +707,11 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=33"></script>
-<script src="zoom.js?v=33"></script>
-<script src="export.js?v=33"></script>
-<script src="vendor/gifenc.js?v=33"></script>
-<script src="gif.js?v=33"></script>
-<script src="app.js?v=33"></script>
+<script src="chain.js?v=34"></script>
+<script src="zoom.js?v=34"></script>
+<script src="export.js?v=34"></script>
+<script src="vendor/gifenc.js?v=34"></script>
+<script src="gif.js?v=34"></script>
+<script src="app.js?v=34"></script>
 </body>
 </html>

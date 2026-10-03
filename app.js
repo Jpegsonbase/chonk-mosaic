@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=33");
+      state.worker = new Worker("worker.js?v=34");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -923,6 +923,21 @@
     varietySettings();
   }
   ["cols", "tile", "variety"].forEach((id) => $(id).addEventListener("change", saveSettings));
+
+  // Reset advanced settings: defaults are the values written in the page.
+  const ADV_IDS = ["w_color", "w_fp", "w_bright", "w_sat", "w_edge", "p_adapt", "r_mem", "cands", "rpc"];
+  const advDefault = (n) => (n.id === "rpc" ? ChonkChain.DEFAULT_RPC : n.defaultValue);
+  const resetAdv = document.getElementById("resetAdv");
+  function updateResetAdv() {
+    if (resetAdv) resetAdv.hidden = ADV_IDS.every((id) => { const n = $(id); return !n || n.value.trim() === advDefault(n); });
+  }
+  if (resetAdv) {
+    resetAdv.addEventListener("click", () => {
+      for (const id of ADV_IDS) { const n = $(id); if (n) n.value = advDefault(n); }
+      saveSettings(); updateResetAdv();
+    });
+    ADV_IDS.forEach((id) => $(id)?.addEventListener("input", updateResetAdv));
+  }
   document.querySelectorAll("details input").forEach((n) => n.addEventListener("change", saveSettings));
 
   // ---------------------------------------------------------------- full-size export
@@ -1150,6 +1165,7 @@
   // Phones start at 30 px, which fits their canvas limit at the default detail.
   if (DEVICE.mobile) { try { if (!localStorage.getItem("chonk-settings")) el.tile.value = 1; } catch (_) { el.tile.value = 1; } }   // old button, in case an old page is cached
   restoreSettings();
+  updateResetAdv();
   updateNotes();
   loadDataset();
 })();
