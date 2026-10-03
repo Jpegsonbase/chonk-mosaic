@@ -31,7 +31,7 @@
     vArt: $("vArt"), vId: $("vId"), vGo: $("vGo"), vInfo: $("vInfo"), vTraits: $("vTraits"),
     rpc: $("rpc"),
     shape: $("shape"), shapeNote: $("shapeNote"), pickId: $("pickId"), pickGo: $("pickGo"), pickRandom: $("pickRandom"),
-    tryExample: $("tryExample"), changePic: $("changePic"),
+    tryExample: $("tryExample"), changePic: $("changePic"), makeGif: $("makeGif"),
     pool: $("pool"), poolNote: $("poolNote"), walletRow: $("walletRow"), wallet: $("wallet"), walletGo: $("walletGo"),
     gap: $("gap"), gapNote: $("gapNote"), share: $("share"), artTitle: $("artTitle"), original: $("original"),
   };
@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=25");
+      state.worker = new Worker("worker.js?v=26");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -458,6 +458,7 @@
     el.dl.disabled = true;
     if (el.dlFull) el.dlFull.disabled = true;
     setShareEnabled(false);
+    if (el.makeGif) el.makeGif.disabled = true;
     if (window.MosaicZoom && MosaicZoom.setCompare) MosaicZoom.setCompare(false);
     saveSettings();
     try {
@@ -527,6 +528,7 @@
       el.artTitle.textContent = state.label ? `${state.label}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
       setShareEnabled(true);
       preparePhoto();
+      if (el.makeGif) el.makeGif.disabled = !(window.ChonkGif && ChonkGif.supported());
       if (state.source !== "chain") state.onchainNote = "";
       setPhase("Done", state.missingSheets
         ? `Some Chonks couldn't load (blank squares). Check your connection and press Make mosaic again.`
@@ -801,6 +803,73 @@
     el.dl.click(); // desktop: download the PNG so it's ready to attach
     setPhase("Post opened on X", "Your PNG is downloading. Attach it to the post.", 1);
   });
+
+  // ---------------------------------------------------------------- GIF maker
+  // Turns the finished mosaic into a looping GIF (zoom out, or reveal).
+  const gifDlg = document.getElementById("gifDialog");
+  const gifUi = {
+    style: document.getElementById("gifStyle"), note: document.getElementById("gifNote"),
+    go: document.getElementById("gifGo"), save: document.getElementById("gifSave"),
+    status: document.getElementById("gifStatus"), preview: document.getElementById("gifPreview"),
+    img: document.getElementById("gifImg"),
+  };
+  const GIF_NOTES = {
+    zoom: "Starts on a single Chonk, then pulls back to show your whole picture.",
+    reveal: "Your picture turns into Chonks, from the middle outwards.",
+  };
+  let gifStyle = "zoom", gifBlob = null, gifUrl = null, gifBusy = false;
+  function resetGif() {
+    gifBlob = null;
+    if (gifUrl) { URL.revokeObjectURL(gifUrl); gifUrl = null; }
+    gifUi.preview.hidden = true; gifUi.save.hidden = true;
+    gifUi.go.textContent = "Make GIF"; gifUi.status.textContent = "";
+  }
+  if (gifDlg && el.makeGif) {
+    el.makeGif.addEventListener("click", () => { if (!state.last) return; resetGif(); gifDlg.showModal(); });
+    gifUi.style.addEventListener("click", (e) => {
+      const b = e.target.closest("button"); if (!b || gifBusy) return;
+      gifStyle = b.dataset.v;
+      gifUi.style.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+      gifUi.note.textContent = GIF_NOTES[gifStyle];
+      resetGif();
+    });
+    gifUi.go.addEventListener("click", async () => {
+      if (gifBusy || !state.last) return;
+      gifBusy = true; resetGif();
+      gifUi.go.disabled = true; gifUi.go.textContent = "Making…";
+      try {
+        gifBlob = await ChonkGif.makeGif({
+          mosaic: el.canvas, original: el.original,
+          cols: state.last.cols, rows: state.last.rows, style: gifStyle,
+          maxSide: DEVICE.mobile ? 480 : 600,
+          onProgress: (p) => { gifUi.status.textContent = `Making your GIF… ${Math.round(p * 100)}%`; },
+        });
+        gifUrl = URL.createObjectURL(gifBlob);
+        gifUi.img.src = gifUrl;
+        gifUi.preview.hidden = false;
+        const otherIOS = DEVICE.ios && /FxiOS|CriOS|EdgiOS|OPiOS|DuckDuckGo|GSA\//.test(navigator.userAgent || "");
+        gifUi.status.innerHTML = otherIOS
+          ? `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB). Press and hold the GIF, tap <strong>Share… → Save to Files</strong>, or open this site in <strong>Safari</strong> to save it to Photos.`
+          : DEVICE.ios
+          ? `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB). <strong>Press and hold the GIF</strong>, then tap <strong>Save to Photos</strong>.`
+          : `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB).`;
+        gifUi.save.hidden = DEVICE.ios;
+        gifUi.go.textContent = "Make again";
+      } catch (err) {
+        console.error(err);
+        gifUi.status.textContent = "Couldn't make the GIF. Try a smaller Detail setting and make the mosaic again.";
+        gifUi.go.textContent = "Make GIF";
+      } finally {
+        gifBusy = false; gifUi.go.disabled = false;
+      }
+    });
+    gifUi.save.addEventListener("click", async () => {
+      if (!gifBlob) return;
+      const name = `chonk-mosaic-${gifStyle}.gif`;
+      if (DEVICE.mobile && canShareFiles && await shareFile(gifBlob, name, "image/gif")) return;
+      downloadBlob(gifBlob, name);
+    });
+  }
 
   // ---------------------------------------------------------------- remember settings
   const SETTINGS_KEY = "chonk-settings";

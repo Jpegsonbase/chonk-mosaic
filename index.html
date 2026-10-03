@@ -357,14 +357,14 @@
     padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
   }
   footer { align-items: center; }
-  dialog#fullDialog, dialog#readyDialog, dialog#holdDialog {
+  dialog#fullDialog, dialog#readyDialog, dialog#holdDialog, dialog#gifDialog {
     border: 0; border-radius: 22px; padding: 26px; max-width: 420px; width: calc(100% - 32px);
     background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px var(--shadow);
   }
-  dialog#fullDialog::backdrop, dialog#readyDialog::backdrop, dialog#holdDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
-  dialog#fullDialog h2, dialog#readyDialog h2, dialog#holdDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
-  dialog#fullDialog p, dialog#readyDialog p, dialog#holdDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
-  dialog#fullDialog p strong, dialog#readyDialog p strong, dialog#holdDialog p strong { color: var(--ink); white-space: nowrap; }
+  dialog#fullDialog::backdrop, dialog#readyDialog::backdrop, dialog#holdDialog::backdrop, dialog#gifDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
+  dialog#fullDialog h2, dialog#readyDialog h2, dialog#holdDialog h2, dialog#gifDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
+  dialog#fullDialog p, dialog#readyDialog p, dialog#holdDialog p, dialog#gifDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  dialog#fullDialog p strong, dialog#readyDialog p strong, dialog#holdDialog p strong, dialog#gifDialog p strong { color: var(--ink); white-space: nowrap; }
   .dlg-warn {
     width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 14px;
     background: var(--yellow); color: #0E1230; font-family: var(--display); font-weight: 800; font-size: 20px;
@@ -408,6 +408,12 @@
 
   /* ---------- polish pass ---------- */
   .zoombar button.txt { white-space: nowrap; }
+  dialog#gifDialog .seg { margin: 4px 0 10px; }
+  dialog#gifDialog .gif-note { font-size: 14px; }
+  .gif-preview { margin-top: 6px; border-radius: 12px; overflow: hidden; background: var(--soft); }
+  .gif-preview[hidden] { display: none; }
+  .gif-preview img { display: block; width: 100%; max-height: 52vh; object-fit: contain; -webkit-touch-callout: default; user-select: auto; }
+  dialog#gifDialog .gif-status { margin: 10px 0 0; font-size: 14px; min-height: 1.2em; }
   .foot-text { display: flex; flex-direction: column; gap: 4px; }
   .step-head .link-btn.val { color: var(--blue); font-weight: 600; }
   .empty { max-width: 380px; }
@@ -599,6 +605,7 @@
           <button class="btn quiet" id="savePhotos" hidden disabled>Save to Photos</button>
           <button class="btn quiet" id="dl" disabled>Download PNG</button>
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
+          <button class="btn quiet" id="makeGif" disabled>Make GIF</button>
           <a class="btn quiet share" id="share" target="_blank" rel="noopener" role="button" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</a>
         </div>
         <div class="bar"><div id="progress"></div></div>
@@ -667,6 +674,23 @@
     </div>
   </form>
 </dialog>
+<dialog id="gifDialog" class="dlg" aria-labelledby="gifTitle">
+  <form method="dialog">
+    <h2 id="gifTitle">Make a GIF</h2>
+    <div class="seg" id="gifStyle">
+      <button type="button" data-v="zoom" class="on">Zoom out</button>
+      <button type="button" data-v="reveal">Reveal</button>
+    </div>
+    <p class="gif-note" id="gifNote">Starts on a single Chonk, then pulls back to show your whole picture.</p>
+    <div class="gif-preview" id="gifPreview" hidden><img id="gifImg" alt="Your GIF"></div>
+    <p class="gif-status" id="gifStatus"></p>
+    <div class="dlg-actions">
+      <button class="btn quiet" value="close">Close</button>
+      <button class="btn quiet" type="button" id="gifSave" hidden>Download GIF</button>
+      <button class="btn" type="button" id="gifGo">Make GIF</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="holdDialog" class="dlg hold" aria-labelledby="holdTitle">
   <form method="dialog">
     <h2 id="holdTitle">Save to Photos</h2>
@@ -678,9 +702,11 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=25"></script>
-<script src="zoom.js?v=25"></script>
-<script src="export.js?v=25"></script>
-<script src="app.js?v=25"></script>
+<script src="chain.js?v=26"></script>
+<script src="zoom.js?v=26"></script>
+<script src="export.js?v=26"></script>
+<script src="vendor/gifenc.js?v=26"></script>
+<script src="gif.js?v=26"></script>
+<script src="app.js?v=26"></script>
 </body>
 </html>
