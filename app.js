@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=23");
+      state.worker = new Worker("worker.js?v=24");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -737,6 +737,14 @@
     const dlg = document.getElementById("holdDialog");
     const img = document.getElementById("holdImg");
     if (!dlg || !img || !dlg.showModal) { downloadBlob(blob, "chonk-mosaic.jpg"); return; }
+    // Safari's press-and-hold menu has "Save to Photos". Firefox, Chrome, Edge
+    // etc. on iPhone only offer "Share…", whose sheet has "Save Image".
+    const ua = navigator.userAgent || "";
+    const otherIOSBrowser = DEVICE.ios && /FxiOS|CriOS|EdgiOS|OPiOS|DuckDuckGo|GSA\//.test(ua);
+    const how = document.getElementById("holdHow");
+    if (how) how.innerHTML = otherIOSBrowser
+      ? "<strong>Press and hold the picture</strong>, tap <strong>Share…</strong>, then <strong>Save Image</strong>."
+      : "<strong>Press and hold the picture</strong>, then tap <strong>Save to Photos</strong>.";
     const fr = new FileReader();
     fr.onload = () => { img.src = fr.result; dlg.showModal(); };
     fr.readAsDataURL(blob);
