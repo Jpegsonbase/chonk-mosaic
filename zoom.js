@@ -55,7 +55,23 @@
   }
 
   // ---- wheel
+  // The wheel only zooms after the art has been clicked (until the pointer
+  // leaves it), or while holding Ctrl / ⌘ (trackpad pinch counts as Ctrl).
+  // Otherwise the page scrolls normally and a hint explains how to zoom.
+  let wheelArmed = false, hintTimer = 0;
+  const hint = document.createElement("div");
+  hint.className = "zoom-hint";
+  hint.textContent = /Mac|iPhone|iPad/.test(navigator.platform) ? "Click the art, or hold ⌘, to zoom with scroll" : "Click the art, or hold Ctrl, to zoom with scroll";
+  vp.appendChild(hint);
+  vp.addEventListener("pointerdown", () => { wheelArmed = true; hint.classList.remove("show"); });
+  vp.addEventListener("pointerleave", () => { wheelArmed = false; });
   vp.addEventListener("wheel", (e) => {
+    if (!(wheelArmed || e.ctrlKey || e.metaKey)) {
+      hint.classList.add("show");
+      clearTimeout(hintTimer);
+      hintTimer = setTimeout(() => hint.classList.remove("show"), 1400);
+      return;
+    }
     e.preventDefault();
     const r = vp.getBoundingClientRect();
     zoomAt(s * Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top);

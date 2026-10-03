@@ -21,6 +21,7 @@ Usage:
 
 Options:
     --fingerprint 4   fingerprint grid (4 = 48 bytes/Chonk, 8 = 192 bytes/Chonk)
+    --small 30        size of the light sheets phones use (0 = skip)
     --thumb 60        thumbnail size stored in the atlases (pixels). Use a size that
                       divides your image size evenly (300px images: 30, 60, 150 or 300).
     --workers N       CPU processes to use (default: all)
@@ -129,17 +130,47 @@ def make_thumb(img, size):
 
 
 def process(args):
-    path, fp_size, thumb = args
+    path, fp_size, thumb, small_size = args
     try:
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             with Image.open(path) as im:
                 img = im.convert("RGBA")
                 record = pack(*extract_features(img, fp_size))
-                small = make_thumb(img, thumb)
-                return path.stem, record, small.tobytes(), None
+                big = make_thumb(img, thumb).tobytes()
+                small = make_thumb(img, small_size).tobytes() if small_size else None
+                return path.stem, record, big, small, None
     except Exception as e:  # noqa: BLE001
-        return path.stem, None, None, str(e)
+        return path.stem, None, None, None, str(e)
+
+
+class AtlasWriter:
+    """Packs thumbnails into numbered sprite sheets of PER_ATLAS each."""
+
+    def __init__(self, folder, prefix, size, fmt):
+        self.folder, self.prefix, self.size, self.fmt = folder, prefix, size, fmt
+        self.sheet, self.index, self.count = None, 0, 0
+
+    def add(self, raw):
+        slot = self.count % PER_ATLAS
+        if slot == 0 and self.count:
+            self.flush()
+            self.index += 1
+        if self.sheet is None:
+            self.sheet = Image.new("RGBA", (PER_ATLAS_SIDE * self.size, PER_ATLAS_SIDE * self.size))
+        tile = Image.frombytes("RGBA", (self.size, self.size), raw)
+        self.sheet.paste(tile, ((slot % PER_ATLAS_SIDE) * self.size, (slot // PER_ATLAS_SIDE) * self.size))
+        self.count += 1
+
+    def flush(self):
+        if self.sheet is None:
+            return
+        name = self.folder / f"{self.prefix}_{self.index:03d}.{self.fmt}"
+        if self.fmt == "webp":
+            self.sheet.save(name, "WEBP", lossless=True, method=6)
+        else:
+            self.sheet.save(name, "PNG", optimize=True)
+        self.sheet = None
 
 
 def sort_key(p):
@@ -152,6 +183,8 @@ def main():
     ap.add_argument("--out", default="../web/data")
     ap.add_argument("--fingerprint", type=int, default=4, choices=[2, 4, 8])
     ap.add_argument("--thumb", type=int, default=60)
+    ap.add_argument("--small", type=int, default=30,
+                    help="size of the light sheets phones use (0 = don't make them)")
     ap.add_argument("--workers", type=int, default=os.cpu_count() or 2)
     ap.add_argument("--format", default="webp", choices=["webp", "png"])
     args = ap.parse_args()
@@ -176,40 +209,26 @@ def main():
 
     ids, records, failed = [], [], []
     thumb = args.thumb
-    atlas = None
-    atlas_index = 0
+    big_sheets = AtlasWriter(atlas_dir, "atlas", thumb, args.format)
+    small_sheets = AtlasWriter(atlas_dir, "atlas_s", args.small, args.format) if args.small else None
 
-    def flush_atlas():
-        nonlocal atlas
-        if atlas is None:
-            return
-        name = atlas_dir / f"atlas_{atlas_index:03d}.{args.format}"
-        if args.format == "webp":
-            atlas.save(name, "WEBP", lossless=True, method=6)
-        else:
-            atlas.save(name, "PNG", optimize=True)
-        atlas = None
-
-    jobs = ((p, args.fingerprint, thumb) for p in paths)
+    jobs = ((p, args.fingerprint, thumb, args.small) for p in paths)
     with ProcessPoolExecutor(max_workers=args.workers) as pool:
-        for n, (stem, record, thumb_bytes, err) in enumerate(
+        for n, (stem, record, big, small, err) in enumerate(
                 pool.map(process, jobs, chunksize=64), start=1):
             if err:
                 failed.append((stem, err))
             else:
-                slot = len(ids) % PER_ATLAS
-                if slot == 0 and ids:
-                    flush_atlas()
-                    atlas_index += 1
-                if atlas is None:
-                    atlas = Image.new("RGBA", (PER_ATLAS_SIDE * thumb, PER_ATLAS_SIDE * thumb))
-                tile = Image.frombytes("RGBA", (thumb, thumb), thumb_bytes)
-                atlas.paste(tile, ((slot % PER_ATLAS_SIDE) * thumb, (slot // PER_ATLAS_SIDE) * thumb))
+                big_sheets.add(big)
+                if small_sheets:
+                    small_sheets.add(small)
                 ids.append(int(stem) if stem.isdigit() else stem)
                 records.append(record)
             if n % 1000 == 0:
                 print(f"  {n}/{len(paths)}")
-    flush_atlas()
+    big_sheets.flush()
+    if small_sheets:
+        small_sheets.flush()
 
     with open(out_dir / "features.bin", "wb") as f:
         for r in records:
@@ -225,16 +244,20 @@ def main():
         "perAtlasSide": PER_ATLAS_SIDE,
         "atlasCount": math.ceil(len(ids) / PER_ATLAS),
         "atlasFormat": args.format,
+        "smallThumb": args.small or None,    # light sheets (atlas_s_###) for phones
         "ids": ids,
     }
     with open(out_dir / "meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, separators=(",", ":"))
 
     size = sum(p.stat().st_size for p in out_dir.rglob("*") if p.is_file())
+    small_size = sum(p.stat().st_size for p in atlas_dir.glob("atlas_s_*"))
     print(f"\nDone. {len(ids)} Chonks packed, {len(failed)} failed.")
     for stem, err in failed[:20]:
         print(f"  {stem}: {err}")
     print(f"Dataset size: {size / 1e6:.1f} MB in {out_dir.resolve()}")
+    if small_sheets:
+        print(f"  (phone sheets: {small_size / 1e6:.1f} MB)")
 
 
 if __name__ == "__main__":

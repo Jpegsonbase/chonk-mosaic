@@ -20,6 +20,8 @@
     recentMemory: 20,
     recentPenalty: 1.0,
     candidates: 1500,      // how many colour-nearest Chonks get the full score
+    neighbourPenalty: 40,  // same Chonk touching itself (any of the 8 neighbours)
+    centreOut: true,       // place from the middle outwards so the subject gets the best matches
   };
 
   // ------------------------------------------------------------ LAB
@@ -215,11 +217,39 @@
     };
     const width = cols * D;
 
-    for (let ty = 0; ty < rows; ty++) {
-      for (let tx = 0; tx < cols; tx++) {
+    // Placement order: centre outwards (rings), or plain reading order.
+    const total = cols * rows;
+    const order = new Int32Array(total);
+    for (let i = 0; i < total; i++) order[i] = i;
+    if (s.centreOut) {
+      const cx = (cols - 1) / 2, cy = (rows - 1) / 2;
+      const key = new Float64Array(total);
+      for (let i = 0; i < total; i++) {
+        const dx = (i % cols) - cx, dy = Math.floor(i / cols) - cy;
+        key[i] = Math.round(Math.hypot(dx, dy) * 4) * 10 + (Math.atan2(dy, dx) + Math.PI);
+      }
+      order.sort((a, b) => key[a] - key[b]);
+    }
+    const placed = new Int32Array(total).fill(-1);   // in working indices
+    const near = new Int32Array(8);
+    const step = Math.max(1, Math.floor(total / 100));
+
+    for (let n = 0; n < total; n++) {
+      const pos0 = order[n], tx = pos0 % cols, ty = (pos0 / cols) | 0;
+      {
         const t = tileFeatures(rgba, width, tx, ty, D, work.fp, tmp);
         const ad = adaptColour(t.lab, pal, s);
         const nc = gatherCandidates(grid, ad, want, cand);
+
+        // Chonks already placed right next to this square.
+        let nn = 0;
+        for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+          if (!ox && !oy) continue;
+          const x = tx + ox, y = ty + oy;
+          if (x < 0 || y < 0 || x >= cols || y >= rows) continue;
+          const v = placed[y * cols + x];
+          if (v >= 0) near[nn++] = v;
+        }
 
         let best = -1, bestScore = Infinity;
         for (let k = 0; k < nc; k++) {
@@ -230,6 +260,7 @@
           score += Math.abs(t.saturation - work.sat[i]) * 100 * s.saturationWeight;
           score += Math.abs(t.edge - work.edge[i]) * s.edgeWeight;
           score += usage[i] * s.reusePenalty;
+          for (let q = 0; q < nn; q++) if (near[q] === i) { score += s.neighbourPenalty; break; }
           if (score >= bestScore) continue;           // cheap early exit
           let fsum = 0;
           const base = i * cells * 3;
@@ -244,7 +275,8 @@
           if (score < bestScore) { bestScore = score; best = i; }
         }
 
-        result[ty * cols + tx] = map ? map[best] : best;
+        placed[pos0] = best;
+        result[pos0] = best < 0 ? -1 : (map ? map[best] : best);
         if (best >= 0) {
           usage[best]++;
           const pos = recent.indexOf(best);
@@ -253,7 +285,7 @@
           if (recent.length > s.recentMemory) recent.pop();
         }
       }
-      if (onProgress) onProgress((ty + 1) / rows);
+      if (onProgress && ((n + 1) % step === 0 || n + 1 === total)) onProgress((n + 1) / total);
     }
     return result;
   }

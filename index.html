@@ -202,7 +202,7 @@
   .drop canvas.preview.cropping { cursor: grab; touch-action: none; }
   .drop canvas.preview.cropping:active { cursor: grabbing; }
   .link-btn { border: 0; background: none; padding: 0; font: 600 14px var(--body); color: var(--blue); cursor: pointer; }
-  .link-btn[hidden] { display: none; }
+  .link-btn[hidden], .btn[hidden] { display: none; }
   .link-btn:hover { text-decoration: underline; }
   .drop .hint { padding: 20px; color: var(--muted); font-size: 15px; }
   .drop .hint strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 2px; }
@@ -268,6 +268,17 @@
     width: 34px; height: 34px; border-radius: 999px; cursor: pointer;
   }
   .zoombar button.txt { width: auto; padding: 0 12px; font-size: 13px; }
+  .zoom-hint {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 3; pointer-events: none;
+    background: rgba(14, 18, 48, .82); color: #fff; font-size: 14px; font-weight: 600;
+    padding: 10px 16px; border-radius: 999px; opacity: 0; transition: opacity .2s; white-space: nowrap;
+  }
+  .zoom-hint.show { opacity: 1; }
+  .mobile-go {
+    position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 20;
+    display: none; box-shadow: 0 10px 30px -8px rgba(0, 82, 255, .55);
+  }
+  @media (max-width: 960px) { .mobile-go.show { display: block; } body.has-mobile-go { padding-bottom: 84px; } }
   /* On mouse devices the bar fades in when you hover the art, so it doesn't cover it. */
   @media (hover: hover) {
     .zoombar { opacity: 0; transition: opacity .2s; }
@@ -341,14 +352,14 @@
     padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
   }
   footer { align-items: center; }
-  dialog#fullDialog {
+  dialog#fullDialog, dialog#readyDialog {
     border: 0; border-radius: 22px; padding: 26px; max-width: 420px; width: calc(100% - 32px);
     background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px var(--shadow);
   }
-  dialog#fullDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
-  dialog#fullDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
-  dialog#fullDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
-  dialog#fullDialog p strong { color: var(--ink); white-space: nowrap; }
+  dialog#fullDialog::backdrop, dialog#readyDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
+  dialog#fullDialog h2, dialog#readyDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
+  dialog#fullDialog p, dialog#readyDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  dialog#fullDialog p strong, dialog#readyDialog p strong { color: var(--ink); white-space: nowrap; }
   .dlg-warn {
     width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 14px;
     background: var(--yellow); color: #0E1230; font-family: var(--display); font-weight: 800; font-size: 20px;
@@ -420,13 +431,14 @@
     </figure>
   </section>
 
+  <main id="main">
   <section class="studio" id="studio">
     <div class="controls panel">
       <h2>Make your mosaic</h2>
 
       <div>
         <div class="step-head"><span class="n" style="--c: var(--yellow)">1</span>Choose a picture<button class="link-btn val" id="changePic" type="button" hidden>Change picture</button></div>
-        <label class="drop" id="drop">
+        <label class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a picture: drop, paste or press Enter to browse">
           <input type="file" id="file" accept="image/*" hidden>
           <div class="hint" id="dropHint"><strong>Drop an image here</strong>or click to browse. You can also paste.</div>
         </label>
@@ -457,8 +469,8 @@
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: #B9D0FF">4</span>Chonk size<span class="val" id="tileOut">48 px</span></div>
-        <input type="range" id="tile" min="12" max="120" step="4" value="48" aria-label="Chonk size in pixels">
+        <div class="step-head"><span class="n" style="--c: #B9D0FF">4</span>Chonk size<span class="val" id="tileOut">60 px</span></div>
+        <input type="range" id="tile" min="0" max="4" step="1" value="2" aria-label="Chonk size">
         <div class="note" id="sizeNote"></div>
       </div>
 
@@ -552,6 +564,7 @@
           <div class="status"><span id="phase">Ready</span><span id="msg"></span></div>
         </div>
         <div class="actions">
+          <button class="btn quiet" id="savePhotos" hidden disabled>Save to Photos</button>
           <button class="btn quiet" id="dl" disabled>Download PNG</button>
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
           <button class="btn quiet share" id="share" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</button>
@@ -582,6 +595,7 @@
       </div>
     </div>
   </section>
+  </main>
 
   <footer>
     <span>Your picture never leaves your device. <span id="dataDate"></span></span>
@@ -594,6 +608,7 @@
 </div>
 
 <div id="tip"></div>
+<button class="btn mobile-go" id="mobileGo" type="button">Make mosaic</button>
 <dialog id="fullDialog" aria-labelledby="fullTitle">
   <form method="dialog">
     <div class="dlg-warn" aria-hidden="true">!</div>
@@ -607,9 +622,19 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=16"></script>
-<script src="zoom.js?v=16"></script>
-<script src="export.js?v=16"></script>
-<script src="app.js?v=16"></script>
+<dialog id="readyDialog" class="dlg" aria-labelledby="readyTitle">
+  <form method="dialog">
+    <h2 id="readyTitle">Your full-size image is ready</h2>
+    <p><strong id="readyDims"></strong>. Save it to your photos, or keep it as a file.</p>
+    <div class="dlg-actions">
+      <button class="btn quiet" value="file">Save as file</button>
+      <button class="btn" value="save" autofocus>Save to Photos</button>
+    </div>
+  </form>
+</dialog>
+<script src="chain.js?v=18"></script>
+<script src="zoom.js?v=18"></script>
+<script src="export.js?v=18"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>

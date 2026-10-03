@@ -11,9 +11,9 @@
     const mobile = ios || /Android|Mobi/i.test(ua);
     const mem = navigator.deviceMemory || 8; // GB, Chrome/Edge only
     // fullSide/fullArea: limits for the strip-built "Download full size" PNG.
-    if (ios) return { name: "on your phone", side: 8192, area: 16.7e6, fullSide: 20000, fullArea: 150e6 };
-    if (mobile) return { name: "on your phone", side: 12000, area: mem <= 4 ? 30e6 : 50e6, fullSide: 24000, fullArea: mem <= 4 ? 150e6 : 250e6 };
-    return { name: "in your browser", side: 16000, area: mem <= 4 ? 80e6 : 160e6, fullSide: 32000, fullArea: mem <= 4 ? 400e6 : 1e9 };
+    if (ios) return { ios: true, mobile: true, name: "on your phone", side: 8192, area: 16.7e6, fullSide: 20000, fullArea: 150e6 };
+    if (mobile) return { mobile: true, name: "on your phone", side: 12000, area: mem <= 4 ? 30e6 : 50e6, fullSide: 24000, fullArea: mem <= 4 ? 150e6 : 250e6 };
+    return { mobile: false, name: "in your browser", side: 16000, area: mem <= 4 ? 80e6 : 160e6, fullSide: 32000, fullArea: mem <= 4 ? 400e6 : 1e9 };
   })();
   const MAX_SIDE = DEVICE.side;
   const MAX_AREA = DEVICE.area;
@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=16");
+      state.worker = new Worker("worker.js?v=18");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -83,10 +83,12 @@
     const canvas = document.getElementById("hero");
     if (!canvas) return;
     try {
-      const img = await loadAtlas(0);
-      const { thumb, perAtlasSide, count } = state.meta;
+      const sheet = SMALL() || BIG(), thumb = sheet.thumb;
+      const img = await loadAtlas(0, sheet);
+      const { perAtlasSide, count } = state.meta;
       const per = Math.min(count, perAtlasSide * perAtlasSide);
-      const cols = 8, rows = 6, size = canvas.width / cols;
+      const cols = 8, rows = 6, size = thumb * Math.max(1, Math.round(canvas.width / cols / thumb));
+      canvas.width = cols * size; canvas.height = rows * size;
       const ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
       for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
@@ -120,6 +122,7 @@
   function refreshButton() {
     el.go.disabled = !(state.ready && state.image) || state.busy;
     el.go.textContent = state.busy ? "Working…" : state.ready ? (state.image ? "Make mosaic" : "Pick a picture") : el.go.textContent;
+    if (typeof syncMobileGo === "function") syncMobileGo();
   }
 
   // ---------------------------------------------------------------- shape / crop
@@ -147,22 +150,28 @@
     return { cols, rows };
   }
 
+  // Chonk sizes that keep every art pixel square (Chonks are drawn on a 30 px grid).
+  const SIZES = [15, 30, 60, 90, 120];
+  const chosenTile = () => SIZES[Math.min(SIZES.length - 1, Math.max(0, +el.tile.value | 0))];
   function effectiveTile(cols, rows) {
-    let t = +el.tile.value;
-    while (t > 4 && (cols * t > MAX_SIDE || rows * t > MAX_SIDE || cols * rows * t * t > MAX_AREA)) t -= 1;
+    const fits = (t) => cols * t <= MAX_SIDE && rows * t <= MAX_SIDE && cols * rows * t * t <= MAX_AREA;
+    const want = chosenTile();
+    for (let i = SIZES.indexOf(want); i >= 0; i--) if (fits(SIZES[i])) return SIZES[i];
+    let t = SIZES[0] - 1;
+    while (t > 4 && !fits(t)) t -= 1;
     return t;
   }
 
   function updateNotes() {
     const { cols, rows } = gridSize();
     el.colsOut.textContent = `${cols} across`;
-    el.tileOut.textContent = `${el.tile.value} px`;
+    el.tileOut.textContent = `${chosenTile()} px`;
     if (!rows) return;
     el.gridNote.textContent = `${cols} × ${rows} grid = ${(cols * rows).toLocaleString()} Chonks`;
     const t = effectiveTile(cols, rows);
     const w = cols * t, h = rows * t;
     el.sizeNote.innerHTML = `Output ${w.toLocaleString()} × ${h.toLocaleString()} px` +
-      (t !== +el.tile.value
+      (t !== chosenTile()
         ? `<br><span class="warn">Chonks shrunk to ${t} px so the image fits ${DEVICE.name}. Lower the detail for bigger Chonks.</span>`
         : "");
   }
@@ -273,9 +282,10 @@
     } catch (_) { /* fall back below */ }
     if (!ok && idx !== undefined) {
       try {
-        const { thumb, perAtlasSide } = state.meta;
+        const { perAtlasSide } = state.meta;
+        const sheet = sheetFor(SIZE), thumb = sheet.thumb;
         const per = perAtlasSide * perAtlasSide;
-        const atlas = await loadAtlas(Math.floor(idx / per));
+        const atlas = await loadAtlas(Math.floor(idx / per), sheet);
         const slot = idx % per;
         ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, SIZE, SIZE);
         ctx.drawImage(atlas, (slot % perAtlasSide) * thumb, Math.floor(slot / perAtlasSide) * thumb, thumb, thumb, 0, 0, SIZE, SIZE);
@@ -307,6 +317,26 @@
 
   el.file.addEventListener("change", () => loadFile(el.file.files[0]));
   el.changePic.addEventListener("click", () => { el.file.value = ""; el.file.click(); });
+  // Keyboard: Enter or Space on the drop box opens the file picker.
+  el.drop.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.file.value = ""; el.file.click(); }
+  });
+
+  // Phones: a Make mosaic bar pinned to the bottom once a picture is chosen,
+  // hidden while the real button is on screen.
+  const mobileGo = document.getElementById("mobileGo");
+  let goVisible = true;
+  function syncMobileGo() {
+    if (!mobileGo) return;
+    const show = !!state.image && !goVisible && !state.busy;
+    mobileGo.classList.toggle("show", show);
+    document.body.classList.toggle("has-mobile-go", show);
+    mobileGo.disabled = el.go.disabled;
+  }
+  if (mobileGo && "IntersectionObserver" in window) {
+    new IntersectionObserver(([en]) => { goVisible = en.isIntersecting; syncMobileGo(); }).observe(el.go);
+    mobileGo.addEventListener("click", () => build());
+  }
   ["dragenter", "dragover"].forEach((t) => el.drop.addEventListener(t, (e) => { e.preventDefault(); el.drop.classList.add("over"); }));
   ["dragleave", "drop"].forEach((t) => el.drop.addEventListener(t, (e) => { e.preventDefault(); el.drop.classList.remove("over"); }));
   el.drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
@@ -489,13 +519,18 @@
         Object.assign(canvas.style, { position: "static", width: "100%", height: "auto" });
       }
 
+      state.missingSheets = 0;
       await drawFromAtlases(ctx, used, cols, tile);
       if (state.source === "chain") await drawFromChain(ctx, used, cols, tile);
+      drawGapGrid(ctx, cols, rows, tile, state.gap);
 
       drawOriginal(crop, cols * tile, rows * tile);
       el.artTitle.textContent = state.label ? `${state.label}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
       el.share.disabled = false;
-      setPhase("Done", `${used.size.toLocaleString()} different Chonks`, 1);
+      preparePng();
+      setPhase("Done", state.missingSheets
+        ? `Some Chonks couldn't load (blank squares). Check your connection and press Make mosaic again.`
+        : `${used.size.toLocaleString()} different Chonks`, 1);
       el.dl.disabled = false;
       if (el.dlFull) {
         const ft = fullSizeTile(cols, rows);
@@ -512,22 +547,50 @@
     }
   }
 
-  function loadAtlas(n) {
-    if (!state.atlases.has(n)) {
-      const name = `data/atlas/atlas_${String(n).padStart(3, "0")}.${state.meta.atlasFormat || "webp"}`;
-      state.atlases.set(n, new Promise((resolve, reject) => {
+  // Two sets of sprite sheets: normal (e.g. 60 px) and light (30 px, if built).
+  // Phones always use the light ones for the on-screen mosaic, which is about
+  // a quarter of the download. Computers pick whichever divides evenly into the
+  // Chonk size, so pixels stay square. Full-size downloads always use normal.
+  const BIG = () => ({ prefix: "atlas", thumb: state.meta.thumb });
+  const SMALL = () => (state.meta.smallThumb ? { prefix: "atlas_s", thumb: state.meta.smallThumb } : null);
+  function sheetFor(drawSize) {
+    const big = BIG(), small = SMALL();
+    if (!small) return big;
+    if (DEVICE.mobile) return small;
+    if (drawSize % big.thumb === 0) return big;
+    if (drawSize % small.thumb === 0) return small;
+    return big;
+  }
+
+  function loadAtlas(n, sheet = BIG()) {
+    const key = `${sheet.prefix}_${n}`;
+    if (!state.atlases.has(key)) {
+      const name = `data/atlas/${sheet.prefix}_${String(n).padStart(3, "0")}.${state.meta.atlasFormat || "webp"}`;
+      state.atlases.set(key, new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.onerror = () => { state.atlases.delete(n); reject(new Error(`missing ${name}`)); };
+        img.onerror = () => { state.atlases.delete(key); reject(new Error(`missing ${name}`)); };
         img.src = `${name}?b=${state.meta.built || 0}`;
       }));
     }
-    return state.atlases.get(n);
+    return state.atlases.get(key);
+  }
+
+  // Thin lines between Chonks are painted over the tile edges afterwards, so
+  // the Chonks themselves keep their exact size and crisp pixels.
+  function drawGapGrid(ctx, cols, rows, tile, gap) {
+    const ins = gapInset(gap, tile);
+    if (!ins) return;
+    ctx.fillStyle = GAPS[gap].bg;
+    for (let c = 0; c <= cols; c++) ctx.fillRect(c * tile - ins, 0, ins * 2, rows * tile);
+    for (let r = 0; r <= rows; r++) ctx.fillRect(0, r * tile - ins, cols * tile, ins * 2);
   }
 
   async function drawFromAtlases(ctx, used, cols, tile) {
-    const ins = gapInset(state.gap, tile);
-    const { thumb, perAtlasSide } = state.meta;
+    const sheet = sheetFor(tile), thumb = sheet.thumb;
+    const { perAtlasSide } = state.meta;
+    ctx.imageSmoothingEnabled = tile < thumb;   // smooth only when shrinking
+    ctx.imageSmoothingQuality = "high";
     const per = perAtlasSide * perAtlasSide;
     const byAtlas = new Map();
     for (const idx of used.keys()) {
@@ -539,19 +602,18 @@
     for (const [a, list] of byAtlas) {
       setPhase("Painting Chonks…", `sheet ${++n} of ${byAtlas.size}`, 0.6 + 0.4 * (n / byAtlas.size) * (state.source === "chain" ? 0.25 : 1));
       let img;
-      try { img = await loadAtlas(a); } catch (_) { continue; }
+      try { img = await loadAtlas(a, sheet); } catch (_) { state.missingSheets = (state.missingSheets || 0) + 1; continue; }
       for (const idx of list) {
         const slot = idx % per;
         const sx = (slot % perAtlasSide) * thumb, sy = Math.floor(slot / perAtlasSide) * thumb;
         for (const pos of used.get(idx)) {
-          ctx.drawImage(img, sx, sy, thumb, thumb, (pos % cols) * tile + ins, Math.floor(pos / cols) * tile + ins, tile - 2 * ins, tile - 2 * ins);
+          ctx.drawImage(img, sx, sy, thumb, thumb, (pos % cols) * tile, Math.floor(pos / cols) * tile, tile, tile);
         }
       }
     }
   }
 
   async function drawFromChain(ctx, used, cols, tile) {
-    const ins = gapInset(state.gap, tile);
     const ids = [...used.keys()].map((i) => state.meta.ids[i]);
     const indexOf = (id) => state.idToIndex.get(id);
     let drawn = 0;
@@ -562,9 +624,8 @@
     for (const [id, img] of images) {
       for (const pos of used.get(indexOf(id))) {
         const x = (pos % cols) * tile, y = Math.floor(pos / cols) * tile;
-        ctx.fillStyle = GAPS[state.gap].bg; ctx.fillRect(x, y, tile, tile);
-        ctx.fillStyle = "#fff"; ctx.fillRect(x + ins, y + ins, tile - 2 * ins, tile - 2 * ins);
-        ctx.drawImage(img, x + ins, y + ins, tile - 2 * ins, tile - 2 * ins);
+        ctx.fillStyle = "#fff"; ctx.fillRect(x, y, tile, tile);
+        ctx.drawImage(img, x, y, tile, tile);
       }
       drawn++;
     }
@@ -603,6 +664,51 @@
     c.drawImage(state.image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, o.width, o.height);
   }
 
+  // ---------------------------------------------------------------- save to Photos (phones)
+  // iPhone saves downloads to Files. The share sheet has "Save Image", which
+  // puts it in Photos, so on phones that can share files we use that instead.
+  const canShareFiles = (() => {
+    try {
+      return !!(navigator.canShare && navigator.share &&
+        navigator.canShare({ files: [new File([new Blob(["x"])], "t.png", { type: "image/png" })] }));
+    } catch (_) { return false; }
+  })();
+  const useShareSheet = DEVICE.mobile && canShareFiles;
+  const savePhotos = document.getElementById("savePhotos");
+  if (savePhotos && useShareSheet) {
+    savePhotos.hidden = false;
+    savePhotos.textContent = DEVICE.ios ? "Save to Photos" : "Save / share image";
+  }
+  const pngName = (w, h) => `chonk-mosaic-${w}x${h}.png`;
+  // Share must start straight from a tap, so the PNG is prepared right after each build.
+  function preparePng() {
+    state.pngBlob = null;
+    if (!useShareSheet) return;
+    savePhotos.disabled = true;
+    el.canvas.toBlob((b) => { state.pngBlob = b; savePhotos.disabled = !b; }, "image/png");
+  }
+  async function shareBlob(blob, name, extra = {}) {
+    try {
+      await navigator.share({ files: [new File([blob], name, { type: "image/png" })], ...extra });
+      return true;
+    } catch (err) {
+      if (err && err.name === "AbortError") return true;   // they closed the sheet
+      return false;
+    }
+  }
+  function downloadBlob(blob, name) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+  }
+  if (savePhotos) savePhotos.addEventListener("click", async () => {
+    if (!state.pngBlob) return;
+    const name = pngName(el.canvas.width, el.canvas.height);
+    if (!(await shareBlob(state.pngBlob, name))) downloadBlob(state.pngBlob, name);
+  });
+
   // ---------------------------------------------------------------- share on X
   el.share.addEventListener("click", () => {
     if (!state.last) return;
@@ -611,6 +717,11 @@
       ? `${state.last.label}, rebuilt from ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`
       : `I turned my picture into a mosaic of ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`;
     const url = location.origin + location.pathname;
+    if (useShareSheet && state.pngBlob) {
+      // The share sheet can hand the picture and text straight to the X app.
+      shareBlob(state.pngBlob, pngName(el.canvas.width, el.canvas.height), { text: `${text}\n${url}` });
+      return;
+    }
     window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
     el.dl.click(); // download the PNG so it's ready to attach
     setPhase("Post opened on X", "Your PNG is downloading. Attach it to the post.", 1);
@@ -628,7 +739,12 @@
     let data;
     try { data = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch (_) {}
     if (!data) return;
-    for (const id of SAVED_INPUTS) { const n = $(id); if (n && data[id] != null && data[id] !== "") n.value = data[id]; }
+    for (const id of SAVED_INPUTS) {
+      const n = $(id);
+      if (!n || data[id] == null || data[id] === "") continue;
+      if (id === "tile" && +data[id] >= SIZES.length) continue;   // old saves stored pixels
+      n.value = data[id];
+    }
     if (data.source) el.source.querySelector(`button[data-v="${data.source}"]`)?.click();
     if (data.shape && SHAPES[data.shape]) el.shape.querySelector(`button[data-v="${data.shape}"]`)?.click();
     if (data.gap && GAPS[data.gap]) el.gap.querySelector(`button[data-v="${data.gap}"]`)?.click();
@@ -664,7 +780,7 @@
       setPhase("Preparing full size…", `${W.toLocaleString()} × ${H.toLocaleString()} px`, 0);
       const atlasImgs = new Map();
       for (const a of new Set(used.map((i) => Math.floor(i / per)))) {
-        try { atlasImgs.set(a, await loadAtlas(a)); } catch (_) { /* skip */ }
+        try { atlasImgs.set(a, await loadAtlas(a, BIG())); } catch (_) { /* skip */ }
       }
       let chainImgs = null;
       if (source === "chain") {
@@ -674,10 +790,16 @@
         });
       }
       const ins = gapInset(gap, tile);
-      const drawTile = (ctx, idx, x0, y0, size0) => {
+      const drawTile = (ctx, idx, x, y, size) => {
         if (idx < 0) return;
-        const x = x0 + ins, y = y0 + ins, size = size0 - 2 * ins;
-        if (ins) { ctx.fillStyle = "#fff"; ctx.fillRect(x, y, size, size); }
+        drawOne(ctx, idx, x, y, size);
+        if (ins) {   // half a gap on each edge, matching the on-screen grid
+          ctx.fillStyle = GAPS[gap].bg;
+          ctx.fillRect(x, y, size, ins); ctx.fillRect(x, y + size - ins, size, ins);
+          ctx.fillRect(x, y, ins, size); ctx.fillRect(x + size - ins, y, ins, size);
+        }
+      };
+      const drawOne = (ctx, idx, x, y, size) => {
         const img = chainImgs && chainImgs.get(state.meta.ids[idx]);
         if (img) { ctx.drawImage(img, x, y, size, size); return; }
         const atlas = atlasImgs.get(Math.floor(idx / per));
@@ -692,12 +814,16 @@
         indexAt: (pos) => result[pos],
         onProgress: (p) => setPhase("Building full-size PNG…", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${Math.round(p * 100)}%`, 0.1 + p * 0.9),
       });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `chonk-mosaic-${W}x${H}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
-      setPhase("Full size saved", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${(blob.size / 1e6).toFixed(1)} MB · ${((performance.now() - t0) / 1000).toFixed(0)}s`, 1);
+      if (useShareSheet) {
+        // The share sheet needs a fresh tap, so ask with a small "ready" pop-up.
+        state.fullBlob = blob; state.fullName = pngName(W, H);
+        const rd = document.getElementById("readyDialog");
+        document.getElementById("readyDims").textContent = `${W.toLocaleString()} × ${H.toLocaleString()} px`;
+        if (rd && rd.showModal) rd.showModal(); else downloadBlob(blob, state.fullName);
+      } else {
+        downloadBlob(blob, pngName(W, H));
+      }
+      setPhase(useShareSheet ? "Full size ready" : "Full size saved", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${(blob.size / 1e6).toFixed(1)} MB · ${((performance.now() - t0) / 1000).toFixed(0)}s`, 1);
     } catch (err) {
       console.error(err);
       setPhase("Full-size download failed", err.message || String(err));
@@ -726,6 +852,13 @@
     fullDlg.addEventListener("click", (e) => { if (e.target === fullDlg) fullDlg.close("cancel"); }); // click outside
   }
   if (el.dlFull) el.dlFull.addEventListener("click", confirmFullSize);
+  const readyDlg = document.getElementById("readyDialog");
+  if (readyDlg) readyDlg.addEventListener("close", async () => {
+    const blob = state.fullBlob; state.fullBlob = null;
+    if (!blob) return;
+    if (readyDlg.returnValue === "save" && !(await shareBlob(blob, state.fullName))) downloadBlob(blob, state.fullName);
+    if (readyDlg.returnValue === "file") downloadBlob(blob, state.fullName);
+  });
 
 
   // ---------------------------------------------------------------- hover + viewer
