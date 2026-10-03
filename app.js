@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=27");
+      state.worker = new Worker("worker.js?v=28");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -135,7 +135,7 @@
   // ---------------------------------------------------------------- inputs
   function refreshButton() {
     el.go.disabled = !(state.ready && state.image) || state.busy;
-    el.go.textContent = state.busy ? "Working…" : state.ready ? (state.image ? "Make mosaic" : "Pick a picture") : el.go.textContent;
+    el.go.textContent = state.busy ? "Working…" : state.ready ? (state.image ? "Chonk it" : "Pick a picture") : el.go.textContent;
     if (typeof syncMobileGo === "function") syncMobileGo();
   }
 
@@ -338,7 +338,7 @@
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.file.value = ""; el.file.click(); }
   });
 
-  // Phones: a Make mosaic bar pinned to the bottom once a picture is chosen,
+  // Phones: a Chonk it bar pinned to the bottom once a picture is chosen,
   // hidden while the real button is on screen.
   const mobileGo = document.getElementById("mobileGo");
   let goVisible = true;
@@ -531,7 +531,7 @@
       if (el.makeGif) el.makeGif.disabled = !(window.ChonkGif && ChonkGif.supported());
       if (state.source !== "chain") state.onchainNote = "";
       setPhase("Done", state.missingSheets
-        ? `Some Chonks couldn't load (blank squares). Check your connection and press Make mosaic again.`
+        ? `Some Chonks couldn't load (blank squares). Check your connection and press Chonk it again.`
         : (state.source === "chain" && state.onchainNote) || `${used.size.toLocaleString()} different Chonks`, 1);
       el.dl.disabled = false;
       if (el.dlFull) {
@@ -655,7 +655,7 @@
         if (!blob) return setPhase("Export failed", "Image too large for this browser — try a smaller Chonk size.");
         const a = document.createElement("a");
         a.href = URL.createObjectURL(blob);
-        a.download = `chonk-mosaic-${Date.now()}.png`;
+        a.download = `chonkit-${Date.now()}.png`;
         a.click();
         setTimeout(() => URL.revokeObjectURL(a.href), 5000);
       }, "image/png");
@@ -695,7 +695,7 @@
     savePhotos.textContent = DEVICE.ios ? "Save to Photos" : "Save image";
     el.dl.hidden = true;
   }
-  const pngName = (w, h) => `chonk-mosaic-${w}x${h}.png`;
+  const pngName = (w, h) => `chonkit-${w}x${h}.png`;
 
   // Prepared right after each build, because sharing must start straight from a tap.
   function preparePhoto() {
@@ -714,7 +714,7 @@
     }
     out.toBlob((b) => {
       if (!b) return;
-      state.photo = { blob: b, name: `chonk-mosaic-${out.width}x${out.height}.jpg` };
+      state.photo = { blob: b, name: `chonkit-${out.width}x${out.height}.jpg` };
       savePhotos.disabled = false;
     }, "image/jpeg", 0.92);
   }
@@ -777,8 +777,8 @@
   function shareText() {
     const placed = state.last.result.length.toLocaleString();
     return state.last.label
-      ? `${state.last.label}, rebuilt from ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`
-      : `I turned my picture into a mosaic of ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`;
+      ? `${state.last.label}, rebuilt from ${placed} Chonks 🟨\n\nMade with Chonkit by @jpegsonbase`
+      : `I turned my picture into a mosaic of ${placed} Chonks 🟨\n\nMade with Chonkit by @jpegsonbase`;
   }
   function setShareEnabled(on) {
     el.share.setAttribute("aria-disabled", String(!on));
@@ -868,7 +868,7 @@
     });
     gifUi.save.addEventListener("click", async () => {
       if (!gifBlob) return;
-      const name = `chonk-mosaic-${gifStyle}.gif`;
+      const name = `chonkit-${gifStyle}.gif`;
       if (DEVICE.mobile && canShareFiles && await shareFile(gifBlob, name, "image/gif")) return;
       downloadBlob(gifBlob, name);
     });

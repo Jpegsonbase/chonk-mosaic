@@ -1,5 +1,5 @@
 /*
- * Chonk Mosaic – GIF maker.
+ * Chonkit – GIF maker.
  * Turns the finished mosaic (the on-screen canvas) into a looping GIF:
  *   zoom:   starts on a single Chonk and pulls back to the whole picture
  *   reveal: the original picture turns into Chonks from the centre outwards

@@ -3,16 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Chonk Mosaic</title>
+<title>Chonkit: your picture, rebuilt from Chonks</title>
 <meta name="description" content="Turn any picture into a mosaic made of Chonks. Free, runs in your browser, art straight from the Base contract.">
 <!-- Link previews (X, Discord, iMessage…). If the site moves to its own domain,
      change the two URLs below to the new address. -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="Chonk Mosaic">
-<meta property="og:title" content="Chonk Mosaic: your picture, rebuilt from Chonks">
+<meta property="og:site_name" content="Chonkit">
+<meta property="og:title" content="Chonkit: your picture, rebuilt from Chonks">
 <meta property="og:description" content="Drop in any image and get it back as a mosaic made of Chonks. Free, runs in your browser.">
 <meta property="og:url" content="https://jpegsonbase.github.io/chonk-mosaic/">
-<meta property="og:image" content="https://jpegsonbase.github.io/chonk-mosaic/og.png?v=2">
+<meta property="og:image" content="https://jpegsonbase.github.io/chonk-mosaic/og.png?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
@@ -22,7 +22,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2033%2033%22%3E%3Crect%20x%3D%226%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%223%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%223%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%220%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%223%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%220%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%223%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%223%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3C/svg%3E">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="site.webmanifest">
-<meta name="apple-mobile-web-app-title" content="Chonk Mosaic">
+<meta name="apple-mobile-web-app-title" content="Chonkit">
 <meta name="theme-color" content="#FAFBFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0D1024" media="(prefers-color-scheme: dark)">
 <script>
@@ -419,7 +419,7 @@
   .empty { max-width: 380px; }
   /* Floating Make bar on phones: fill the width between the 12px gutters. */
   .mobile-go { width: auto; }
-  /* Desktop: keep Make mosaic in view while scrolling the long settings panel. */
+  /* Desktop: keep Chonk it in view while scrolling the long settings panel. */
   @media (min-width: 961px) {
     #go { position: sticky; bottom: 16px; z-index: 2; box-shadow: 0 0 0 12px var(--surface), 0 14px 28px -8px rgba(0, 82, 255, .55); }
   }
@@ -444,7 +444,7 @@
 <body>
 <div class="wrap">
   <nav>
-    <a class="logo" href="./"><i aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></i>Chonk Mosaic</a>
+    <a class="logo" href="./"><i aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></i>Chonkit</a>
     <div class="nav-right">
       <a class="chain-pill" id="contractLink" target="_blank" rel="noopener">Chonks on Base</a>
       <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode">
@@ -649,7 +649,7 @@
 </div>
 
 <div id="tip"></div>
-<button class="btn mobile-go" id="mobileGo" type="button">Make mosaic</button>
+<button class="btn mobile-go" id="mobileGo" type="button">Chonk it</button>
 <dialog id="fullDialog" aria-labelledby="fullTitle">
   <form method="dialog">
     <div class="dlg-warn" aria-hidden="true">!</div>
@@ -702,11 +702,11 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=27"></script>
-<script src="zoom.js?v=27"></script>
-<script src="export.js?v=27"></script>
-<script src="vendor/gifenc.js?v=27"></script>
-<script src="gif.js?v=27"></script>
-<script src="app.js?v=27"></script>
+<script src="chain.js?v=28"></script>
+<script src="zoom.js?v=28"></script>
+<script src="export.js?v=28"></script>
+<script src="vendor/gifenc.js?v=28"></script>
+<script src="gif.js?v=28"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>
