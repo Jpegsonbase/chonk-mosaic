@@ -1,5 +1,5 @@
 /* Runs the matcher off the main thread so the page stays responsive. */
-importScripts("mosaic-core.js?v=26");
+importScripts("mosaic-core.js?v=27");
 
 let dataset = null;
 

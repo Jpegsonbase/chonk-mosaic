@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=26");
+      state.worker = new Worker("worker.js?v=27");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -820,7 +820,7 @@
   let gifStyle = "zoom", gifBlob = null, gifUrl = null, gifBusy = false;
   function resetGif() {
     gifBlob = null;
-    if (gifUrl) { URL.revokeObjectURL(gifUrl); gifUrl = null; }
+    gifUrl = null;
     gifUi.preview.hidden = true; gifUi.save.hidden = true;
     gifUi.go.textContent = "Make GIF"; gifUi.status.textContent = "";
   }
@@ -844,16 +844,19 @@
           maxSide: DEVICE.mobile ? 480 : 600,
           onProgress: (p) => { gifUi.status.textContent = `Making your GIF… ${Math.round(p * 100)}%`; },
         });
-        gifUrl = URL.createObjectURL(gifBlob);
+        // A data: URL (not blob:) so press-and-hold shares the GIF itself, not a link.
+        gifUrl = await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(gifBlob); });
         gifUi.img.src = gifUrl;
         gifUi.preview.hidden = false;
         const otherIOS = DEVICE.ios && /FxiOS|CriOS|EdgiOS|OPiOS|DuckDuckGo|GSA\//.test(navigator.userAgent || "");
         gifUi.status.innerHTML = otherIOS
-          ? `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB). Press and hold the GIF, tap <strong>Share… → Save to Files</strong>, or open this site in <strong>Safari</strong> to save it to Photos.`
+          ? `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB). Tap <strong>Share…</strong> below, then <strong>Save to Files</strong>. To save it to Photos, open this site in <strong>Safari</strong>.`
           : DEVICE.ios
-          ? `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB). <strong>Press and hold the GIF</strong>, then tap <strong>Save to Photos</strong>.`
+          ? `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB). <strong>Press and hold the GIF</strong>, then tap <strong>Save to Photos</strong>. Or tap <strong>Share…</strong> to send it.`
           : `Ready (${(gifBlob.size / 1e6).toFixed(1)} MB).`;
-        gifUi.save.hidden = DEVICE.ios;
+        // iPhone: the button shares the GIF file (share sheet has Save to Files / Messages / X…)
+        gifUi.save.hidden = DEVICE.ios && !canShareFiles;
+        gifUi.save.textContent = DEVICE.mobile && canShareFiles ? "Share…" : "Download GIF";
         gifUi.go.textContent = "Make again";
       } catch (err) {
         console.error(err);
