@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=22");
+      state.worker = new Worker("worker.js?v=23");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -741,11 +741,22 @@
     fr.onload = () => { img.src = fr.result; dlg.showModal(); };
     fr.readAsDataURL(blob);
   }
+  // iPhone: websites can't save straight into Photos (the share sheet only
+  // offers Files), so show the picture to press and hold → Save to Photos.
+  // Android and others: the share sheet works, so use it, with the same
+  // press-and-hold screen as a fallback.
   if (savePhotos) savePhotos.addEventListener("click", async () => {
     if (!state.photo) return;
-    if (canShareFiles && await shareFile(state.photo.blob, state.photo.name, "image/jpeg")) return;
+    if (!DEVICE.ios && canShareFiles && await shareFile(state.photo.blob, state.photo.name, "image/jpeg")) return;
     showHoldToSave(state.photo.blob);
   });
+  const holdShare = document.getElementById("holdShare");
+  if (holdShare) {
+    holdShare.hidden = !canShareFiles;
+    holdShare.addEventListener("click", () => {
+      if (state.photo) shareFile(state.photo.blob, state.photo.name, "image/jpeg");
+    });
+  }
 
   // ---------------------------------------------------------------- share on X
   // Share on X is a real link to X's post composer. On phones, tapping it opens
