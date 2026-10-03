@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=32");
+      state.worker = new Worker("worker.js?v=33");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -274,36 +274,12 @@
     el.tryExample.hidden = true;
   }
 
-  // ---- paste: a visible button (right-click menus only offer Paste in text boxes)
-  const pasteBtn = document.getElementById("pasteBtn");
+  // ---- paste hint (right-click menus only offer Paste in text boxes, so say Ctrl/⌘+V)
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
   const dropHow = document.getElementById("dropHow");
   if (dropHow) {
     if (DEVICE.mobile) dropHow.textContent = "or tap to choose a photo.";
     else if (isMac) dropHow.innerHTML = "or click to browse. Copied an image? Press <kbd>⌘</kbd>+<kbd>V</kbd>.";
-  }
-  if (pasteBtn && navigator.clipboard && navigator.clipboard.read) {
-    pasteBtn.hidden = false;
-    pasteBtn.addEventListener("click", async () => {
-      try {
-        const items = await navigator.clipboard.read();
-        for (const item of items) {
-          const type = item.types.find((t) => t.startsWith("image/"));
-          if (type) {
-            const blob = await item.getType(type);
-            loadFile(new File([blob], "pasted." + (type.split("/")[1] || "png"), { type }));
-            return;
-          }
-        }
-        setPhase("No picture copied", DEVICE.mobile
-          ? "Press and hold an image, choose Copy, then tap Paste again."
-          : "Right-click an image and choose Copy image, then press Paste again.", 0);
-      } catch (_) {
-        setPhase("Couldn't read the clipboard", DEVICE.mobile
-          ? "Allow pasting when your browser asks, or save the image and choose it instead."
-          : `Click the drop box and press ${isMac ? "⌘" : "Ctrl"}+V instead.`, 0);
-      }
-    });
   }
 
   function loadFile(file) {
