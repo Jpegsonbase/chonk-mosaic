@@ -29,7 +29,7 @@
     phase: $("phase"), msg: $("msg"), progress: $("progress"),
     stats: $("stats"), dl: $("dl"), dlFull: $("dlFull"), tip: $("tip"),
     vArt: $("vArt"), vId: $("vId"), vGo: $("vGo"), vInfo: $("vInfo"), vTraits: $("vTraits"),
-    rpc: $("rpc"), only: $("only"),
+    rpc: $("rpc"),
     shape: $("shape"), shapeNote: $("shapeNote"), pickId: $("pickId"), pickGo: $("pickGo"), pickRandom: $("pickRandom"),
     tryExample: $("tryExample"), changePic: $("changePic"),
     pool: $("pool"), poolNote: $("poolNote"), walletRow: $("walletRow"), wallet: $("wallet"), walletGo: $("walletGo"),
@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=18");
+      state.worker = new Worker("worker.js?v=19");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -353,27 +353,10 @@
     state.source = b.dataset.v;
     el.sourceNote.textContent = state.source === "atlas"
       ? "Uses saved Chonk images. Instant."
-      : "Draws each Chonk live from the contract on Base, with current traits. Slower for big mosaics.";
+      : `Draws Chonks live from the contract on Base, with current traits. Slower; big mosaics fetch the ${ONCHAIN_LIMIT.toLocaleString()} most-used Chonks live and use saved art for the rest.`;
     saveSettings();
   });
   varietySettings();
-
-  function parseOnly(text) {
-    text = text.trim();
-    if (!text) return null;
-    const idx = [];
-    for (const part of text.split(/[\s,]+/)) {
-      if (!part) continue;
-      const m = part.match(/^(\d+)(?:-(\d+))?$/);
-      if (!m) continue;
-      const a = +m[1], b = m[2] ? +m[2] : a;
-      for (let id = Math.min(a, b); id <= Math.max(a, b); id++) {
-        const i = state.idToIndex.get(id);
-        if (i !== undefined) idx.push(i);
-      }
-    }
-    return idx.length ? Int32Array.from(new Set(idx)) : null;
-  }
 
   function readSettings() {
     const num = (id, d) => { const v = parseFloat($(id).value); return Number.isFinite(v) ? v : d; };
@@ -477,7 +460,7 @@
       const rgba = cx.getImageData(0, 0, c.width, c.height).data;
 
       // 2. Match in the worker.
-      let allowed = parseOnly(el.only.value);
+      let allowed = null;
       if (state.pool === "wallet") {
         if (!state.walletIdx) { if (el.wallet.value.trim()) await loadWallet(); }
         if (!state.walletIdx || !state.walletIdx.length) throw new Error("Load a wallet that holds Chonks first (step 7), or switch to All Chonks.");
@@ -528,9 +511,10 @@
       el.artTitle.textContent = state.label ? `${state.label}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
       el.share.disabled = false;
       preparePng();
+      if (state.source !== "chain") state.onchainNote = "";
       setPhase("Done", state.missingSheets
         ? `Some Chonks couldn't load (blank squares). Check your connection and press Make mosaic again.`
-        : `${used.size.toLocaleString()} different Chonks`, 1);
+        : (state.source === "chain" && state.onchainNote) || `${used.size.toLocaleString()} different Chonks`, 1);
       el.dl.disabled = false;
       if (el.dlFull) {
         const ft = fullSizeTile(cols, rows);
@@ -613,8 +597,18 @@
     }
   }
 
+  // Onchain mode reads every Chonk from the free public Base server. For big
+  // mosaics only the most-used Chonks are fetched live, so it stays quick and
+  // the server isn't flooded; the rest keep their saved art.
+  const ONCHAIN_LIMIT = 1500;
+  function onchainPick(used) {
+    const order = [...used.keys()].sort((a, b) => used.get(b).length - used.get(a).length);
+    return order.slice(0, ONCHAIN_LIMIT);
+  }
+
   async function drawFromChain(ctx, used, cols, tile) {
-    const ids = [...used.keys()].map((i) => state.meta.ids[i]);
+    const picked = onchainPick(used);
+    const ids = picked.map((i) => state.meta.ids[i]);
     const indexOf = (id) => state.idToIndex.get(id);
     let drawn = 0;
     const images = await ChonkChain.getManyChonkImages(ids, {
@@ -629,9 +623,9 @@
       }
       drawn++;
     }
-    if (drawn < ids.length) {
-      el.msg.textContent = `${ids.length - drawn} Chonks fell back to cached art (RPC busy)`;
-    }
+    state.onchainNote = used.size > ONCHAIN_LIMIT
+      ? `The ${ONCHAIN_LIMIT.toLocaleString()} most-used Chonks are live from Base; the other ${(used.size - ONCHAIN_LIMIT).toLocaleString()} use saved art.`
+      : drawn < ids.length ? `${ids.length - drawn} Chonks used saved art (Base server busy).` : "";
   }
 
   el.go.addEventListener("click", build);
@@ -729,7 +723,7 @@
 
   // ---------------------------------------------------------------- remember settings
   const SETTINGS_KEY = "chonk-settings";
-  const SAVED_INPUTS = ["cols", "tile", "variety", "w_color", "w_fp", "w_bright", "w_sat", "w_edge", "p_adapt", "r_mem", "cands", "only", "rpc"];
+  const SAVED_INPUTS = ["cols", "tile", "variety", "w_color", "w_fp", "w_bright", "w_sat", "w_edge", "p_adapt", "r_mem", "cands", "rpc"];
   function saveSettings() {
     const data = { source: state.source, shape: state.shape, gap: state.gap, pool: state.pool, wallet: el.wallet.value.trim() };
     for (const id of SAVED_INPUTS) { const n = $(id); if (n) data[id] = n.value; }
@@ -784,7 +778,10 @@
       }
       let chainImgs = null;
       if (source === "chain") {
-        chainImgs = await ChonkChain.getManyChonkImages(used.map((i) => state.meta.ids[i]), {
+        const counts = new Map();
+        for (const i of result) if (i >= 0) counts.set(i, (counts.get(i) || 0) + 1);
+        const live = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a)).slice(0, ONCHAIN_LIMIT);
+        chainImgs = await ChonkChain.getManyChonkImages(live.map((i) => state.meta.ids[i]), {
           rpc: el.rpc.value.trim() || undefined,
           onProgress: (p) => setPhase("Fetching Chonks from Base…", `${Math.round(p * 100)}%`, p * 0.1),
         });
