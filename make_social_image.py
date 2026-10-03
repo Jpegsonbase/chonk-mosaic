@@ -40,6 +40,21 @@ BLUE_TOP, BLUE_BOTTOM = (22, 92, 255), (6, 52, 214)
 INK = (14, 18, 48)
 WORD2_COLOURS = [(255, 79, 163), (255, 160, 30), (60, 205, 80), (30, 190, 255), (160, 100, 255), (139, 92, 255)]
 
+# title colour styles: (CHONK letter colour, IT letter colour), by letter index
+PINK, ORANGE, YELLOW, GREEN, CYAN, PURPLE, WHITE = (255, 79, 163), (255, 160, 30), (255, 214, 10), (60, 205, 80), (30, 205, 255), (160, 100, 255), (250, 252, 255)
+RAINBOW = [PINK, ORANGE, YELLOW, GREEN, CYAN, PURPLE, PINK]
+TITLE_STYLES = {
+    "classic":  (lambda i: WHITE, lambda i: WORD2_COLOURS[i % len(WORD2_COLOURS)]),
+    "rainbow":  (lambda i: RAINBOW[i], lambda i: RAINBOW[5 + i]),
+    "sunshine": (lambda i: YELLOW, lambda i: PINK),
+    "candy":    (lambda i: PINK, lambda i: YELLOW),
+    "mint":     (lambda i: WHITE, lambda i: (90, 240, 170)),
+    "gold":     (lambda i: YELLOW, lambda i: WHITE),
+    "rainbow-white": (lambda i: RAINBOW[i], lambda i: WHITE),
+    "white":    (lambda i: WHITE, lambda i: WHITE),
+}
+TITLE = TITLE_STYLES["classic"]
+
 # 5x7 pixel letters for the title
 GLYPHS = {
     "C": ["01111", "11000", "10000", "10000", "10000", "11000", "01111"],
@@ -276,7 +291,13 @@ def main():
     ap.add_argument("--seed", type=int, help="change the random layout")
     ap.add_argument("--art", help="a picture (painting, photo) to rebuild from Chonks on the card")
     ap.add_argument("--focus", type=float, default=1.0, help="with --art: which part of a wide picture to show, 0 = left, 1 = right")
+    ap.add_argument("--title", default="classic", choices=sorted(TITLE_STYLES), help="colours for the CHONK IT title")
+    ap.add_argument("--out", help="where to save (default web/og.png)")
     args = ap.parse_args()
+    global TITLE, OUT
+    TITLE = TITLE_STYLES[args.title]
+    if args.out:
+        OUT = Path(args.out)
     rng = np.random.default_rng(args.seed)
     rnd = random.Random(args.seed)
 
@@ -325,8 +346,8 @@ def main():
     # title block
     right_cx = W * 0.665
     px1 = 15 * S
-    w1 = pixel_word("CHONK", px1, lambda i: (250, 252, 255))
-    w2 = pixel_word("IT", px1, lambda i: WORD2_COLOURS[i % len(WORD2_COLOURS)])
+    w1 = pixel_word("CHONK", px1, TITLE[0])
+    w2 = pixel_word("IT", px1, TITLE[1])
     top = H * 0.2
     paste_centre(canvas, w1, right_cx, top + w1.height / 2)
     paste_centre(canvas, w2, right_cx, top + w1.height + 6 * S + w2.height / 2)
@@ -372,8 +393,8 @@ def main():
 def title_block(canvas, cx, top, scale=1.0):
     """CHONK MOSAIC title, tagline and pill, centred on cx."""
     px1 = int(12 * S * scale)
-    w1 = pixel_word("CHONK", px1, lambda i: (250, 252, 255))
-    w2 = pixel_word("IT", px1, lambda i: WORD2_COLOURS[i % len(WORD2_COLOURS)])
+    w1 = pixel_word("CHONK", px1, TITLE[0])
+    w2 = pixel_word("IT", px1, TITLE[1])
     paste_centre(canvas, w1, cx, top + w1.height / 2)
     paste_centre(canvas, w2, cx, top + w1.height + 6 * S + w2.height / 2)
     d = ImageDraw.Draw(canvas)
