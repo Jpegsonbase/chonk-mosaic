@@ -420,10 +420,6 @@
   .empty { max-width: 380px; }
   /* Floating Make bar on phones: fill the width between the 12px gutters. */
   .mobile-go { width: auto; }
-  /* Desktop: keep Chonk it in view while scrolling the long settings panel. */
-  @media (min-width: 961px) {
-    #go { position: sticky; bottom: 16px; z-index: 2; box-shadow: 0 0 0 12px var(--surface), 0 14px 28px -8px rgba(0, 82, 255, .55); }
-  }
   /* Touch screens: zoom bar sits under the art instead of covering it. */
   @media (hover: none) {
     .viewport { overflow: visible; }
@@ -579,7 +575,7 @@
           <div class="empty" id="empty">
             <div class="face" aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></div>
             <div class="big">Your mosaic hangs here</div>
-            Choose a picture to get started.
+            <span id="emptyText">Choose a picture to get started.</span>
             <div><button class="btn quiet try" id="tryExample" type="button">Try an example</button></div>
           </div>
           <div class="viewport" id="viewport" tabindex="0" hidden aria-label="Your mosaic. Scroll or pinch to zoom, drag to move.">
@@ -704,11 +700,11 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=30"></script>
-<script src="zoom.js?v=30"></script>
-<script src="export.js?v=30"></script>
-<script src="vendor/gifenc.js?v=30"></script>
-<script src="gif.js?v=30"></script>
-<script src="app.js?v=30"></script>
+<script src="chain.js?v=31"></script>
+<script src="zoom.js?v=31"></script>
+<script src="export.js?v=31"></script>
+<script src="vendor/gifenc.js?v=31"></script>
+<script src="gif.js?v=31"></script>
+<script src="app.js?v=31"></script>
 </body>
 </html>

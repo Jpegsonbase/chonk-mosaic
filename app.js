@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=30");
+      state.worker = new Worker("worker.js?v=31");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -269,6 +269,9 @@
     renderPreview();
     updateNotes();
     refreshButton();
+    const t = document.getElementById("emptyText");
+    if (t) t.textContent = "Picture ready. Press Chonk it to build your mosaic.";
+    el.tryExample.hidden = true;
   }
 
   function loadFile(file) {
