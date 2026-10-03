@@ -53,13 +53,13 @@
   async function loadDataset() {
     try {
       setPhase("Loading Chonk data…", "", 0.05);
-      const meta = await (await fetch("data/meta.json")).json();
-      const res = await fetch("data/features.bin");
+      const meta = await (await fetch("data/meta.json", { cache: "no-cache" })).json();
+      const res = await fetch(`data/features.bin?b=${meta.built || 0}`);
       if (!res.ok) throw new Error("features.bin missing");
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=10");
+      state.worker = new Worker("worker.js?v=11");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -300,7 +300,7 @@
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => { state.atlases.delete(n); reject(new Error(`missing ${name}`)); };
-        img.src = name;
+        img.src = `${name}?b=${state.meta.built || 0}`;
       }));
     }
     return state.atlases.get(n);
