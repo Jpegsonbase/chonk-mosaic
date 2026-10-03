@@ -27,7 +27,7 @@
     variety: $("variety"), varOut: $("varOut"),
     go: $("go"), canvas: $("mosaic"), empty: $("empty"),
     phase: $("phase"), msg: $("msg"), progress: $("progress"),
-    stats: $("stats"), dl: $("dl"), dlList: $("dlList"), dlFull: $("dlFull"), tip: $("tip"),
+    stats: $("stats"), dl: $("dl"), dlFull: $("dlFull"), tip: $("tip"),
     vArt: $("vArt"), vId: $("vId"), vGo: $("vGo"), vInfo: $("vInfo"), vTraits: $("vTraits"),
     rpc: $("rpc"), only: $("only"),
   };
@@ -59,7 +59,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=11");
+      state.worker = new Worker("worker.js?v=12");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -219,7 +219,7 @@
     if (!state.ready || !state.image || state.busy) return;
     state.busy = true; refreshButton();
     if (window.innerWidth < 960) document.querySelector(".wall")?.scrollIntoView({ behavior: "smooth", block: "start" });
-    el.dl.disabled = el.dlList.disabled = true;
+    el.dl.disabled = true;
     if (el.dlFull) el.dlFull.disabled = true;
     try {
       const { cols, rows } = gridSize();
@@ -277,7 +277,7 @@
       if (state.source === "chain") await drawFromChain(ctx, used, cols, tile);
 
       setPhase("Done", `${used.size.toLocaleString()} different Chonks`, 1);
-      el.dl.disabled = el.dlList.disabled = false;
+      el.dl.disabled = false;
       if (el.dlFull) {
         const ft = fullSizeTile(cols, rows);
         el.dlFull.disabled = !window.ChonkExport || !ChonkExport.supported || ft <= tile;
@@ -385,7 +385,7 @@
     const tile = fullSizeTile(cols, rows);
     const W = cols * tile, H = rows * tile;
     state.busy = true; refreshButton();
-    el.dl.disabled = el.dlList.disabled = el.dlFull.disabled = true;
+    el.dl.disabled = el.dlFull.disabled = true;
     try {
       // Gather art for every Chonk in the mosaic.
       const { thumb, perAtlasSide } = state.meta;
@@ -430,20 +430,30 @@
       setPhase("Full-size download failed", err.message || String(err));
     } finally {
       state.busy = false; refreshButton();
-      el.dl.disabled = el.dlList.disabled = el.dlFull.disabled = false;
+      el.dl.disabled = el.dlFull.disabled = false;
     }
   }
-  if (el.dlFull) el.dlFull.addEventListener("click", downloadFullSize);
+  // Warn before the (possibly slow, large) full-size build starts.
+  function confirmFullSize() {
+    if (!state.last || state.busy) return;
+    const { cols, rows } = state.last;
+    const t = fullSizeTile(cols, rows);
+    const dlg = document.getElementById("fullDialog");
+    document.getElementById("fullDims").textContent =
+      `${(cols * t).toLocaleString()} × ${(rows * t).toLocaleString()} px`;
+    if (!dlg || typeof dlg.showModal !== "function") {
+      if (window.confirm("A full-size image can take a minute or two to build and download. Keep this tab open until the download starts. Continue?")) downloadFullSize();
+      return;
+    }
+    dlg.showModal();
+  }
+  const fullDlg = document.getElementById("fullDialog");
+  if (fullDlg) {
+    fullDlg.addEventListener("close", () => { if (fullDlg.returnValue === "go") downloadFullSize(); });
+    fullDlg.addEventListener("click", (e) => { if (e.target === fullDlg) fullDlg.close("cancel"); }); // click outside
+  }
+  if (el.dlFull) el.dlFull.addEventListener("click", confirmFullSize);
 
-  el.dlList.addEventListener("click", () => {
-    const { result, cols } = state.last;
-    const lines = ["row,col,chonk_id"];
-    result.forEach((idx, pos) => lines.push(`${Math.floor(pos / cols)},${pos % cols},${idx >= 0 ? state.meta.ids[idx] : ""}`));
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
-    a.download = "chonk-mosaic-tiles.csv";
-    a.click();
-  });
 
   // ---------------------------------------------------------------- hover + viewer
   function tileAt(e) {

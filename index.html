@@ -314,6 +314,22 @@
     padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
   }
   footer { align-items: center; }
+  dialog#fullDialog {
+    border: 0; border-radius: 22px; padding: 26px; max-width: 420px; width: calc(100% - 32px);
+    background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px var(--shadow);
+  }
+  dialog#fullDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
+  dialog#fullDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
+  dialog#fullDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  dialog#fullDialog p strong { color: var(--ink); white-space: nowrap; }
+  .dlg-warn {
+    width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 14px;
+    background: var(--yellow); color: #0E1230; font-family: var(--display); font-weight: 800; font-size: 20px;
+  }
+  dialog#fullDialog p.dlg-q { color: var(--ink); font-weight: 700; margin-top: 16px; }
+  .dlg-actions .btn[value=cancel], .dlg-actions .btn[value=go] { min-width: 88px; }
+  .dlg-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .dlg-actions .btn { width: auto; padding: 12px 20px; font-size: 15px; }
   footer .credit {
     display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
     font: 700 14px var(--body); color: var(--ink); background: var(--surface);
@@ -440,7 +456,6 @@
           <div class="status"><span id="phase">Ready</span><span id="msg"></span></div>
         </div>
         <div class="actions">
-          <button class="btn quiet" id="dlList" disabled>Download Chonk list</button>
           <button class="btn quiet" id="dl" disabled>Download PNG</button>
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
         </div>
@@ -482,9 +497,22 @@
 </div>
 
 <div id="tip"></div>
-<script src="chain.js?v=11"></script>
-<script src="zoom.js?v=11"></script>
-<script src="export.js?v=11"></script>
-<script src="app.js?v=11"></script>
+<dialog id="fullDialog" aria-labelledby="fullTitle">
+  <form method="dialog">
+    <div class="dlg-warn" aria-hidden="true">!</div>
+    <h2 id="fullTitle">Heads up: this may take a while</h2>
+    <p>Your mosaic will be built at <strong id="fullDims"></strong>, the biggest size this device can make.</p>
+    <p>Rendering and downloading can take a minute or two, and the file may be large. Keep this tab open until the download starts.</p>
+    <p class="dlg-q">Are you sure you want to continue?</p>
+    <div class="dlg-actions">
+      <button class="btn quiet" value="cancel">No</button>
+      <button class="btn" value="go" autofocus>Yes</button>
+    </div>
+  </form>
+</dialog>
+<script src="chain.js?v=12"></script>
+<script src="zoom.js?v=12"></script>
+<script src="export.js?v=12"></script>
+<script src="app.js?v=12"></script>
 </body>
 </html>
