@@ -10,9 +10,10 @@
     const ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
     const mobile = ios || /Android|Mobi/i.test(ua);
     const mem = navigator.deviceMemory || 8; // GB, Chrome/Edge only
-    if (ios) return { name: "on your phone", side: 8192, area: 16.7e6 };
-    if (mobile) return { name: "on your phone", side: 12000, area: mem <= 4 ? 30e6 : 50e6 };
-    return { name: "in your browser", side: 16000, area: mem <= 4 ? 80e6 : 160e6 };
+    // fullSide/fullArea: limits for the strip-built "Download full size" PNG.
+    if (ios) return { name: "on your phone", side: 8192, area: 16.7e6, fullSide: 20000, fullArea: 150e6 };
+    if (mobile) return { name: "on your phone", side: 12000, area: mem <= 4 ? 30e6 : 50e6, fullSide: 24000, fullArea: mem <= 4 ? 150e6 : 250e6 };
+    return { name: "in your browser", side: 16000, area: mem <= 4 ? 80e6 : 160e6, fullSide: 32000, fullArea: mem <= 4 ? 400e6 : 1e9 };
   })();
   const MAX_SIDE = DEVICE.side;
   const MAX_AREA = DEVICE.area;
@@ -26,7 +27,7 @@
     variety: $("variety"), varOut: $("varOut"),
     go: $("go"), canvas: $("mosaic"), empty: $("empty"),
     phase: $("phase"), msg: $("msg"), progress: $("progress"),
-    stats: $("stats"), dl: $("dl"), dlList: $("dlList"), tip: $("tip"),
+    stats: $("stats"), dl: $("dl"), dlList: $("dlList"), dlFull: $("dlFull"), tip: $("tip"),
     vArt: $("vArt"), vId: $("vId"), vGo: $("vGo"), vInfo: $("vInfo"), vTraits: $("vTraits"),
     rpc: $("rpc"), only: $("only"),
   };
@@ -58,7 +59,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=9");
+      state.worker = new Worker("worker.js?v=10");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -219,6 +220,7 @@
     state.busy = true; refreshButton();
     if (window.innerWidth < 960) document.querySelector(".wall")?.scrollIntoView({ behavior: "smooth", block: "start" });
     el.dl.disabled = el.dlList.disabled = true;
+    if (el.dlFull) el.dlFull.disabled = true;
     try {
       const { cols, rows } = gridSize();
       const tile = effectiveTile(cols, rows);
@@ -243,7 +245,7 @@
       });
       buildResolve = buildReject = null;
       const result = done.result;
-      state.last = { result, cols, rows, tile };
+      state.last = { result, cols, rows, tile, source: state.source };
 
       // 3. Draw.
       const used = new Map(); // index -> [tile positions]
@@ -276,6 +278,13 @@
 
       setPhase("Done", `${used.size.toLocaleString()} different Chonks`, 1);
       el.dl.disabled = el.dlList.disabled = false;
+      if (el.dlFull) {
+        const ft = fullSizeTile(cols, rows);
+        el.dlFull.disabled = !window.ChonkExport || !ChonkExport.supported || ft <= tile;
+        el.dlFull.title = ft > tile
+          ? `${(cols * ft).toLocaleString()} × ${(rows * ft).toLocaleString()} px, ${ft} px per Chonk`
+          : "Your download is already the biggest size this device can make.";
+      }
     } catch (err) {
       console.error(err);
       setPhase("Something went wrong", err.message || String(err));
@@ -359,6 +368,72 @@
       setPhase("Export blocked", "The browser refused to export onchain SVGs — switch to Fast mode and rebuild.");
     }
   });
+
+  // ---------------------------------------------------------------- full-size export
+  // Biggest Chonk size the strip export can make here. Prefers whole-number
+  // multiples of the saved thumbnail so pixels stay perfectly square.
+  function fullSizeTile(cols, rows) {
+    const base = state.meta.thumb;
+    const fits = (t) => cols * t <= DEVICE.fullSide && rows * t <= DEVICE.fullSide && cols * rows * t * t <= DEVICE.fullArea;
+    for (let k = 8; k >= 1; k--) if (fits(base * k)) return base * k;
+    return Math.max(4, Math.floor(Math.min(DEVICE.fullSide / cols, DEVICE.fullSide / rows, Math.sqrt(DEVICE.fullArea / (cols * rows)))));
+  }
+
+  async function downloadFullSize() {
+    if (!state.last || state.busy) return;
+    const { result, cols, rows, source } = state.last;
+    const tile = fullSizeTile(cols, rows);
+    const W = cols * tile, H = rows * tile;
+    state.busy = true; refreshButton();
+    el.dl.disabled = el.dlList.disabled = el.dlFull.disabled = true;
+    try {
+      // Gather art for every Chonk in the mosaic.
+      const { thumb, perAtlasSide } = state.meta;
+      const per = perAtlasSide * perAtlasSide;
+      const used = [...new Set(result)].filter((i) => i >= 0);
+      setPhase("Preparing full size…", `${W.toLocaleString()} × ${H.toLocaleString()} px`, 0);
+      const atlasImgs = new Map();
+      for (const a of new Set(used.map((i) => Math.floor(i / per)))) {
+        try { atlasImgs.set(a, await loadAtlas(a)); } catch (_) { /* skip */ }
+      }
+      let chainImgs = null;
+      if (source === "chain") {
+        chainImgs = await ChonkChain.getManyChonkImages(used.map((i) => state.meta.ids[i]), {
+          rpc: el.rpc.value.trim() || undefined,
+          onProgress: (p) => setPhase("Fetching Chonks from Base…", `${Math.round(p * 100)}%`, p * 0.1),
+        });
+      }
+      const drawTile = (ctx, idx, x, y, size) => {
+        if (idx < 0) return;
+        const img = chainImgs && chainImgs.get(state.meta.ids[idx]);
+        if (img) { ctx.drawImage(img, x, y, size, size); return; }
+        const atlas = atlasImgs.get(Math.floor(idx / per));
+        if (!atlas) return;
+        const slot = idx % per;
+        ctx.drawImage(atlas, (slot % perAtlasSide) * thumb, Math.floor(slot / perAtlasSide) * thumb, thumb, thumb, x, y, size, size);
+      };
+
+      const t0 = performance.now();
+      const blob = await ChonkExport.exportPng({
+        cols, rows, tile, drawTile,
+        indexAt: (pos) => result[pos],
+        onProgress: (p) => setPhase("Building full-size PNG…", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${Math.round(p * 100)}%`, 0.1 + p * 0.9),
+      });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = `chonk-mosaic-${W}x${H}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 60000);
+      setPhase("Full size saved", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${(blob.size / 1e6).toFixed(1)} MB · ${((performance.now() - t0) / 1000).toFixed(0)}s`, 1);
+    } catch (err) {
+      console.error(err);
+      setPhase("Full-size download failed", err.message || String(err));
+    } finally {
+      state.busy = false; refreshButton();
+      el.dl.disabled = el.dlList.disabled = el.dlFull.disabled = false;
+    }
+  }
+  if (el.dlFull) el.dlFull.addEventListener("click", downloadFullSize);
 
   el.dlList.addEventListener("click", () => {
     const { result, cols } = state.last;
