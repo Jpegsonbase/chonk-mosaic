@@ -1,5 +1,5 @@
 /*
- * Chonk Mosaic – matching engine.
+ * Chonkit – matching engine.
  * A direct port of the original Python matcher (same features, weights,
  * palette adaptation, reuse + recent penalties), plus a colour-grid
  * pre-filter so 83k Chonks can be searched in the browser in seconds.
