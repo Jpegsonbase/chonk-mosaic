@@ -2,8 +2,20 @@
   "use strict";
 
   const SAMPLE = 8;                 // pixels sampled per tile (like DETAIL=8 in the script)
-  const MAX_SIDE = 16000;           // browser canvas limits
-  const MAX_AREA = 160e6;
+  // Biggest mosaic image this device can safely hold in one canvas.
+  // iPhones/iPads cap canvases at ~16.7M pixels; other phones and low-memory
+  // computers run out of memory well before the desktop limits.
+  const DEVICE = (() => {
+    const ua = navigator.userAgent || "";
+    const ios = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+    const mobile = ios || /Android|Mobi/i.test(ua);
+    const mem = navigator.deviceMemory || 8; // GB, Chrome/Edge only
+    if (ios) return { name: "on your phone", side: 8192, area: 16.7e6 };
+    if (mobile) return { name: "on your phone", side: 12000, area: mem <= 4 ? 30e6 : 50e6 };
+    return { name: "in your browser", side: 16000, area: mem <= 4 ? 80e6 : 160e6 };
+  })();
+  const MAX_SIDE = DEVICE.side;
+  const MAX_AREA = DEVICE.area;
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -46,7 +58,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=8");
+      state.worker = new Worker("worker.js?v=9");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -122,7 +134,9 @@
     const t = effectiveTile(cols, rows);
     const w = cols * t, h = rows * t;
     el.sizeNote.innerHTML = `Output ${w.toLocaleString()} × ${h.toLocaleString()} px` +
-      (t !== +el.tile.value ? ` <span class="warn">(capped to ${t}px per Chonk for your browser)</span>` : "");
+      (t !== +el.tile.value
+        ? `<br><span class="warn">Chonks shrunk to ${t} px so the image fits ${DEVICE.name}. Lower the detail for bigger Chonks.</span>`
+        : "");
   }
 
   function varietySettings() {
