@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=29");
+      state.worker = new Worker("worker.js?v=30");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -584,7 +584,7 @@
         const img = new Image();
         img.onload = () => resolve(img);
         img.onerror = () => { state.atlases.delete(key); reject(new Error(`missing ${name}`)); };
-        img.src = `${name}?b=${state.meta.built || 0}`;
+        img.src = `${name}?b=${state.meta.built || 0}.${state.meta.thumb}`;
       }));
     }
     return state.atlases.get(key);
