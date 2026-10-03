@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=19");
+      state.worker = new Worker("worker.js?v=20");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -98,16 +98,30 @@
       }
       canvas.classList.add("on");
       const cap = document.getElementById("heroCap");
-      if (cap) cap.textContent = `${cols * rows} of ${count.toLocaleString()} Chonks`;
+      if (cap) cap.textContent = `${cols * rows} of ${collectionSize().toLocaleString()} Chonks`;
     } catch (_) { /* hero stays plain */ }
   }
+
+  // Size of the whole collection: live from the contract when available,
+  // otherwise the number of Chonks in the saved data.
+  const collectionSize = () => state.totalSupply || (state.meta ? state.meta.count : 0);
 
   let buildResolve = null, buildReject = null;
   function onWorker(e) {
     const m = e.data;
     if (m.type === "loaded") {
       state.ready = true;
-      setPhase("Ready", `${m.count.toLocaleString()} Chonks loaded`, 0);
+      setPhase("Ready", `${collectionSize().toLocaleString()} Chonks in the collection`, 0);
+      // Read the real collection size from the contract and update the labels.
+      ChonkChain.getTotalSupply(el.rpc.value.trim() || undefined).then((n) => {
+        if (!(n > 0)) return;
+        state.totalSupply = n;
+        if (el.phase.textContent === "Ready" && /in the collection$/.test(el.msg.textContent)) {
+          el.msg.textContent = `${n.toLocaleString()} Chonks in the collection`;
+        }
+        const cap = document.getElementById("heroCap");
+        if (cap && /^\d+ of /.test(cap.textContent)) cap.textContent = cap.textContent.replace(/of [\d,]+ Chonks/, `of ${n.toLocaleString()} Chonks`);
+      }).catch(() => { /* keep the saved count */ });
       refreshButton();
     } else if (m.type === "progress") {
       setPhase("Matching Chonks…", `${Math.round(m.value * 100)}%`, m.value * 0.6);

@@ -205,5 +205,16 @@
     return null;
   }
 
-  root.ChonkChain = { CHONKS_CONTRACT, DEFAULT_RPC, getChonkImage, getChonkMeta, getManyChonkImages, getWalletChonks, resolveName, decodeAbiString };
+  /** How many Chonks exist, read from the contract (totalSupply). */
+  async function getTotalSupply(rpc) {
+    const res = await fetch(rpc || DEFAULT_RPC, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: CHONKS_CONTRACT, data: "0x18160ddd" }, "latest"] }),
+    });
+    const reply = await res.json();
+    if (!reply.result || reply.result === "0x") throw new Error("no totalSupply");
+    return readUint(hexToBytes(reply.result), 0);
+  }
+
+  root.ChonkChain = { CHONKS_CONTRACT, DEFAULT_RPC, getChonkImage, getChonkMeta, getManyChonkImages, getWalletChonks, resolveName, getTotalSupply, decodeAbiString };
 })(window);
