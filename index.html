@@ -333,7 +333,7 @@
 
   /* ---------- viewer ---------- */
   .viewer { display: grid; grid-template-columns: 180px 1fr; gap: 22px; align-items: start; }
-  @media (max-width: 560px) { .viewer { grid-template-columns: 1fr; } }
+  
   .viewer .art {
     width: 180px; height: 180px; border-radius: 18px; background: var(--soft); overflow: hidden;
     display: grid; place-items: center; color: var(--muted); font-family: var(--display); font-weight: 700;
@@ -405,6 +405,34 @@
   footer .credit:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
   footer { padding: 56px 0 40px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+  /* ---------- polish pass ---------- */
+  .zoombar button.txt { white-space: nowrap; }
+  .foot-text { display: flex; flex-direction: column; gap: 4px; }
+  .step-head .link-btn.val { color: var(--blue); font-weight: 600; }
+  .empty { max-width: 380px; }
+  /* Floating Make bar on phones: fill the width between the 12px gutters. */
+  .mobile-go { width: auto; }
+  /* Desktop: keep Make mosaic in view while scrolling the long settings panel. */
+  @media (min-width: 961px) {
+    #go { position: sticky; bottom: 16px; z-index: 2; box-shadow: 0 0 0 12px var(--surface), 0 14px 28px -8px rgba(0, 82, 255, .55); }
+  }
+  /* Touch screens: zoom bar sits under the art instead of covering it. */
+  @media (hover: none) {
+    .viewport { overflow: visible; }
+    .output { padding-bottom: 8px; }
+    .viewport .zoombar { position: absolute; top: calc(100% + 8px); bottom: auto; left: 50%; right: auto; transform: translateX(-50%); }
+    .viewport:not([hidden]) { margin-bottom: 56px; }
+  }
+  @media (max-width: 700px) {
+    .hero-facts { flex-direction: column; gap: 8px; }
+    .wall { min-height: 0; padding: 14px; border-radius: 20px; }
+    .viewer { grid-template-columns: 96px 1fr; gap: 14px; }
+    .viewer .art { width: 96px; height: 96px; border-radius: 14px; font-size: 13px; }
+    .side .row { flex-wrap: wrap; }
+    .side .row input { flex: 1 1 140px; }
+    footer { flex-direction: column; align-items: flex-start; }
+  }
 </style>
 </head>
 <body>
@@ -543,7 +571,7 @@
           <div class="empty" id="empty">
             <div class="face" aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></div>
             <div class="big">Your mosaic hangs here</div>
-            Choose a picture, then press Make mosaic.
+            Choose a picture to get started.
             <div><button class="btn quiet try" id="tryExample" type="button">Try an example</button></div>
           </div>
           <div class="viewport" id="viewport" tabindex="0" hidden aria-label="Your mosaic. Scroll or pinch to zoom, drag to move.">
@@ -602,8 +630,10 @@
   </main>
 
   <footer>
-    <span>Your picture never leaves your device. <span id="dataDate"></span></span>
-    <span>Fan-made, not affiliated with Chonks. Art is read from the Chonks contract on Base.</span>
+    <div class="foot-text">
+      <span>Your picture never leaves your device. <span id="dataDate"></span></span>
+      <span>Fan-made, not affiliated with Chonks. Art is read from the Chonks contract on Base.</span>
+    </div>
     <a class="credit" href="https://x.com/jpegsonbase" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>
       Made by @jpegsonbase
@@ -645,9 +675,9 @@
     <div class="dlg-actions"><button class="btn" value="done">Done</button></div>
   </form>
 </dialog>
-<script src="chain.js?v=21"></script>
-<script src="zoom.js?v=21"></script>
-<script src="export.js?v=21"></script>
-<script src="app.js?v=21"></script>
+<script src="chain.js?v=22"></script>
+<script src="zoom.js?v=22"></script>
+<script src="export.js?v=22"></script>
+<script src="app.js?v=22"></script>
 </body>
 </html>

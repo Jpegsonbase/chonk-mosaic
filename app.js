@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=21");
+      state.worker = new Worker("worker.js?v=22");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -186,7 +186,7 @@
     const w = cols * t, h = rows * t;
     el.sizeNote.innerHTML = `Output ${w.toLocaleString()} × ${h.toLocaleString()} px` +
       (t !== chosenTile()
-        ? `<br><span class="warn">Chonks shrunk to ${t} px so the image fits ${DEVICE.name}. Lower the detail for bigger Chonks.</span>`
+        ? `<br>Chonks set to ${t} px so the image fits ${DEVICE.name}. Lower the detail for bigger Chonks.`
         : "");
   }
 
@@ -267,10 +267,12 @@
   }
 
   function loadFile(file) {
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file) return;
+    if (!file.type.startsWith("image/")) { setPhase("That file isn't a picture", "Choose a JPG, PNG, WebP or GIF.", 0); return; }
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => { el.pickId.value = ""; setPicture(img, null); };
+    img.onload = () => { el.pickId.value = ""; setPicture(img, null); setPhase("Ready", "Picture loaded", 0); };
+    img.onerror = () => setPhase("Couldn't open that picture", "Try a JPG or PNG. Some phone formats (like HEIC) don't open in every browser.", 0);
     img.src = url;
   }
 
@@ -993,7 +995,9 @@
         el.vTraits.appendChild(chip);
       }
     } catch (err) {
-      el.vInfo.textContent = `Couldn't read Chonk #${id}: ${err.message}`;
+      el.vInfo.textContent = /not returned|execution reverted|nonexistent/i.test(err.message || "")
+        ? `There's no Chonk #${id}. Check the ID.`
+        : `Couldn't load Chonk #${id} from Base right now. Try again in a moment.`;
     }
   }
   el.vGo.addEventListener("click", () => showChonk(el.vId.value));
@@ -1026,7 +1030,9 @@
   darkQuery.addEventListener("change", syncTheme);
   syncTheme();
 
-  document.getElementById("dlList")?.remove();   // old button, in case an old page is cached
+  document.getElementById("dlList")?.remove();
+  // Phones start at 30 px, which fits their canvas limit at the default detail.
+  if (DEVICE.mobile) { try { if (!localStorage.getItem("chonk-settings")) el.tile.value = 1; } catch (_) { el.tile.value = 1; } }   // old button, in case an old page is cached
   restoreSettings();
   updateNotes();
   loadDataset();
