@@ -46,7 +46,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=6");
+      state.worker = new Worker("worker.js?v=8");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -439,6 +439,33 @@
   }
   el.vGo.addEventListener("click", () => showChonk(el.vId.value));
   el.vId.addEventListener("keydown", (e) => { if (e.key === "Enter") showChonk(el.vId.value); });
+
+  // ---------------------------------------------------------------- theme
+  // Follows the device's light/dark setting until someone uses the toggle.
+  // Choosing the same mode as the device clears the saved choice again.
+  const themeBtn = document.getElementById("themeBtn");
+  const darkQuery = window.matchMedia("(prefers-color-scheme: dark)");
+  const root = document.documentElement;
+  const currentTheme = () => root.dataset.theme || (darkQuery.matches ? "dark" : "light");
+  function syncTheme() {
+    const t = currentTheme();
+    if (themeBtn) themeBtn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", t === "dark" ? "#0D1024" : "#FAFBFF"));
+  }
+  if (themeBtn) themeBtn.addEventListener("click", () => {
+    const next = currentTheme() === "dark" ? "light" : "dark";
+    const device = darkQuery.matches ? "dark" : "light";
+    if (next === device) {
+      delete root.dataset.theme;
+      try { localStorage.removeItem("chonk-theme"); } catch (_) {}
+    } else {
+      root.dataset.theme = next;
+      try { localStorage.setItem("chonk-theme", next); } catch (_) {}
+    }
+    syncTheme();
+  });
+  darkQuery.addEventListener("change", syncTheme);
+  syncTheme();
 
   updateNotes();
   loadDataset();
