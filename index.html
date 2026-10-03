@@ -361,6 +361,10 @@
   .or-chonk .row { margin-top: 6px; }
   .or-chonk .btn.quiet { padding: 9px 14px; font-size: 14px; }
   .seg.seg3 { grid-template-columns: repeat(3, 1fr); }
+  .wallet-row { margin-top: 10px; }
+  .wallet-row[hidden] { display: none; }
+  .wallet-row input { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; }
+  .note .ok { color: var(--ink); font-weight: 700; }
   .seg.seg3 button { padding: 10px 4px; font-size: 13.5px; }
   .empty .try { margin-top: 18px; }
   .btn.share { display: inline-flex; align-items: center; gap: 8px; }
@@ -473,6 +477,31 @@
         <div class="note">Lower keeps the closest colour match. Higher uses more different Chonks.</div>
       </div>
 
+      <div>
+        <div class="step-head"><span class="n" style="--c: #BDEFD9">7</span>Chonks to use</div>
+        <div class="seg" id="pool">
+          <button data-v="all" class="on">All Chonks</button>
+          <button data-v="wallet">From a wallet</button>
+        </div>
+        <div class="wallet-row" id="walletRow" hidden>
+          <div class="row">
+            <input type="text" id="wallet" placeholder="0x… wallet address" aria-label="Wallet address" autocomplete="off" spellcheck="false">
+            <button class="btn quiet" id="walletGo" type="button">Load</button>
+          </div>
+        </div>
+        <div class="note" id="poolNote">Picks from the whole collection.</div>
+      </div>
+
+      <div>
+        <div class="step-head"><span class="n" style="--c: #FFE08A">8</span>Spacing</div>
+        <div class="seg seg3" id="gap">
+          <button data-v="none" class="on">None</button>
+          <button data-v="white">White gaps</button>
+          <button data-v="black">Black gaps</button>
+        </div>
+        <div class="note" id="gapNote">Chonks sit edge to edge.</div>
+      </div>
+
       <details>
         <summary>Advanced settings</summary>
         <div class="grid2">
@@ -555,7 +584,7 @@
   </section>
 
   <footer>
-    <span>Your picture never leaves your device.</span>
+    <span>Your picture never leaves your device. <span id="dataDate"></span></span>
     <span>Fan-made, not affiliated with Chonks. Art is read from the Chonks contract on Base.</span>
     <a class="credit" href="https://x.com/jpegsonbase" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>
@@ -578,9 +607,9 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=14"></script>
-<script src="zoom.js?v=14"></script>
-<script src="export.js?v=14"></script>
-<script src="app.js?v=14"></script>
+<script src="chain.js?v=15"></script>
+<script src="zoom.js?v=15"></script>
+<script src="export.js?v=15"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

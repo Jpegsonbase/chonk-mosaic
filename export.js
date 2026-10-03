@@ -91,7 +91,7 @@
       if (opts.signal && opts.signal.aborted) throw new Error("Cancelled");
       for (let c0 = 0; c0 < cols; c0 += chunkCols) {
         const n = Math.min(chunkCols, cols - c0), pw = n * tile;
-        ctx.fillStyle = "#fff";
+        ctx.fillStyle = opts.background || "#fff";
         ctx.fillRect(0, 0, pw, tile);
         for (let c = 0; c < n; c++) drawTile(ctx, indexAt(r * cols + c0 + c), c * tile, 0, tile);
         const px = ctx.getImageData(0, 0, pw, tile).data;

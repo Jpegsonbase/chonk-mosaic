@@ -31,7 +31,9 @@
     vArt: $("vArt"), vId: $("vId"), vGo: $("vGo"), vInfo: $("vInfo"), vTraits: $("vTraits"),
     rpc: $("rpc"), only: $("only"),
     shape: $("shape"), shapeNote: $("shapeNote"), pickId: $("pickId"), pickGo: $("pickGo"), pickRandom: $("pickRandom"),
-    tryExample: $("tryExample"), changePic: $("changePic"), share: $("share"), artTitle: $("artTitle"), original: $("original"),
+    tryExample: $("tryExample"), changePic: $("changePic"),
+    pool: $("pool"), poolNote: $("poolNote"), walletRow: $("walletRow"), wallet: $("wallet"), walletGo: $("walletGo"),
+    gap: $("gap"), gapNote: $("gapNote"), share: $("share"), artTitle: $("artTitle"), original: $("original"),
   };
 
   el.rpc.value = ChonkChain.DEFAULT_RPC;
@@ -39,7 +41,7 @@
 
   const state = {
     meta: null, idToIndex: null, worker: null, ready: false,
-    image: null, label: null, shape: "original", cropX: 0.5, cropY: 0.5, source: "atlas", busy: false,
+    image: null, label: null, shape: "original", cropX: 0.5, cropY: 0.5, pool: "all", walletIdx: null, walletAddr: "", gap: "none", source: "atlas", busy: false,
     last: null, // { result, cols, rows, tile }
     atlases: new Map(),
   };
@@ -60,8 +62,13 @@
       if (!res.ok) throw new Error("features.bin missing");
       const buffer = await res.arrayBuffer();
       state.meta = meta;
+      if (meta.built) {
+        const d = new Date(meta.built * 1000);
+        const dd = document.getElementById("dataDate");
+        if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
+      }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=14");
+      state.worker = new Worker("worker.js?v=15");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -352,6 +359,57 @@
     }, varietySettings());
   }
 
+  // ---------------------------------------------------------------- spacing
+  const GAPS = {
+    none: { bg: "#fff", note: "Chonks sit edge to edge." },
+    white: { bg: "#fff", note: "A thin white line between every Chonk." },
+    black: { bg: "#000", note: "A thin black line between every Chonk." },
+  };
+  // How far each Chonk is pulled in from its square (0 when there's no spacing).
+  const gapInset = (gap, size) => (gap === "none" ? 0 : Math.max(1, Math.round(size * 0.05)));
+  el.gap.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    el.gap.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+    state.gap = b.dataset.v;
+    el.gapNote.textContent = GAPS[state.gap].note;
+    saveSettings();
+  });
+
+  // ---------------------------------------------------------------- wallet
+  function setPool(v) {
+    state.pool = v;
+    el.pool.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x.dataset.v === v));
+    el.walletRow.hidden = v !== "wallet";
+    if (v === "all") el.poolNote.textContent = "Picks from the whole collection.";
+    else if (state.walletIdx) showWalletNote();
+    else el.poolNote.textContent = "Paste a wallet address to build only from the Chonks it holds.";
+    saveSettings();
+  }
+  function showWalletNote() {
+    const n = state.walletIdx.length, short = `${state.walletAddr.slice(0, 6)}…${state.walletAddr.slice(-4)}`;
+    el.poolNote.innerHTML = n
+      ? `<span class="ok">${n.toLocaleString()} Chonk${n === 1 ? "" : "s"}</span> found in ${short}.` +
+        (n < 40 ? " Mosaics look best with 40 or more, so expect lots of repeats." : "")
+      : `No Chonks found in ${short}. Chonks listed for sale on a market may be held by the market instead.`;
+  }
+  async function loadWallet() {
+    const addr = el.wallet.value.trim();
+    el.poolNote.textContent = "Looking up wallet on Base…";
+    try {
+      const ids = await ChonkChain.getWalletChonks(addr, el.rpc.value.trim() || undefined);
+      state.walletAddr = addr;
+      state.walletIdx = ids.map((id) => state.idToIndex.get(id)).filter((i) => i !== undefined);
+      showWalletNote();
+      saveSettings();
+    } catch (err) {
+      state.walletIdx = null;
+      el.poolNote.textContent = err.message || "Couldn't read that wallet. Check the address and try again.";
+    }
+  }
+  el.pool.addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setPool(b.dataset.v); });
+  el.walletGo.addEventListener("click", loadWallet);
+  el.wallet.addEventListener("keydown", (e) => { if (e.key === "Enter") loadWallet(); });
+
   // ---------------------------------------------------------------- build
   async function build() {
     if (!state.ready || !state.image || state.busy) return;
@@ -378,7 +436,12 @@
       const rgba = cx.getImageData(0, 0, c.width, c.height).data;
 
       // 2. Match in the worker.
-      const allowed = parseOnly(el.only.value);
+      let allowed = parseOnly(el.only.value);
+      if (state.pool === "wallet") {
+        if (!state.walletIdx) { if (el.wallet.value.trim()) await loadWallet(); }
+        if (!state.walletIdx || !state.walletIdx.length) throw new Error("Load a wallet that holds Chonks first (step 7), or switch to All Chonks.");
+        allowed = Int32Array.from(state.walletIdx);
+      }
       const done = await new Promise((resolve, reject) => {
         buildResolve = resolve; buildReject = reject;
         state.worker.postMessage({
@@ -387,7 +450,7 @@
       });
       buildResolve = buildReject = null;
       const result = done.result;
-      state.last = { result, cols, rows, tile, source: state.source, label: state.label };
+      state.last = { result, cols, rows, tile, source: state.source, label: state.label, gap: state.gap };
 
       // 3. Draw.
       const used = new Map(); // index -> [tile positions]
@@ -405,7 +468,7 @@
       canvas.width = cols * tile; canvas.height = rows * tile;
       const ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = GAPS[state.gap].bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
       el.empty.style.display = "none"; canvas.style.display = "block";
       if (window.MosaicZoom) MosaicZoom.reset();
       else {
@@ -452,6 +515,7 @@
   }
 
   async function drawFromAtlases(ctx, used, cols, tile) {
+    const ins = gapInset(state.gap, tile);
     const { thumb, perAtlasSide } = state.meta;
     const per = perAtlasSide * perAtlasSide;
     const byAtlas = new Map();
@@ -469,13 +533,14 @@
         const slot = idx % per;
         const sx = (slot % perAtlasSide) * thumb, sy = Math.floor(slot / perAtlasSide) * thumb;
         for (const pos of used.get(idx)) {
-          ctx.drawImage(img, sx, sy, thumb, thumb, (pos % cols) * tile, Math.floor(pos / cols) * tile, tile, tile);
+          ctx.drawImage(img, sx, sy, thumb, thumb, (pos % cols) * tile + ins, Math.floor(pos / cols) * tile + ins, tile - 2 * ins, tile - 2 * ins);
         }
       }
     }
   }
 
   async function drawFromChain(ctx, used, cols, tile) {
+    const ins = gapInset(state.gap, tile);
     const ids = [...used.keys()].map((i) => state.meta.ids[i]);
     const indexOf = (id) => state.idToIndex.get(id);
     let drawn = 0;
@@ -486,8 +551,9 @@
     for (const [id, img] of images) {
       for (const pos of used.get(indexOf(id))) {
         const x = (pos % cols) * tile, y = Math.floor(pos / cols) * tile;
-        ctx.fillStyle = "#fff"; ctx.fillRect(x, y, tile, tile);
-        ctx.drawImage(img, x, y, tile, tile);
+        ctx.fillStyle = GAPS[state.gap].bg; ctx.fillRect(x, y, tile, tile);
+        ctx.fillStyle = "#fff"; ctx.fillRect(x + ins, y + ins, tile - 2 * ins, tile - 2 * ins);
+        ctx.drawImage(img, x + ins, y + ins, tile - 2 * ins, tile - 2 * ins);
       }
       drawn++;
     }
@@ -543,7 +609,7 @@
   const SETTINGS_KEY = "chonk-settings";
   const SAVED_INPUTS = ["cols", "tile", "variety", "w_color", "w_fp", "w_bright", "w_sat", "w_edge", "p_adapt", "r_mem", "cands", "only", "rpc"];
   function saveSettings() {
-    const data = { source: state.source, shape: state.shape };
+    const data = { source: state.source, shape: state.shape, gap: state.gap, pool: state.pool, wallet: el.wallet.value.trim() };
     for (const id of SAVED_INPUTS) { const n = $(id); if (n) data[id] = n.value; }
     try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch (_) {}
   }
@@ -554,6 +620,9 @@
     for (const id of SAVED_INPUTS) { const n = $(id); if (n && data[id] != null && data[id] !== "") n.value = data[id]; }
     if (data.source) el.source.querySelector(`button[data-v="${data.source}"]`)?.click();
     if (data.shape && SHAPES[data.shape]) el.shape.querySelector(`button[data-v="${data.shape}"]`)?.click();
+    if (data.gap && GAPS[data.gap]) el.gap.querySelector(`button[data-v="${data.gap}"]`)?.click();
+    if (data.wallet) el.wallet.value = data.wallet;
+    if (data.pool === "wallet") setPool("wallet");
     varietySettings();
   }
   ["cols", "tile", "variety"].forEach((id) => $(id).addEventListener("change", saveSettings));
@@ -571,7 +640,7 @@
 
   async function downloadFullSize() {
     if (!state.last || state.busy) return;
-    const { result, cols, rows, source } = state.last;
+    const { result, cols, rows, source, gap } = state.last;
     const tile = fullSizeTile(cols, rows);
     const W = cols * tile, H = rows * tile;
     state.busy = true; refreshButton();
@@ -593,8 +662,11 @@
           onProgress: (p) => setPhase("Fetching Chonks from Base…", `${Math.round(p * 100)}%`, p * 0.1),
         });
       }
-      const drawTile = (ctx, idx, x, y, size) => {
+      const ins = gapInset(gap, tile);
+      const drawTile = (ctx, idx, x0, y0, size0) => {
         if (idx < 0) return;
+        const x = x0 + ins, y = y0 + ins, size = size0 - 2 * ins;
+        if (ins) { ctx.fillStyle = "#fff"; ctx.fillRect(x, y, size, size); }
         const img = chainImgs && chainImgs.get(state.meta.ids[idx]);
         if (img) { ctx.drawImage(img, x, y, size, size); return; }
         const atlas = atlasImgs.get(Math.floor(idx / per));
@@ -605,7 +677,7 @@
 
       const t0 = performance.now();
       const blob = await ChonkExport.exportPng({
-        cols, rows, tile, drawTile,
+        cols, rows, tile, drawTile, background: GAPS[gap].bg,
         indexAt: (pos) => result[pos],
         onProgress: (p) => setPhase("Building full-size PNG…", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${Math.round(p * 100)}%`, 0.1 + p * 0.9),
       });

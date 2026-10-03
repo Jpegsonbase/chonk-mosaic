@@ -9,6 +9,7 @@
   const CHONKS_CONTRACT = "0x07152bfde079b5319e5308c43fb1dbc9c76cb4f9";
   const DEFAULT_RPC = "https://mainnet.base.org";
   const TOKEN_URI = "0xc87b56dd"; // tokenURI(uint256)
+  const WALLET_OF_OWNER = "0x438b6300"; // walletOfOwner(address) -> uint256[]
 
   const imageCache = new Map(); // id -> Promise<HTMLImageElement>
 
@@ -144,5 +145,24 @@
     return result;
   }
 
-  root.ChonkChain = { CHONKS_CONTRACT, DEFAULT_RPC, getChonkImage, getChonkMeta, getManyChonkImages, decodeAbiString };
+  /** All Chonk IDs held by a wallet (0x… address). */
+  async function getWalletChonks(address, rpc) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(address)) throw new Error("That doesn't look like a wallet address (0x followed by 40 characters).");
+    const res = await fetch(rpc || DEFAULT_RPC, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_call",
+        params: [{ to: CHONKS_CONTRACT, data: WALLET_OF_OWNER + address.slice(2).toLowerCase().padStart(64, "0") }, "latest"] }),
+    });
+    if (!res.ok) throw new Error(`RPC HTTP ${res.status}`);
+    const reply = await res.json();
+    if (reply.error) throw new Error(reply.error.message || "RPC error");
+    const b = hexToBytes(reply.result || "0x");
+    if (b.length < 64) return [];
+    const off = readUint(b, 0), len = readUint(b, off);
+    const ids = [];
+    for (let i = 0; i < len; i++) ids.push(readUint(b, off + 32 + i * 32));
+    return ids;
+  }
+
+  root.ChonkChain = { CHONKS_CONTRACT, DEFAULT_RPC, getChonkImage, getChonkMeta, getManyChonkImages, getWalletChonks, decodeAbiString };
 })(window);
