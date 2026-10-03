@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=24");
+      state.worker = new Worker("worker.js?v=25");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -743,7 +743,9 @@
     const otherIOSBrowser = DEVICE.ios && /FxiOS|CriOS|EdgiOS|OPiOS|DuckDuckGo|GSA\//.test(ua);
     const how = document.getElementById("holdHow");
     if (how) how.innerHTML = otherIOSBrowser
-      ? "<strong>Press and hold the picture</strong>, tap <strong>Share…</strong>, then <strong>Save Image</strong>."
+      ? "This browser can't save straight to Photos. Press and hold the picture, tap <strong>Share… → Save to Files</strong>, " +
+        "then open it in the <strong>Files</strong> app and tap <strong>Share → Save Image</strong>. " +
+        "Or open this site in <strong>Safari</strong>, where you can press and hold → <strong>Save to Photos</strong>."
       : "<strong>Press and hold the picture</strong>, then tap <strong>Save to Photos</strong>.";
     const fr = new FileReader();
     fr.onload = () => { img.src = fr.result; dlg.showModal(); };
