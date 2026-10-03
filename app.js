@@ -31,7 +31,7 @@
     vArt: $("vArt"), vId: $("vId"), vGo: $("vGo"), vInfo: $("vInfo"), vTraits: $("vTraits"),
     rpc: $("rpc"), only: $("only"),
     shape: $("shape"), shapeNote: $("shapeNote"), pickId: $("pickId"), pickGo: $("pickGo"), pickRandom: $("pickRandom"),
-    tryExample: $("tryExample"), share: $("share"), artTitle: $("artTitle"), original: $("original"),
+    tryExample: $("tryExample"), changePic: $("changePic"), share: $("share"), artTitle: $("artTitle"), original: $("original"),
   };
 
   el.rpc.value = ChonkChain.DEFAULT_RPC;
@@ -39,7 +39,7 @@
 
   const state = {
     meta: null, idToIndex: null, worker: null, ready: false,
-    image: null, label: null, shape: "original", source: "atlas", busy: false,
+    image: null, label: null, shape: "original", cropX: 0.5, cropY: 0.5, source: "atlas", busy: false,
     last: null, // { result, cols, rows, tile }
     atlases: new Map(),
   };
@@ -61,7 +61,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=13");
+      state.worker = new Worker("worker.js?v=14");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -118,8 +118,8 @@
   // ---------------------------------------------------------------- shape / crop
   const SHAPES = {
     original: { ratio: null, note: "Keeps your picture's shape." },
-    square: { ratio: 1, note: "1:1, ready for a profile picture. Crops to the centre." },
-    banner: { ratio: 3, note: "3:1, the shape of an X header (1500 × 500). Crops to the centre." },
+    square: { ratio: 1, note: "1:1, ready for a profile picture. Drag the box on your picture to choose the part to use." },
+    banner: { ratio: 3, note: "3:1, the shape of an X header (1500 × 500). Drag the box on your picture to choose the part to use." },
   };
   const imgW = (im) => im.naturalWidth || im.width;
   const imgH = (im) => im.naturalHeight || im.height;
@@ -127,8 +127,9 @@
     const im = state.image, w = imgW(im), h = imgH(im);
     const ratio = SHAPES[state.shape].ratio;
     if (!ratio) return { sx: 0, sy: 0, sw: w, sh: h };
-    if (w / h > ratio) { const sw = h * ratio; return { sx: (w - sw) / 2, sy: 0, sw, sh: h }; }
-    const sh = w / ratio; return { sx: 0, sy: (h - sh) / 2, sw: w, sh };
+    // cropX / cropY (0–1) say where the window sits; 0.5 is centred.
+    if (w / h > ratio) { const sw = h * ratio; return { sx: (w - sw) * state.cropX, sy: 0, sw, sh: h }; }
+    const sh = w / ratio; return { sx: 0, sy: (h - sh) * state.cropY, sw: w, sh };
   }
 
   function gridSize() {
@@ -165,24 +166,71 @@
     return { reusePenalty: v / 200 };
   }
 
-  // Show the chosen picture (cropped to the chosen shape) in the drop box.
+  // Show the whole picture in the drop box. For Square / X banner, the part
+  // outside the crop is dimmed and the crop box can be dragged into place.
+  const cropping = () => !!(state.image && SHAPES[state.shape].ratio);
   function renderPreview() {
     if (!state.image) return;
-    const { sx, sy, sw, sh } = cropRect();
-    const scale = Math.min(1, 640 / Math.max(sw, sh));
+    const w = imgW(state.image), h = imgH(state.image);
+    const scale = Math.min(1, 640 / Math.max(w, h));
     let pv = el.drop.querySelector("canvas.preview");
-    if (!pv) { pv = document.createElement("canvas"); pv.className = "preview"; el.drop.appendChild(pv); }
-    pv.width = Math.max(1, Math.round(sw * scale)); pv.height = Math.max(1, Math.round(sh * scale));
+    if (!pv) {
+      pv = document.createElement("canvas"); pv.className = "preview"; el.drop.appendChild(pv);
+      attachCropDrag(pv);
+    }
+    pv.width = Math.max(1, Math.round(w * scale)); pv.height = Math.max(1, Math.round(h * scale));
     const c = pv.getContext("2d");
     c.imageSmoothingEnabled = !state.label;          // keep Chonk pixels crisp
     c.fillStyle = "#fff"; c.fillRect(0, 0, pv.width, pv.height);
-    c.drawImage(state.image, sx, sy, sw, sh, 0, 0, pv.width, pv.height);
+    c.drawImage(state.image, 0, 0, pv.width, pv.height);
+    pv.classList.toggle("cropping", cropping());
+    if (cropping()) {
+      const { sx, sy, sw, sh } = cropRect();
+      const x = sx * scale, y = sy * scale, cw = sw * scale, ch = sh * scale;
+      c.fillStyle = "rgba(14, 18, 48, 0.6)";
+      c.fillRect(0, 0, pv.width, y);
+      c.fillRect(0, y + ch, pv.width, pv.height - y - ch);
+      c.fillRect(0, y, x, ch);
+      c.fillRect(x + cw, y, pv.width - x - cw, ch);
+      const lw = Math.max(2, Math.round(pv.width / 160));
+      c.strokeStyle = "#fff"; c.lineWidth = lw;
+      c.strokeRect(x + lw / 2, y + lw / 2, cw - lw, ch - lw);
+    }
     el.dropHint.style.display = "none";
+    el.changePic.hidden = false;
+  }
+
+  // Drag the crop box. Works with mouse and touch; a drag never opens the file picker.
+  function attachCropDrag(pv) {
+    let drag = null;
+    pv.addEventListener("pointerdown", (e) => {
+      if (!cropping()) return;
+      e.preventDefault();
+      drag = { x: e.clientX, y: e.clientY, cropX: state.cropX, cropY: state.cropY };
+      pv.setPointerCapture(e.pointerId);
+    });
+    pv.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const r = pv.getBoundingClientRect();
+      const w = imgW(state.image), h = imgH(state.image);
+      const { sw, sh } = cropRect();
+      const srcPerPx = w / r.width;
+      const freeX = w - sw, freeY = h - sh;
+      if (freeX > 0) state.cropX = Math.min(1, Math.max(0, drag.cropX + (e.clientX - drag.x) * srcPerPx / freeX));
+      if (freeY > 0) state.cropY = Math.min(1, Math.max(0, drag.cropY + (e.clientY - drag.y) * srcPerPx / freeY));
+      renderPreview();
+    });
+    const end = () => { drag = null; };
+    pv.addEventListener("pointerup", end);
+    pv.addEventListener("pointercancel", end);
+    // While cropping, clicking the picture shouldn't open the file picker.
+    pv.addEventListener("click", (e) => { if (cropping()) e.preventDefault(); });
   }
 
   function setPicture(img, label = null) {
     state.image = img;
     state.label = label;
+    state.cropX = state.cropY = 0.5;
     renderPreview();
     updateNotes();
     refreshButton();
@@ -251,6 +299,7 @@
   });
 
   el.file.addEventListener("change", () => loadFile(el.file.files[0]));
+  el.changePic.addEventListener("click", () => { el.file.value = ""; el.file.click(); });
   ["dragenter", "dragover"].forEach((t) => el.drop.addEventListener(t, (e) => { e.preventDefault(); el.drop.classList.add("over"); }));
   ["dragleave", "drop"].forEach((t) => el.drop.addEventListener(t, (e) => { e.preventDefault(); el.drop.classList.remove("over"); }));
   el.drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
