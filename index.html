@@ -313,6 +313,15 @@
     position: fixed; pointer-events: none; background: var(--ink); color: var(--paper); z-index: 10;
     padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
   }
+  footer { align-items: center; }
+  footer .credit {
+    display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
+    font: 700 14px var(--body); color: var(--ink); background: var(--surface);
+    border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  footer .credit svg { width: 15px; height: 15px; }
+  footer .credit:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
   footer { padding: 56px 0 40px; color: var(--muted); font-size: 14px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
@@ -464,6 +473,10 @@
   <footer>
     <span>Your picture never leaves your device.</span>
     <span>Chonk art is read from the Chonks contract on Base.</span>
+    <a class="credit" href="https://x.com/jpegsonbase" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>
+      Made by @jpegsonbase
+    </a>
   </footer>
 </div>
 
