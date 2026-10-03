@@ -5,6 +5,22 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Chonk Mosaic</title>
 <meta name="description" content="Turn any picture into a mosaic made of Chonks. Free, runs in your browser, art straight from the Base contract.">
+<!-- Link previews (X, Discord, iMessage…). If the site moves to its own domain,
+     change the two URLs below to the new address. -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chonk Mosaic">
+<meta property="og:title" content="Chonk Mosaic: your picture, rebuilt from Chonks">
+<meta property="og:description" content="Drop in any image and get it back as a mosaic made of Chonks. Free, runs in your browser.">
+<meta property="og:url" content="https://jpegsonbase.github.io/chonk-mosaic/">
+<meta property="og:image" content="https://jpegsonbase.github.io/chonk-mosaic/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@jpegsonbase">
+<!-- Visitor counter (free, no cookies): sign up at goatcounter.com, then
+     replace YOURNAME below and remove the two comment markers around the script.
+<script data-goatcounter="https://jpegsonbase.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+-->
 <link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2033%2033%22%3E%3Crect%20x%3D%226%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%228%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%223%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2211%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%223%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2214%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%220%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%223%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2217%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%220%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%223%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23F4900C%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23E6E7E8%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%2331373D%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2220%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%223%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2230%22%20y%3D%2223%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%226%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%229%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2212%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2215%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2218%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2221%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2224%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3Crect%20x%3D%2227%22%20y%3D%2226%22%20width%3D%222.6%22%20height%3D%222.6%22%20rx%3D%22.6%22%20fill%3D%22%23FDCB58%22/%3E%3C/svg%3E">
 <meta name="theme-color" content="#FAFBFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0D1024" media="(prefers-color-scheme: dark)">
@@ -182,6 +198,7 @@
   }
   .drop:hover, .drop.over { border-color: var(--blue); background: var(--drop-hover); }
   .drop img { max-width: 100%; max-height: 240px; display: block; }
+  .drop canvas.preview { max-width: 100%; max-height: 240px; display: block; }
   .drop .hint { padding: 20px; color: var(--muted); font-size: 15px; }
   .drop .hint strong { display: block; color: var(--ink); font-size: 16px; margin-bottom: 2px; }
   input[type=range] { width: 100%; accent-color: var(--blue); height: 28px; margin: 0; }
@@ -246,6 +263,11 @@
     width: 34px; height: 34px; border-radius: 999px; cursor: pointer;
   }
   .zoombar button.txt { width: auto; padding: 0 12px; font-size: 13px; }
+  /* On mouse devices the bar fades in when you hover the art, so it doesn't cover it. */
+  @media (hover: hover) {
+    .zoombar { opacity: 0; transition: opacity .2s; }
+    .viewport:hover .zoombar, .viewport:focus-within .zoombar, .zoombar:has(button[aria-pressed="true"]) { opacity: 1; }
+  }
   .zoombar button:hover { background: var(--soft); }
   #zoomLevel { min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
   .wall:fullscreen { border-radius: 0; padding: 0; background: var(--wall); }
@@ -330,6 +352,24 @@
   .dlg-actions .btn[value=cancel], .dlg-actions .btn[value=go] { min-width: 88px; }
   .dlg-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
   .dlg-actions .btn { width: auto; padding: 12px 20px; font-size: 15px; }
+  .or-chonk { margin-top: 12px; font-size: 13.5px; color: var(--muted); }
+  .or-chonk .row { margin-top: 6px; }
+  .or-chonk .btn.quiet { padding: 9px 14px; font-size: 14px; }
+  .seg.seg3 { grid-template-columns: repeat(3, 1fr); }
+  .seg.seg3 button { padding: 10px 4px; font-size: 13.5px; }
+  .empty .try { margin-top: 18px; }
+  .btn.share { display: inline-flex; align-items: center; gap: 8px; }
+  .btn.share svg { width: 15px; height: 15px; }
+  .cmp-clip { position: absolute; left: 0; top: 0; bottom: 0; width: 50%; overflow: hidden; pointer-events: none; z-index: 1; }
+  .cmp-clip[hidden], .cmp-line[hidden] { display: none; }
+  #original { position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none; }
+  .cmp-line { position: absolute; top: 0; bottom: 0; left: 50%; width: 2px; margin-left: -1px; background: #fff; box-shadow: 0 0 0 1px rgba(14,18,48,.25); z-index: 2; pointer-events: none; }
+  .cmp-knob {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: auto; cursor: ew-resize;
+    width: 40px; height: 40px; border-radius: 999px; border: 0; background: #fff; color: #0E1230;
+    font: 800 13px var(--body); box-shadow: 0 4px 14px rgba(14,18,48,.3); touch-action: none;
+  }
+  .zoombar button[aria-pressed="true"] { background: var(--blue); color: #fff; }
   footer .credit {
     display: inline-flex; align-items: center; gap: 8px; text-decoration: none;
     font: 700 14px var(--body); color: var(--ink); background: var(--surface);
@@ -381,22 +421,40 @@
           <input type="file" id="file" accept="image/*" hidden>
           <div class="hint" id="dropHint"><strong>Drop an image here</strong>or click to browse. You can also paste.</div>
         </label>
+        <div class="or-chonk">
+          <span>Or use a Chonk</span>
+          <div class="row">
+            <input type="number" id="pickId" min="0" placeholder="Chonk ID" aria-label="Chonk ID to use as your picture">
+            <button class="btn quiet" id="pickGo" type="button">Use</button>
+            <button class="btn quiet" id="pickRandom" type="button" title="Use a random Chonk">Random</button>
+          </div>
+        </div>
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: var(--pink)">2</span>Detail<span class="val" id="colsOut">80 across</span></div>
+        <div class="step-head"><span class="n" style="--c: var(--pink)">2</span>Shape</div>
+        <div class="seg seg3" id="shape">
+          <button data-v="original" class="on">Original</button>
+          <button data-v="square">Square PFP</button>
+          <button data-v="banner">X banner</button>
+        </div>
+        <div class="note" id="shapeNote">Keeps your picture's shape.</div>
+      </div>
+
+      <div>
+        <div class="step-head"><span class="n" style="--c: var(--mint)">3</span>Detail<span class="val" id="colsOut">80 across</span></div>
         <input type="range" id="cols" min="20" max="240" value="80" aria-label="Chonks across">
         <div class="note" id="gridNote">Choose a picture to see the grid.</div>
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: var(--mint)">3</span>Chonk size<span class="val" id="tileOut">48 px</span></div>
+        <div class="step-head"><span class="n" style="--c: #B9D0FF">4</span>Chonk size<span class="val" id="tileOut">48 px</span></div>
         <input type="range" id="tile" min="12" max="120" step="4" value="48" aria-label="Chonk size in pixels">
         <div class="note" id="sizeNote"></div>
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: #B9D0FF">4</span>Art source</div>
+        <div class="step-head"><span class="n" style="--c: #D8C8FF">5</span>Art source</div>
         <div class="seg" id="source">
           <button data-v="atlas" class="on">Fast</button>
           <button data-v="chain">Onchain live</button>
@@ -405,7 +463,7 @@
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: #D8C8FF">5</span>Variety<span class="val" id="varOut">balanced</span></div>
+        <div class="step-head"><span class="n" style="--c: #FFD3B5">6</span>Variety<span class="val" id="varOut">balanced</span></div>
         <input type="range" id="variety" min="0" max="100" value="30" aria-label="Variety">
         <div class="note">Lower keeps the closest colour match. Higher uses more different Chonks.</div>
       </div>
@@ -436,10 +494,14 @@
             <div class="face" aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></div>
             <div class="big">Your mosaic hangs here</div>
             Choose a picture, then press Make mosaic.
+            <div><button class="btn quiet try" id="tryExample" type="button">Try an example</button></div>
           </div>
           <div class="viewport" id="viewport" tabindex="0" hidden aria-label="Your mosaic. Scroll or pinch to zoom, drag to move.">
             <canvas id="mosaic"></canvas>
+            <div class="cmp-clip" id="cmpClip" hidden><canvas id="original"></canvas></div>
+            <div class="cmp-line" id="cmpLine" hidden><button class="cmp-knob" id="cmpKnob" type="button" aria-label="Drag to compare with your original picture">‹ ›</button></div>
             <div class="zoombar">
+              <button id="zoomCompare" class="txt" aria-pressed="false">Before / after</button>
               <button id="zoomOut" aria-label="Zoom out">−</button>
               <span id="zoomLevel">100%</span>
               <button id="zoomIn" aria-label="Zoom in">+</button>
@@ -452,12 +514,13 @@
 
       <div class="label-card">
         <div>
-          <div class="title">Untitled, Chonks on canvas</div>
+          <div class="title" id="artTitle">Untitled, Chonks on canvas</div>
           <div class="status"><span id="phase">Ready</span><span id="msg"></span></div>
         </div>
         <div class="actions">
           <button class="btn quiet" id="dl" disabled>Download PNG</button>
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
+          <button class="btn quiet share" id="share" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</button>
         </div>
         <div class="bar"><div id="progress"></div></div>
         <div id="stats" style="display:none">
@@ -488,7 +551,7 @@
 
   <footer>
     <span>Your picture never leaves your device.</span>
-    <span>Chonk art is read from the Chonks contract on Base.</span>
+    <span>Fan-made, not affiliated with Chonks. Art is read from the Chonks contract on Base.</span>
     <a class="credit" href="https://x.com/jpegsonbase" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>
       Made by @jpegsonbase
@@ -510,9 +573,9 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=12"></script>
-<script src="zoom.js?v=12"></script>
-<script src="export.js?v=12"></script>
-<script src="app.js?v=12"></script>
+<script src="chain.js?v=13"></script>
+<script src="zoom.js?v=13"></script>
+<script src="export.js?v=13"></script>
+<script src="app.js?v=13"></script>
 </body>
 </html>

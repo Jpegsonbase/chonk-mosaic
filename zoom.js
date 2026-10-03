@@ -10,6 +10,11 @@
   const canvas = document.getElementById("mosaic");
   const level = document.getElementById("zoomLevel");
   const wall = document.querySelector(".wall");
+  const orig = document.getElementById("original");
+  const cmpClip = document.getElementById("cmpClip");
+  const cmpLine = document.getElementById("cmpLine");
+  const cmpKnob = document.getElementById("cmpKnob");
+  const cmpBtn = document.getElementById("zoomCompare");
   if (!vp || !canvas) return;
 
   const MAX = 6;               // 6 screen pixels per mosaic pixel
@@ -17,6 +22,7 @@
 
   function apply() {
     canvas.style.transform = `translate(${x}px, ${y}px) scale(${s})`;
+    if (orig) orig.style.transform = `translate(${x}px, ${y}px) scale(${s * canvas.width / (orig.width || 1)})`;
     // Smooth when shrunk, crisp pixels when enlarged.
     canvas.style.imageRendering = s >= 1 ? "pixelated" : "auto";
     level.textContent = `${Math.round(s / fit * 100)}%`;
@@ -59,7 +65,7 @@
   const pts = new Map();
   let moved = 0, pinch = null;
   vp.addEventListener("pointerdown", (e) => {
-    if (e.target.closest(".zoombar")) return;
+    if (e.target.closest(".zoombar") || e.target.closest(".cmp-knob")) return;
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     moved = 0;
     if (pts.size === 2) {
@@ -95,7 +101,7 @@
   vp.addEventListener("click", (e) => { if (moved > 5) { e.stopPropagation(); moved = 0; } }, true);
 
   vp.addEventListener("dblclick", (e) => {
-    if (e.target.closest(".zoombar")) return;
+    if (e.target.closest(".zoombar") || e.target.closest(".cmp-knob")) return;
     const r = vp.getBoundingClientRect();
     zoomAt(s * 2, e.clientX - r.left, e.clientY - r.top);
   });
@@ -135,5 +141,37 @@
   new MutationObserver(() => { if (canvas.width && canvas.height) reset(); })
     .observe(canvas, { attributes: true, attributeFilter: ["width", "height"] });
 
-  window.MosaicZoom = { reset };
+  // ---- before / after
+  let cmpOn = false, cmpPos = 0.5;
+  function setCmpPos(p) {
+    cmpPos = Math.min(1, Math.max(0, p));
+    cmpClip.style.width = `${cmpPos * 100}%`;
+    cmpLine.style.left = `${cmpPos * 100}%`;
+  }
+  function setCompare(on) {
+    cmpOn = !!on && !!(orig && orig.width > 1);
+    if (cmpClip) cmpClip.hidden = !cmpOn;
+    if (cmpLine) cmpLine.hidden = !cmpOn;
+    if (cmpBtn) cmpBtn.setAttribute("aria-pressed", String(cmpOn));
+    if (cmpOn) { setCmpPos(0.5); apply(); }
+  }
+  if (cmpBtn) cmpBtn.addEventListener("click", () => setCompare(!cmpOn));
+  if (cmpKnob) {
+    let dragging = false;
+    cmpKnob.addEventListener("pointerdown", (e) => { dragging = true; cmpKnob.setPointerCapture(e.pointerId); e.stopPropagation(); });
+    cmpKnob.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const r = vp.getBoundingClientRect();
+      setCmpPos((e.clientX - r.left) / r.width);
+    });
+    const stop = () => { dragging = false; };
+    cmpKnob.addEventListener("pointerup", stop);
+    cmpKnob.addEventListener("pointercancel", stop);
+    cmpKnob.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft") { setCmpPos(cmpPos - 0.05); e.preventDefault(); e.stopPropagation(); }
+      if (e.key === "ArrowRight") { setCmpPos(cmpPos + 0.05); e.preventDefault(); e.stopPropagation(); }
+    });
+  }
+
+  window.MosaicZoom = { reset, setCompare };
 })();

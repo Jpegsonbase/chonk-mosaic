@@ -30,6 +30,8 @@
     stats: $("stats"), dl: $("dl"), dlFull: $("dlFull"), tip: $("tip"),
     vArt: $("vArt"), vId: $("vId"), vGo: $("vGo"), vInfo: $("vInfo"), vTraits: $("vTraits"),
     rpc: $("rpc"), only: $("only"),
+    shape: $("shape"), shapeNote: $("shapeNote"), pickId: $("pickId"), pickGo: $("pickGo"), pickRandom: $("pickRandom"),
+    tryExample: $("tryExample"), share: $("share"), artTitle: $("artTitle"), original: $("original"),
   };
 
   el.rpc.value = ChonkChain.DEFAULT_RPC;
@@ -37,7 +39,7 @@
 
   const state = {
     meta: null, idToIndex: null, worker: null, ready: false,
-    image: null, source: "atlas", busy: false,
+    image: null, label: null, shape: "original", source: "atlas", busy: false,
     last: null, // { result, cols, rows, tile }
     atlases: new Map(),
   };
@@ -59,7 +61,7 @@
       const buffer = await res.arrayBuffer();
       state.meta = meta;
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=12");
+      state.worker = new Worker("worker.js?v=13");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -113,10 +115,27 @@
     el.go.textContent = state.busy ? "Working…" : state.ready ? (state.image ? "Make mosaic" : "Pick a picture") : el.go.textContent;
   }
 
+  // ---------------------------------------------------------------- shape / crop
+  const SHAPES = {
+    original: { ratio: null, note: "Keeps your picture's shape." },
+    square: { ratio: 1, note: "1:1, ready for a profile picture. Crops to the centre." },
+    banner: { ratio: 3, note: "3:1, the shape of an X header (1500 × 500). Crops to the centre." },
+  };
+  const imgW = (im) => im.naturalWidth || im.width;
+  const imgH = (im) => im.naturalHeight || im.height;
+  function cropRect() {
+    const im = state.image, w = imgW(im), h = imgH(im);
+    const ratio = SHAPES[state.shape].ratio;
+    if (!ratio) return { sx: 0, sy: 0, sw: w, sh: h };
+    if (w / h > ratio) { const sw = h * ratio; return { sx: (w - sw) / 2, sy: 0, sw, sh: h }; }
+    const sh = w / ratio; return { sx: 0, sy: (h - sh) / 2, sw: w, sh };
+  }
+
   function gridSize() {
     const cols = +el.cols.value;
     if (!state.image) return { cols, rows: 0 };
-    const rows = Math.max(1, Math.round(cols * state.image.height / state.image.width));
+    const { sw, sh } = cropRect();
+    const rows = Math.max(1, Math.round(cols * sh / sw));
     return { cols, rows };
   }
 
@@ -146,21 +165,90 @@
     return { reusePenalty: v / 200 };
   }
 
+  // Show the chosen picture (cropped to the chosen shape) in the drop box.
+  function renderPreview() {
+    if (!state.image) return;
+    const { sx, sy, sw, sh } = cropRect();
+    const scale = Math.min(1, 640 / Math.max(sw, sh));
+    let pv = el.drop.querySelector("canvas.preview");
+    if (!pv) { pv = document.createElement("canvas"); pv.className = "preview"; el.drop.appendChild(pv); }
+    pv.width = Math.max(1, Math.round(sw * scale)); pv.height = Math.max(1, Math.round(sh * scale));
+    const c = pv.getContext("2d");
+    c.imageSmoothingEnabled = !state.label;          // keep Chonk pixels crisp
+    c.fillStyle = "#fff"; c.fillRect(0, 0, pv.width, pv.height);
+    c.drawImage(state.image, sx, sy, sw, sh, 0, 0, pv.width, pv.height);
+    el.dropHint.style.display = "none";
+  }
+
+  function setPicture(img, label = null) {
+    state.image = img;
+    state.label = label;
+    renderPreview();
+    updateNotes();
+    refreshButton();
+  }
+
   function loadFile(file) {
     if (!file || !file.type.startsWith("image/")) return;
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => {
-      state.image = img;
-      el.drop.querySelectorAll("img").forEach((n) => n.remove());
-      const preview = img.cloneNode();
-      el.dropHint.style.display = "none";
-      el.drop.appendChild(preview);
-      updateNotes();
-      refreshButton();
-    };
+    img.onload = () => { el.pickId.value = ""; setPicture(img, null); };
     img.src = url;
   }
+
+  // Use a Chonk itself as the picture: read live from the contract,
+  // falling back to the saved thumbnail if the RPC is busy.
+  async function loadChonkPicture(id) {
+    id = parseInt(id, 10);
+    if (!Number.isFinite(id) || !state.meta) return;
+    const idx = state.idToIndex.get(id);
+    setPhase("Loading Chonk…", `#${id}`, 0);
+    const SIZE = 600;
+    const c = document.createElement("canvas");
+    c.width = c.height = SIZE;
+    const ctx = c.getContext("2d", { willReadFrequently: true });
+    ctx.imageSmoothingEnabled = false;
+    let ok = false;
+    try {
+      const img = await ChonkChain.getChonkImage(id, el.rpc.value.trim() || undefined);
+      ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, SIZE, SIZE);
+      ctx.drawImage(img, 0, 0, SIZE, SIZE);
+      ctx.getImageData(0, 0, 1, 1); // throws if the browser blocks reading it
+      ok = true;
+    } catch (_) { /* fall back below */ }
+    if (!ok && idx !== undefined) {
+      try {
+        const { thumb, perAtlasSide } = state.meta;
+        const per = perAtlasSide * perAtlasSide;
+        const atlas = await loadAtlas(Math.floor(idx / per));
+        const slot = idx % per;
+        ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, SIZE, SIZE);
+        ctx.drawImage(atlas, (slot % perAtlasSide) * thumb, Math.floor(slot / perAtlasSide) * thumb, thumb, thumb, 0, 0, SIZE, SIZE);
+        ok = true;
+      } catch (_) { /* nothing */ }
+    }
+    if (!ok) { setPhase("Couldn't load that Chonk", `Check the ID and try again.`, 0); return; }
+    el.pickId.value = id;
+    setPicture(c, `Chonk #${id}`);
+    setPhase("Ready", `Chonk #${id} loaded as your picture`, 0);
+  }
+  const randomChonkId = () => state.meta.ids[Math.floor(Math.random() * state.meta.ids.length)];
+  el.pickGo.addEventListener("click", () => loadChonkPicture(el.pickId.value));
+  el.pickId.addEventListener("keydown", (e) => { if (e.key === "Enter") loadChonkPicture(el.pickId.value); });
+  el.pickRandom.addEventListener("click", () => state.meta && loadChonkPicture(randomChonkId()));
+  el.tryExample.addEventListener("click", async () => {
+    if (!state.ready) return;
+    await loadChonkPicture(randomChonkId());
+    if (state.image) build();
+  });
+
+  el.shape.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    el.shape.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
+    state.shape = b.dataset.v;
+    el.shapeNote.textContent = SHAPES[state.shape].note;
+    renderPreview(); updateNotes(); saveSettings();
+  });
 
   el.file.addEventListener("change", () => loadFile(el.file.files[0]));
   ["dragenter", "dragover"].forEach((t) => el.drop.addEventListener(t, (e) => { e.preventDefault(); el.drop.classList.add("over"); }));
@@ -178,8 +266,9 @@
     el.source.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     state.source = b.dataset.v;
     el.sourceNote.textContent = state.source === "atlas"
-      ? "Uses pre-rendered Chonk thumbnails — instant."
-      : "Draws each Chonk live from the Base contract (current traits). Slower for big mosaics.";
+      ? "Uses saved Chonk images. Instant."
+      : "Draws each Chonk live from the contract on Base, with current traits. Slower for big mosaics.";
+    saveSettings();
   });
   varietySettings();
 
@@ -221,6 +310,9 @@
     if (window.innerWidth < 960) document.querySelector(".wall")?.scrollIntoView({ behavior: "smooth", block: "start" });
     el.dl.disabled = true;
     if (el.dlFull) el.dlFull.disabled = true;
+    el.share.disabled = true;
+    if (window.MosaicZoom && MosaicZoom.setCompare) MosaicZoom.setCompare(false);
+    saveSettings();
     try {
       const { cols, rows } = gridSize();
       const tile = effectiveTile(cols, rows);
@@ -232,7 +324,8 @@
       const cx = c.getContext("2d", { willReadFrequently: true });
       cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height);
       cx.imageSmoothingQuality = "high";
-      cx.drawImage(state.image, 0, 0, c.width, c.height);
+      const crop = cropRect();
+      cx.drawImage(state.image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, c.width, c.height);
       const rgba = cx.getImageData(0, 0, c.width, c.height).data;
 
       // 2. Match in the worker.
@@ -245,7 +338,7 @@
       });
       buildResolve = buildReject = null;
       const result = done.result;
-      state.last = { result, cols, rows, tile, source: state.source };
+      state.last = { result, cols, rows, tile, source: state.source, label: state.label };
 
       // 3. Draw.
       const used = new Map(); // index -> [tile positions]
@@ -276,6 +369,9 @@
       await drawFromAtlases(ctx, used, cols, tile);
       if (state.source === "chain") await drawFromChain(ctx, used, cols, tile);
 
+      drawOriginal(crop, cols * tile, rows * tile);
+      el.artTitle.textContent = state.label ? `${state.label}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
+      el.share.disabled = false;
       setPhase("Done", `${used.size.toLocaleString()} different Chonks`, 1);
       el.dl.disabled = false;
       if (el.dlFull) {
@@ -368,6 +464,51 @@
       setPhase("Export blocked", "The browser refused to export onchain SVGs — switch to Fast mode and rebuild.");
     }
   });
+
+  // ---------------------------------------------------------------- before / after
+  // A lighter copy of the original picture, laid over the mosaic by zoom.js.
+  function drawOriginal(crop, mw, mh) {
+    const o = el.original; if (!o) return;
+    const k = Math.min(1, 2048 / mw);
+    o.width = Math.max(1, Math.round(mw * k)); o.height = Math.max(1, Math.round(mh * k));
+    const c = o.getContext("2d");
+    c.imageSmoothingEnabled = !state.label;
+    c.fillStyle = "#fff"; c.fillRect(0, 0, o.width, o.height);
+    c.drawImage(state.image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, o.width, o.height);
+  }
+
+  // ---------------------------------------------------------------- share on X
+  el.share.addEventListener("click", () => {
+    if (!state.last) return;
+    const placed = state.last.result.length.toLocaleString();
+    const text = state.last.label
+      ? `${state.last.label}, rebuilt from ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`
+      : `I turned my picture into a mosaic of ${placed} Chonks 🟨\n\nMade with Chonk Mosaic by @jpegsonbase`;
+    const url = location.origin + location.pathname;
+    window.open(`https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank", "noopener");
+    el.dl.click(); // download the PNG so it's ready to attach
+    setPhase("Post opened on X", "Your PNG is downloading. Attach it to the post.", 1);
+  });
+
+  // ---------------------------------------------------------------- remember settings
+  const SETTINGS_KEY = "chonk-settings";
+  const SAVED_INPUTS = ["cols", "tile", "variety", "w_color", "w_fp", "w_bright", "w_sat", "w_edge", "p_adapt", "r_mem", "cands", "only", "rpc"];
+  function saveSettings() {
+    const data = { source: state.source, shape: state.shape };
+    for (const id of SAVED_INPUTS) { const n = $(id); if (n) data[id] = n.value; }
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify(data)); } catch (_) {}
+  }
+  function restoreSettings() {
+    let data;
+    try { data = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch (_) {}
+    if (!data) return;
+    for (const id of SAVED_INPUTS) { const n = $(id); if (n && data[id] != null && data[id] !== "") n.value = data[id]; }
+    if (data.source) el.source.querySelector(`button[data-v="${data.source}"]`)?.click();
+    if (data.shape && SHAPES[data.shape]) el.shape.querySelector(`button[data-v="${data.shape}"]`)?.click();
+    varietySettings();
+  }
+  ["cols", "tile", "variety"].forEach((id) => $(id).addEventListener("change", saveSettings));
+  document.querySelectorAll("details input").forEach((n) => n.addEventListener("change", saveSettings));
 
   // ---------------------------------------------------------------- full-size export
   // Biggest Chonk size the strip export can make here. Prefers whole-number
@@ -566,6 +707,7 @@
   darkQuery.addEventListener("change", syncTheme);
   syncTheme();
 
+  restoreSettings();
   updateNotes();
   loadDataset();
 })();
