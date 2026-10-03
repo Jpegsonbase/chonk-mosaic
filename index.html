@@ -172,8 +172,14 @@
     #zoomLevel { min-width: 40px; font-size: 12px; }
   }
   .empty { text-align: center; padding: 56px 36px; color: var(--muted); max-width: 360px; }
-  .empty .squares { display: inline-grid; grid-template-columns: repeat(3, 18px); gap: 4px; margin-bottom: 18px; }
-  .empty .squares b { width: 18px; height: 18px; border-radius: 4px; background: var(--c); }
+  .empty .face { display: inline-grid; grid-template-columns: repeat(11, 14px); gap: 3px; margin-bottom: 20px; }
+  .empty .face b { width: 14px; height: 14px; border-radius: 3px; }
+  .empty .face .y { background: #FDCB58; }
+  .empty .face .r { background: #F4900C; }
+  .empty .face .w { background: #E6E7E8; }
+  .empty .face .k { background: #31373D; }
+  .empty .face .o { background: transparent; }
+  @media (max-width: 400px) { .empty .face { grid-template-columns: repeat(11, 11px); gap: 2px; } .empty .face b { width: 11px; height: 11px; } }
   .empty .big { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--ink); margin-bottom: 6px; }
 
   .label-card {
@@ -309,11 +315,7 @@
       <div class="wall">
         <div class="output" id="output">
           <div class="empty" id="empty">
-            <div class="squares">
-              <b style="--c: var(--blue)"></b><b style="--c: var(--pink)"></b><b style="--c: var(--yellow)"></b>
-              <b style="--c: var(--mint)"></b><b style="--c: var(--violet)"></b><b style="--c: var(--blue)"></b>
-              <b style="--c: var(--yellow)"></b><b style="--c: var(--mint)"></b><b style="--c: var(--pink)"></b>
-            </div>
+            <div class="face" aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></div>
             <div class="big">Your mosaic hangs here</div>
             Choose a picture, then press Make mosaic.
           </div>
@@ -373,8 +375,8 @@
 </div>
 
 <div id="tip"></div>
-<script src="chain.js?v=5"></script>
-<script src="zoom.js?v=5"></script>
-<script src="app.js?v=5"></script>
+<script src="chain.js?v=6"></script>
+<script src="zoom.js?v=6"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
