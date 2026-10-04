@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=34");
+      state.worker = new Worker("worker.js?v=35");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -1133,6 +1133,21 @@
   }
   el.vGo.addEventListener("click", () => showChonk(el.vId.value));
   el.vId.addEventListener("keydown", (e) => { if (e.key === "Enter") showChonk(el.vId.value); });
+
+  // ---------------------------------------------------------------- Daily Chonk promo
+  // Desktop only: shows Chonk #30000 in today's outfit, read live from Base.
+  (function promo() {
+    const box = document.getElementById("promoArt");
+    if (!box || window.matchMedia("(max-width: 960px)").matches) return;
+    const load = () => ChonkChain.getChonkImage(30000, el.rpc.value.trim() || undefined).then((img) => {
+      const pic = new Image(); pic.alt = "Daily Chonk #30000 in today's outfit"; pic.src = img.src;
+      box.replaceChildren(pic);
+    }).catch(() => {});
+    if ("IntersectionObserver" in window) {
+      const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { io.disconnect(); load(); } }, { rootMargin: "200px" });
+      io.observe(box);
+    } else load();
+  })();
 
   // ---------------------------------------------------------------- theme
   // Follows the device's light/dark setting until someone uses the toggle.
