@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=35");
+      state.worker = new Worker("worker.js?v=36");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -1135,10 +1135,10 @@
   el.vId.addEventListener("keydown", (e) => { if (e.key === "Enter") showChonk(el.vId.value); });
 
   // ---------------------------------------------------------------- Daily Chonk promo
-  // Desktop only: shows Chonk #30000 in today's outfit, read live from Base.
+  // Shows Chonk #30000 in today's outfit, read live from Base.
   (function promo() {
     const box = document.getElementById("promoArt");
-    if (!box || window.matchMedia("(max-width: 960px)").matches) return;
+    if (!box) return;
     const load = () => ChonkChain.getChonkImage(30000, el.rpc.value.trim() || undefined).then((img) => {
       const pic = new Image(); pic.alt = "Daily Chonk #30000 in today's outfit"; pic.src = img.src;
       box.replaceChildren(pic);

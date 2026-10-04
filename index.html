@@ -247,7 +247,7 @@
 
   /* ---------- canvas / gallery wall ---------- */
   .stage { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-  /* Daily Chonk promo card (desktop only) */
+  /* Daily Chonk promo card */
   .promo {
     display: grid; grid-template-columns: 150px 1fr; gap: 26px; align-items: center;
     padding: 24px 28px; border-radius: 26px; text-decoration: none; color: #fff;
@@ -279,7 +279,14 @@
   }
   .promo-cta i { font-style: normal; transition: transform .2s ease; }
   .promo:hover .promo-cta i { transform: translateX(3px); }
-  @media (max-width: 960px) { .promo { display: none; } }
+  @media (max-width: 640px) {
+    .promo { grid-template-columns: 88px 1fr; gap: 16px; padding: 18px; border-radius: 22px; }
+    .promo-art { width: 88px; height: 88px; border-radius: 16px; font-size: 11px; }
+    .promo-title { font-size: 22px; }
+    .promo-line { font-size: 13.5px; }
+    .promo-eyebrow { font-size: 11px; }
+    .promo-cta { padding: 8px 14px; font-size: 13px; margin-top: 2px; }
+  }
   .wall {
     background: var(--wall); border-radius: 28px; padding: clamp(18px, 4vw, 48px);
     display: grid; place-items: center; min-height: 440px;
@@ -750,11 +757,11 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=35"></script>
-<script src="zoom.js?v=35"></script>
-<script src="export.js?v=35"></script>
-<script src="vendor/gifenc.js?v=35"></script>
-<script src="gif.js?v=35"></script>
-<script src="app.js?v=35"></script>
+<script src="chain.js?v=36"></script>
+<script src="zoom.js?v=36"></script>
+<script src="export.js?v=36"></script>
+<script src="vendor/gifenc.js?v=36"></script>
+<script src="gif.js?v=36"></script>
+<script src="app.js?v=36"></script>
 </body>
 </html>
