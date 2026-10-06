@@ -286,8 +286,8 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
   <div class="rail-body">
     <section>
       <h2>Sound</h2>
-      <label class="slider" for="volMusic">Music <input type="range" id="volMusic" min="0" max="100" step="1" value="45"><output id="volMusicOut">45%</output></label>
-      <label class="slider" for="volCrowd">Crowd <input type="range" id="volCrowd" min="0" max="100" step="1" value="35"><output id="volCrowdOut">35%</output></label>
+      <label class="slider" for="volMusic">Music <input type="range" id="volMusic" min="0" max="100" step="1" value="15"><output id="volMusicOut">15%</output></label>
+      <label class="slider" for="volCrowd">Crowd <input type="range" id="volCrowd" min="0" max="100" step="1" value="13"><output id="volCrowdOut">13%</output></label>
       <p class="hint" style="margin:0" id="soundHint">Smooth jazz and gallery chatter start when you first click or press a key.</p>
     </section>
 
@@ -334,7 +334,8 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
       <h2>Visitors</h2>
       <label class="check"><input type="checkbox" id="visitorsOn" checked> Chonks wander the gallery and look at the art</label>
       <form id="visitorForm" style="display:flex;flex-direction:column;gap:8px">
-        <div class="row" id="visitorIds"></div>
+        <div id="visitorIds" style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px"></div>
+        <p class="hint" style="margin:0">Leave a box blank for a random Chonk.</p>
         <button type="submit">Use these visitors</button>
       </form>
       <div class="status" id="visitorStatus"></div>
@@ -2109,13 +2110,18 @@ syncStatueStyleUI();
    Visitors: Chonks that wander the gallery and look at the art
    =================================================================== */
 const VISITOR_KEY = "chonkit-gallery-visitors";
-const DEFAULT_VISITORS = [172, 171, 30183, 55683];
+const VISITOR_COUNT = 8;
+const DEFAULT_VISITORS = [172, 171, 30183, 55683, null, null, null, null];   // null = a random Chonk each visit
 const visitors = [];
 let visitorIds = DEFAULT_VISITORS.slice(), visitorsOn = true;
 try { const v = JSON.parse(localStorage.getItem(VISITOR_KEY) || "null");
-  if (v) { if (Array.isArray(v.ids) && v.ids.length === 4 && v.ids.every(Number.isFinite)) visitorIds = v.ids; if (typeof v.on === "boolean") visitorsOn = v.on; } } catch {}
+  if (v) {
+    if (Array.isArray(v.ids) && v.ids.every((n) => n === null || Number.isFinite(n))) { visitorIds = v.ids.slice(0, VISITOR_COUNT); while (visitorIds.length < VISITOR_COUNT) visitorIds.push(null); }
+    if (typeof v.on === "boolean") visitorsOn = v.on;
+  } } catch {}
+const randomChonkId = () => 1 + Math.floor(Math.random() * 83000);
 function saveVisitors() { try { localStorage.setItem(VISITOR_KEY, JSON.stringify({ ids: visitorIds, on: visitorsOn })); } catch {} }
-const SPAWNS = [[-9, 2], [9, 2], [-3, -5], [3, -5]];
+const SPAWNS = [[-9, 2], [9, 2], [-3, -5], [3, -5], [-10, -3], [10, -4], [-3, 5], [4, 6]];
 function pickView(v) {
   const views = GALLERY.views; if (!views.length) return null;
   let total = 0; for (const w of views) total += (w === v.view ? 0 : w.weight);
@@ -2138,15 +2144,20 @@ async function spawnVisitors() {
   for (const v of visitors) v.remove(); visitors.length = 0;
   if (!visitorsOn || !loc) return;
   const base = await unpackSample(1);
-  visitorIds.forEach((id, i) => {
+  visitorIds.forEach((want, i) => {
+    const id = want ?? randomChonkId();
     const v = new Chonk(base, { id, label: "visitor" });
     v.holder.userData.chonk = null; v.holder.visible = false;      // shown once its own look has loaded
     const [x, z] = SPAWNS[i]; v.pos.set(x, groundAt(x, z, 5) ?? 0, z); v.yaw = Math.random() * Math.PI * 2;
     v.speed = 0.9 + Math.random() * 0.35; v.offset = Math.random() * 10;
     v.state = "look"; v.timer = 0.5 + i * 1.3; visitors.push(v);
-    visitorVox(id).then((got) => { if (!visitors.includes(v)) return; v.setVoxels(got.vox, { id, label: got.label }); v.holder.visible = true; })
-      .catch(async () => { const fb = [3, 23, 42, 123, 404][i % 5]; v.setVoxels(await unpackSample(fb), { id: fb, label: "sample" }); v.holder.visible = true;
-        visitorStatus(`Chonk #${id} couldn't load, so a sample Chonk is standing in.`, "err"); });
+    const tryLoad = (tid, tries) => visitorVox(tid).then((got) => { if (!visitors.includes(v)) return; v.setVoxels(got.vox, { id: tid, label: got.label }); v.holder.visible = true; })
+      .catch(async () => {
+        if (want == null && tries > 0) return tryLoad(randomChonkId(), tries - 1);       // random pick missed: try another
+        if (!visitors.includes(v)) return;
+        const fb = [3, 23, 42, 123, 404, 1][i % 6]; v.setVoxels(await unpackSample(fb), { id: fb, label: "sample" }); v.holder.visible = true;
+        if (want != null) visitorStatus(`Chonk #${want} couldn't load, so a sample Chonk is standing in.`, "err"); });
+    tryLoad(id, 2);
   });
 }
 function updateVisitors(dt) {
@@ -2180,13 +2191,14 @@ function updateVisitors(dt) {
 function visitorStatus(msg, kind = "") { const el = document.getElementById("visitorStatus"); el.textContent = msg; el.className = "status " + kind; }
 function renderVisitorInputs() {
   const row = document.getElementById("visitorIds"); row.textContent = "";
-  visitorIds.forEach((id, i) => { const inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.value = id; inp.setAttribute("aria-label", `Visitor ${i + 1} Chonk ID`); inp.style.textAlign = "center"; row.append(inp); });
+  visitorIds.forEach((id, i) => { const inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.value = id ?? ""; inp.placeholder = "random";
+    inp.setAttribute("aria-label", `Visitor ${i + 1} Chonk ID (blank for random)`); inp.style.textAlign = "center"; row.append(inp); });
 }
 document.getElementById("visitorForm").addEventListener("submit", (e) => {
   e.preventDefault();
-  const ids = [...document.querySelectorAll("#visitorIds input")].map((i) => parseInt(i.value, 10));
-  if (!ids.every((n) => Number.isFinite(n) && n >= 0)) { visitorStatus("Enter four Chonk IDs.", "err"); return; }
-  visitorIds = ids; saveVisitors(); visitorStatus(`Visitors: #${ids.join(", #")}`, "ok"); spawnVisitors(); document.activeElement.blur();
+  const ids = [...document.querySelectorAll("#visitorIds input")].map((i) => (i.value.trim() === "" ? null : parseInt(i.value, 10)));
+  if (!ids.every((n) => n === null || (Number.isFinite(n) && n >= 0))) { visitorStatus("Use Chonk ID numbers, or leave a box blank for a random Chonk.", "err"); return; }
+  visitorIds = ids; saveVisitors(); visitorStatus(`Visitors updated. Blank boxes get a random Chonk each visit.`, "ok"); spawnVisitors(); document.activeElement.blur();
 });
 document.getElementById("visitorsOn").addEventListener("change", (e) => { visitorsOn = e.target.checked; saveVisitors(); spawnVisitors(); });
 document.getElementById("visitorsOn").checked = visitorsOn;
@@ -2195,8 +2207,8 @@ renderVisitorInputs();
 /* ===================================================================
    Sound: smooth jazz (music) + gallery chatter (crowd), looping
    =================================================================== */
-const SOUND_KEY = "chonkit-gallery-sound";
-const sound = { ctx: null, music: 0.45, crowd: 0.35, muted: false, gains: {}, started: false };
+const SOUND_KEY = "chonkit-gallery-sound-v2";
+const sound = { ctx: null, music: 0.15, crowd: 0.13, muted: false, gains: {}, started: false };
 try { const v = JSON.parse(localStorage.getItem(SOUND_KEY) || "null");
   if (v) { if (Number.isFinite(v.music)) sound.music = v.music; if (Number.isFinite(v.crowd)) sound.crowd = v.crowd; sound.muted = !!v.muted; } } catch {}
 function saveSound() { try { localStorage.setItem(SOUND_KEY, JSON.stringify({ music: sound.music, crowd: sound.crowd, muted: sound.muted })); } catch {} }
