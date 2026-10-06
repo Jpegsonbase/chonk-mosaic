@@ -3,7 +3,7 @@
 <title>Chonkit Gallery</title>
 <meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
 <link rel="icon" href="apple-touch-icon.png">
-<script src="gallery-store.js?v=2"></script>
+<script src="gallery-store.js?v=3"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
@@ -88,6 +88,14 @@ body.top-busy .empty-note { display: none; }
   .toast { top: auto; bottom: calc(176px + env(safe-area-inset-bottom, 0px)); }
   .edit-bar { top: calc(64px + env(safe-area-inset-top, 0px)); }
 }
+.hud-left { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.site-nav { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border: 1px solid var(--line); }
+.site-nav a { padding: 5px 11px; border-radius: 999px; font: 400 11px var(--display); color: var(--muted); text-decoration: none; white-space: nowrap; }
+.site-nav a:hover { color: var(--fg); }
+.site-nav a[aria-current="page"] { background: var(--skin); color: var(--ink); }
+.site-nav .short { display: none; }
+.panel-nav { display: none; margin-top: 12px; align-self: flex-start; }
+@media (max-width: 760px) { .hud-left .site-nav { display: none; } .panel-nav { display: inline-flex; } .panel-nav a { padding: 6px 9px; font-size: 10px; } }
 /* touch controls */
 #joy { position: fixed; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 124px; height: 124px; border-radius: 50%; z-index: 6;
   background: rgba(10,11,16,.35); border: 1px solid rgba(255,255,255,.22); touch-action: none; }
@@ -205,7 +213,14 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
 
 <!-- walking HUD -->
 <div class="hud-top walk-only">
-  <div class="pill"><a class="back" href="./" aria-label="Back to Chonkit">&larr;</a><span class="dot"></span><span class="brand">Chonkit Gallery</span><span class="where" id="where">Your mosaics</span></div>
+  <div class="hud-left">
+  <div class="pill"><span class="dot"></span><span class="brand">Chonkit Gallery</span><span class="where" id="where">Your mosaics</span></div>
+  <nav class="site-nav" aria-label="Chonkit">
+    <a href="./"><span class="long">Mosaic maker</span><span class="short">Mosaic</span></a>
+    <a href="gallery.html" aria-current="page">Gallery</a>
+    <a href="studio.html"><span class="long">Chonkit Studio</span><span class="short">Studio</span></a>
+  </nav>
+  </div>
   <div class="hud-right">
   <div class="dl-prompt" id="dlPrompt" hidden role="dialog" aria-live="polite">
     <span class="dl-q">Download <b id="dlName"></b>?</span>
@@ -289,6 +304,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
       <label class="slider" for="lens">Lens <input type="range" id="lens" min="18" max="85" step="1" value="35"><output id="lensOut">35mm</output></label>
       <label class="check"><input type="checkbox" id="tag" checked> Add Chonk tag to photo</label>
       <label class="check"><input type="checkbox" id="guides" checked> Show thirds grid</label>
+      <label class="check"><input type="checkbox" id="hideVisitors"> Hide visitors in photos</label>
       <div class="row"><button data-freecam aria-pressed="false" style="flex:1">Free camera <kbd>F</kbd></button><button id="resetCam" style="flex:1">Reset camera</button></div>
     </section>
   </div>
@@ -299,6 +315,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <button id="closeSettings" type="button">Done</button>
   </header>
   <div class="rail-body">
+    <nav class="site-nav panel-nav" aria-label="Chonkit"><a href="./">Mosaic maker</a><a href="gallery.html" aria-current="page">Gallery</a><a href="studio.html">Chonkit Studio</a></nav>
     <section>
       <h2>Sound</h2>
       <label class="slider" for="volMusic">Music <input type="range" id="volMusic" min="0" max="100" step="1" value="15"><output id="volMusicOut">15%</output></label>
@@ -313,13 +330,12 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
         <button class="primary" type="submit">Load</button>
       </form>
       <form class="row" id="walletForm">
-        <input id="wallet" type="text" placeholder="Wallet 0x…" aria-label="Wallet address" spellcheck="false" autocomplete="off">
+        <input id="wallet" type="text" placeholder="Wallet 0x…, ENS or Basename" aria-label="Wallet address, ENS name or Basename" spellcheck="false" autocomplete="off">
         <button type="submit">Find</button>
       </form>
       <div class="chips" id="walletChonks"></div>
       <div class="status" id="status"></div>
-      <div class="hint">Samples</div>
-      <div class="chips" id="samples"></div>
+      <button type="button" id="randomChonk">🎲 Load a random Chonk</button>
     </section>
     <section>
       <h2>Statue <span id="statueWho" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
@@ -1350,7 +1366,7 @@ function collide(p, y, self) {
       }
     }
   }
-  for (const o of chonks.concat(visitors)) { if (o === self || Math.abs(o.pos.y - y) > 0.9) continue;
+  for (const o of chonks.concat(visitors)) { if (o === self || Math.abs(o.pos.y - y) > 0.9 || (o.route && visitorsHidden())) continue;
     const dx = p.x - o.pos.x, dz = p.z - o.pos.z, d = Math.hypot(dx, dz), m = RADIUS * 1.6;
     if (d < m && d > 1e-4) { p.x += dx / d * (m - d); p.z += dz / d * (m - d); } }
   const b = loc.bounds; p.x = Math.max(b[0], Math.min(b[1], p.x)); p.z = Math.max(b[2], Math.min(b[3], p.z));
@@ -1586,7 +1602,7 @@ document.getElementById("cloneBtn").onclick = cloneSelected;
 const INDEXER = "https://indexer.chonks.xyz";
 const inClaude = !!window.claude?.use;
 const offlineMsg = inClaude
-  ? "This preview inside Claude can't reach outside sites, so token IDs and wallets can't load here. Open the downloadable index.html (on your computer or any website) to load any Chonk. The samples work everywhere."
+  ? "This preview inside Claude can't reach outside sites, so token IDs and wallets can't load here. Open the downloadable index.html (on your computer or any website) to load any Chonk."
   : "Couldn't reach the Chonks servers. Check your connection and try again.";
 function decodeTokenURI(uri) {
   const i = uri.indexOf(","), head = uri.slice(0, i), body = uri.slice(i + 1);
@@ -1618,9 +1634,75 @@ function putIntoSelected(vox, meta) {
 }
 async function loadSample(id) { putIntoSelected(await unpackSample(id), { id: Number(id), label: SAMPLE_META[id] + " · sample" }); }
 document.getElementById("idForm").addEventListener("submit", (e) => { e.preventDefault(); const v = document.getElementById("tokenId").value.trim(); if (v !== "") loadIntoSelected(parseInt(v, 10)); document.activeElement.blur(); });
+/* random Chonk: pick any token ID; if the servers can't be reached, show a built-in sample instead */
+const TOTAL_SUPPLY = 83298;
+async function loadRandomChonk() {
+  const tried = new Set();
+  setStatus("Picking a random Chonk…");
+  for (let i = 0; i < 3; i++) {
+    let id; do { id = 1 + Math.floor(Math.random() * TOTAL_SUPPLY); } while (tried.has(id)); tried.add(id);
+    let got;
+    try { got = await fetchChonk(id); }
+    catch { break; }                                   // indexer unreachable: fall back to a sample
+    if (got) { putIntoSelected(got.vox, got); setStatus(`Loaded random Chonk #${got.id}`, "ok"); return; }
+  }
+  const ids = Object.keys(SAMPLES).filter((k) => Number(k) !== sel?.id), id = ids[Math.floor(Math.random() * ids.length)];
+  await loadSample(id); setStatus(`Loaded random Chonk #${id}`, "ok");
+}
+document.getElementById("randomChonk").onclick = (e) => { e.currentTarget.blur(); loadRandomChonk(); };
+
+/* ENS (.eth) and Basenames (.base.eth) — viem is loaded only when someone types a name */
+const VIEM = "https://esm.sh/viem@2.57.2";
+const MAINNET_RPCS = ["https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com", "https://cloudflare-eth.com"];
+const BASE_RPC = "https://mainnet.base.org";
+const BASENAME_RESOLVER = "0xC6d566A56A1aFf6508b41f6c90ff131615583BCD"; // Basenames L2 resolver on Base
+let viemLoad = null;
+const loadViem = () => (viemLoad ||= Promise.all([import(VIEM), import(`${VIEM}/chains`), import(`${VIEM}/ens`)])
+  .catch((e) => { viemLoad = null; throw e; }));
+async function resolveName(name) {
+  let viem, chains, ens;
+  try { [viem, chains, ens] = await loadViem(); }
+  catch { throw new Error("Couldn't load the name lookup. Check your connection, or paste the 0x address instead."); }
+  let norm;
+  try { norm = ens.normalize(name.trim()); }
+  catch { throw new Error(`"${name}" isn't a valid name.`); }
+  // 1. ENS on Ethereum (also covers names that point elsewhere via offchain resolvers)
+  try {
+    const l1 = viem.createPublicClient({ chain: chains.mainnet, transport: viem.fallback(MAINNET_RPCS.map((u) => viem.http(u))) });
+    const addr = await l1.getEnsAddress({ name: norm });
+    if (addr) return addr;
+  } catch { /* try Base below */ }
+  // 2. Basenames, read directly on Base
+  if (norm.endsWith(".base.eth")) {
+    try {
+      const l2 = viem.createPublicClient({ chain: chains.base, transport: viem.http(BASE_RPC) });
+      const addr = await l2.readContract({
+        address: BASENAME_RESOLVER,
+        abi: [{ name: "addr", type: "function", stateMutability: "view", inputs: [{ name: "node", type: "bytes32" }], outputs: [{ type: "address" }] }],
+        functionName: "addr",
+        args: [ens.namehash(norm)],
+      });
+      if (addr && !/^0x0{40}$/i.test(addr)) return addr;
+    } catch { /* fall through */ }
+  }
+  return null;
+}
 document.getElementById("walletForm").addEventListener("submit", async (e) => {
-  e.preventDefault(); const a = document.getElementById("wallet").value.trim(); const box = document.getElementById("walletChonks"); box.textContent = "";
-  if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { setStatus("Enter a full wallet address starting with 0x (42 characters).", "err"); return; }
+  e.preventDefault(); let a = document.getElementById("wallet").value.trim(); const box = document.getElementById("walletChonks"); box.textContent = "";
+  document.activeElement.blur();
+  if (/^0x/i.test(a)) {
+    if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { setStatus("That address looks incomplete. A wallet address starts with 0x and is 42 characters long.", "err"); return; }
+  } else {
+    if (!a) { setStatus("Enter a wallet address (0x…), an ENS name or a Basename.", "err"); return; }
+    let name = a.toLowerCase();
+    if (/\s/.test(name) || name.startsWith(".") || name.endsWith(".")) { setStatus(`"${a}" isn't a valid name. Try something like vitalik.eth or name.base.eth.`, "err"); return; }
+    if (!name.includes(".")) name += ".eth";             // a bare "name" means name.eth
+    setStatus(`Looking up ${name}…`);
+    let addr;
+    try { addr = await resolveName(name); } catch (err) { setStatus(err.message, "err"); return; }
+    if (!addr) { setStatus(`${name} isn't linked to a wallet.`, "err"); return; }
+    a = addr;
+  }
   setStatus("Looking up Chonks in that wallet…");
   try {
     const r = await fetch(`${INDEXER}/chonk/owner/${a.toLowerCase()}`); const j = await r.json();
@@ -1630,8 +1712,6 @@ document.getElementById("walletForm").addEventListener("submit", async (e) => {
     for (const id of ids.slice(0, 80)) { const b = document.createElement("button"); b.type = "button"; b.textContent = `#${id}`; b.onclick = () => loadIntoSelected(id); box.append(b); }
   } catch { setStatus(offlineMsg, "err"); }
 });
-const samplesEl = document.getElementById("samples");
-for (const id of Object.keys(SAMPLES)) { const b = document.createElement("button"); b.type = "button"; b.textContent = `#${id}`; b.onclick = () => { setStatus(""); loadSample(id); }; samplesEl.append(b); }
 
 /* ---------- locations UI ---------- */
 const locsEl = document.getElementById("locs");
@@ -2184,6 +2264,12 @@ try { const v = JSON.parse(localStorage.getItem(VISITOR_KEY) || "null");
   } } catch {}
 const randomChonkId = () => 1 + Math.floor(Math.random() * 83000);
 function saveVisitors() { try { localStorage.setItem(VISITOR_KEY, JSON.stringify({ ids: visitorIds, on: visitorsOn })); } catch {} }
+// photo mode can hide (and pause) the visitors so they don't wander into shots
+const HIDE_VISITORS_KEY = "chonkit-gallery-hidevisitors";
+let hideVisitorsInPhoto = false;
+try { hideVisitorsInPhoto = localStorage.getItem(HIDE_VISITORS_KEY) === "1"; } catch {}
+function visitorsHidden() { return hideVisitorsInPhoto && mode === "photo"; }
+function syncVisitorVisibility() { const hide = visitorsHidden(); for (const v of visitors) v.holder.visible = !!v.ready && !hide; }
 /* Fixed routes so visitors never wander into benches or partitions.
    A stop has `look` (the point they face) and `t` (how long they look); others are walking waypoints. */
 const L = (x, z, lx, lz, t = [4, 9]) => ({ x, z, look: [lx, lz], t });
@@ -2228,18 +2314,32 @@ async function spawnVisitors() {
     v.look = p0.look || null;
     v.speed = 0.9 + Math.random() * 0.35; v.offset = Math.random() * 10;
     v.state = "look"; v.timer = 1 + Math.random() * 5; visitors.push(v);
-    const tryLoad = (tid, tries) => visitorVox(tid).then((got) => { if (!visitors.includes(v)) return; v.setVoxels(got.vox, { id: tid, label: got.label }); v.holder.visible = true; })
+    const tryLoad = (tid, tries) => visitorVox(tid).then((got) => { if (!visitors.includes(v)) return; v.setVoxels(got.vox, { id: tid, label: got.label }); v.ready = true; v.holder.visible = !visitorsHidden(); })
       .catch(async () => {
         if (want == null && tries > 0) return tryLoad(randomChonkId(), tries - 1);       // random pick missed: try another
         if (!visitors.includes(v)) return;
-        const fb = [3, 23, 42, 123, 404, 1][i % 6]; v.setVoxels(await unpackSample(fb), { id: fb, label: "sample" }); v.holder.visible = true;
+        const fb = [3, 23, 42, 123, 404, 1][i % 6]; v.setVoxels(await unpackSample(fb), { id: fb, label: "sample" }); v.ready = true; v.holder.visible = !visitorsHidden();
         if (want != null) visitorStatus(`Chonk #${want} couldn't load, so a sample Chonk is standing in.`, "err"); });
     tryLoad(id, 2);
   });
 }
+const NOTICE_NEAR = 1.8, NOTICE_FAR = 2.6;   // visitors stop for you inside 1.8 m, carry on once you're 2.6 m away
 function updateVisitors(dt) {
+  const hide = visitorsHidden();
   for (const v of visitors) {
-    if (v.state === "look") {
+    v.holder.visible = !!v.ready && !hide;
+    if (hide) continue;                                       // hidden for a photo: frozen exactly where they were
+    // notice the player's Chonk: stop, turn to face it, maybe wave; then resume the route where they left off
+    if (mode === "walk" && sel && v.ready) {
+      const px = sel.pos.x - v.pos.x, pz = sel.pos.z - v.pos.z, d2 = px * px + pz * pz, near = Math.abs(sel.pos.y - v.pos.y) < 1.2;
+      if (!v.greet && near && d2 < NOTICE_NEAR * NOTICE_NEAR) v.greet = { t: 0, wave: Math.random() < 0.4 };
+      else if (v.greet && (!near || d2 > NOTICE_FAR * NOTICE_FAR)) { v.greet = null; v.stuck = 0; v.lastD = Infinity; }
+    } else if (v.greet) { v.greet = null; v.stuck = 0; v.lastD = Infinity; }
+    if (v.greet) {
+      const g = v.greet; g.t += dt;
+      let dy = Math.atan2(sel.pos.x - v.pos.x, sel.pos.z - v.pos.z) - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 5);
+      v.moveAnim = g.wave && g.t > 0.35 && g.t < 2.6 ? "wave" : "idle";
+    } else if (v.state === "look") {
       v.timer -= dt;
       if (v.look) { const want = Math.atan2(v.look[0] - v.pos.x, v.look[1] - v.pos.z); let dy = want - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 4); }
       v.moveAnim = v.gesture && v.timer > v.gestureUntil ? v.gesture : "idle";
@@ -2281,6 +2381,8 @@ document.getElementById("visitorForm").addEventListener("submit", (e) => {
 });
 document.getElementById("visitorsOn").addEventListener("change", (e) => { visitorsOn = e.target.checked; saveVisitors(); spawnVisitors(); });
 document.getElementById("visitorsOn").checked = visitorsOn;
+{ const hv = document.getElementById("hideVisitors"); hv.checked = hideVisitorsInPhoto;
+  hv.addEventListener("change", (e) => { hideVisitorsInPhoto = e.target.checked; try { localStorage.setItem(HIDE_VISITORS_KEY, hideVisitorsInPhoto ? "1" : "0"); } catch {} syncVisitorVisibility(); }); }
 renderVisitorInputs();
 
 /* ===================================================================

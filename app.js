@@ -34,6 +34,8 @@
     tryExample: $("tryExample"), changePic: $("changePic"), makeGif: $("makeGif"),
     pool: $("pool"), poolNote: $("poolNote"), walletRow: $("walletRow"), wallet: $("wallet"), walletGo: $("walletGo"),
     gap: $("gap"), gapNote: $("gapNote"), share: $("share"), artTitle: $("artTitle"), original: $("original"),
+    zoomRow: $("zoomRow"), cropZoom: $("cropZoom"), cropZoomOut: $("cropZoomOut"), rotate: $("rotate"),
+    cancel: $("cancelBuild"), controls: document.querySelector(".controls"),
   };
 
   el.rpc.value = ChonkChain.DEFAULT_RPC;
@@ -41,7 +43,10 @@
 
   const state = {
     meta: null, idToIndex: null, worker: null, ready: false,
-    image: null, label: null, shape: "original", cropX: 0.5, cropY: 0.5, pool: "all", walletIdx: null, walletAddr: "", gap: "none", source: "atlas", busy: false,
+    image: null, label: null, shape: "original", cropX: 0.5, cropY: 0.5,
+    srcImage: null, rotation: 0, zoom: 1,   // picture as loaded; quarter turns; crop zoom (1–3)
+    job: null, fullAbort: null,             // the running build (for Cancel); full-size export's AbortController
+    pool: "all", walletIdx: null, walletAddr: "", gap: "none", source: "atlas", busy: false,
     last: null, // { result, cols, rows, tile }
     atlases: new Map(),
   };
@@ -68,14 +73,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=40");
-      state.worker.onmessage = onWorker;
-      state.worker.onerror = (e) => {
-        e.preventDefault?.();
-        if (buildReject) { buildReject(new Error("The matcher stopped (your device may be low on memory). Try a lower Detail and press Chonk it again.")); buildResolve = buildReject = null; }
-        else if (!state.ready) { setPhase("Couldn't start the matcher", "Refresh the page to try again.", 0); el.go.textContent = "Refresh to retry"; }
-      };
-      state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
+      startWorker(buffer);
       paintHero();
     } catch (err) {
       setPhase("Chonk data not found", "Run prep/build_dataset.py to create web/data/ — see README.", 0);
@@ -111,11 +109,45 @@
   // otherwise the number of Chonks in the saved data.
   const collectionSize = () => state.totalSupply || (state.meta ? state.meta.count : 0);
 
+  // Starts a matcher worker. The first time the features are already fetched;
+  // after a Cancel the old worker is thrown away and a new one re-reads
+  // features.bin (straight from the browser cache). state.workerReady settles
+  // once the "load" message is posted; messages after it queue in order.
+  function startWorker(buffer = null) {
+    const meta = state.meta;
+    const w = new Worker("worker.js?v=41");
+    state.worker = w;
+    w.onmessage = onWorker;
+    w.onerror = (e) => {
+      e.preventDefault?.();
+      if (w !== state.worker) return;
+      if (buildReject) { buildReject(new Error("The matcher stopped (your device may be low on memory). Try a lower Detail and press Chonk it again.")); buildResolve = buildReject = null; }
+      else if (!state.ready) { setPhase("Couldn't start the matcher", "Refresh the page to try again.", 0); el.go.textContent = "Refresh to retry"; }
+    };
+    state.workerReady = (async () => {
+      if (!buffer) {
+        const res = await fetch(`data/features.bin?b=${meta.built || 0}`);
+        if (!res.ok) throw new Error("Couldn't reload the Chonk data. Check your connection and refresh the page.");
+        buffer = await res.arrayBuffer();
+      }
+      if (w === state.worker) w.postMessage({ type: "load", buffer, meta }, [buffer]);
+    })();
+    state.workerReady.catch(() => {});
+    return state.workerReady;
+  }
+  function restartWorker() {
+    const old = state.worker;
+    if (old) { old.onmessage = old.onerror = null; old.terminate(); }
+    startWorker();
+  }
+
   let buildResolve = null, buildReject = null;
   function onWorker(e) {
     const m = e.data;
     if (m.type === "loaded") {
+      if (state.ready) return;            // a fresh worker after Cancel: nothing else to do
       state.ready = true;
+      restoreLastPicture();
       setPhase("Ready", `${collectionSize().toLocaleString()} Chonks in the collection`, 0);
       // Read the real collection size from the contract and update the labels.
       ChonkChain.getTotalSupply(el.rpc.value.trim() || undefined).then((n) => {
@@ -141,14 +173,36 @@
   function refreshButton() {
     el.go.disabled = !(state.ready && state.image) || state.busy || !!state.gifBusy;
     el.go.textContent = state.busy ? "Working…" : state.ready ? (state.image ? "Chonk it" : "Pick a picture") : el.go.textContent;
+    if (el.cancel) { el.cancel.hidden = !state.busy; el.cancel.disabled = false; }
+    lockSettings(state.busy);
     if (typeof syncMobileGo === "function") syncMobileGo();
   }
 
+  // While a build (or full-size export) runs, the settings can't be changed:
+  // every control in the left panel is disabled except Chonk it / Cancel.
+  function lockSettings(on) {
+    const panel = el.controls; if (!panel) return;
+    panel.classList.toggle("locked", on);
+    if (on) {
+      panel.querySelectorAll("input, button, select, textarea").forEach((n) => {
+        if (n === el.go || n === el.cancel || n.disabled) return;
+        n.disabled = true; n.dataset.locked = "1";
+      });
+      el.drop.tabIndex = -1;
+    } else {
+      panel.querySelectorAll("[data-locked]").forEach((n) => { n.disabled = false; delete n.dataset.locked; });
+      el.drop.tabIndex = 0;
+    }
+  }
+
   // ---------------------------------------------------------------- shape / crop
+  const DRAG = " Drag the box on your picture to place it; zoom in to frame it tighter.";
   const SHAPES = {
     original: { ratio: null, note: "Keeps your picture's shape." },
-    square: { ratio: 1, note: "1:1, ready for a profile picture. Drag the box on your picture to choose the part to use." },
-    banner: { ratio: 3, note: "3:1, the shape of an X header (1500 × 500). Drag the box on your picture to choose the part to use." },
+    square: { ratio: 1, note: "1:1, ready for a profile picture." + DRAG },
+    banner: { ratio: 3, note: "3:1, the shape of an X header (1500 × 500)." + DRAG },
+    "4:5": { ratio: 4 / 5, note: "4:5 portrait, the best fit for an Instagram post (1080 × 1350)." + DRAG },
+    "16:9": { ratio: 16 / 9, note: "16:9 widescreen, for YouTube thumbnails, slides and wallpapers." + DRAG },
   };
   const imgW = (im) => im.naturalWidth || im.width;
   const imgH = (im) => im.naturalHeight || im.height;
@@ -156,9 +210,43 @@
     const im = state.image, w = imgW(im), h = imgH(im);
     const ratio = SHAPES[state.shape].ratio;
     if (!ratio) return { sx: 0, sy: 0, sw: w, sh: h };
-    // cropX / cropY (0–1) say where the window sits; 0.5 is centred.
-    if (w / h > ratio) { const sw = h * ratio; return { sx: (w - sw) * state.cropX, sy: 0, sw, sh: h }; }
-    const sh = w / ratio; return { sx: 0, sy: (h - sh) * state.cropY, sw: w, sh };
+    // The biggest window of this shape, made smaller by the zoom.
+    // cropX / cropY (0–1) say where it sits in the space left over; 0.5 is centred.
+    let sw, sh;
+    if (w / h > ratio) { sh = h; sw = h * ratio; } else { sw = w; sh = w / ratio; }
+    const z = Math.min(3, Math.max(1, state.zoom || 1));
+    sw /= z; sh /= z;
+    return { sx: (w - sw) * state.cropX, sy: (h - sh) * state.cropY, sw, sh };
+  }
+
+  // Rotation: the picture is drawn turned into a canvas, and that canvas is
+  // used as the picture everywhere else (crop, build, before/after, GIF).
+  const ROT_MAX_SIDE = 4096, ROT_MAX_AREA = 16e6;
+  function rotatedImage(src, quarter) {
+    if (!quarter) return src;
+    const w = imgW(src), h = imgH(src);
+    const k = Math.min(1, ROT_MAX_SIDE / Math.max(w, h), Math.sqrt(ROT_MAX_AREA / (w * h)));
+    const dw = Math.max(1, Math.round(w * k)), dh = Math.max(1, Math.round(h * k));
+    const c = document.createElement("canvas");
+    const swap = quarter % 2 === 1;
+    c.width = swap ? dh : dw; c.height = swap ? dw : dh;
+    const x = c.getContext("2d");
+    x.imageSmoothingEnabled = k < 1;
+    x.imageSmoothingQuality = "high";
+    x.translate(c.width / 2, c.height / 2);
+    x.rotate(quarter * Math.PI / 2);
+    x.drawImage(src, -dw / 2, -dh / 2, dw, dh);
+    return c;
+  }
+  function syncCropTools() {
+    const crop = !!SHAPES[state.shape].ratio;
+    if (el.zoomRow) el.zoomRow.hidden = !crop;
+    if (el.cropZoom) {
+      el.cropZoom.value = state.zoom;
+      el.cropZoom.disabled = !state.image || state.busy;
+      el.cropZoomOut.textContent = `${(+state.zoom).toFixed(1)}×`;
+    }
+    if (el.rotate) el.rotate.disabled = !state.image || state.busy;
   }
 
   function gridSize() {
@@ -244,7 +332,7 @@
   function attachCropDrag(pv) {
     let drag = null;
     pv.addEventListener("pointerdown", (e) => {
-      if (!cropping()) return;
+      if (!cropping() || state.busy) return;
       e.preventDefault();
       drag = { x: e.clientX, y: e.clientY, cropX: state.cropX, cropY: state.cropY };
       pv.setPointerCapture(e.pointerId);
@@ -260,7 +348,7 @@
       if (freeY > 0) state.cropY = Math.min(1, Math.max(0, drag.cropY + (e.clientY - drag.y) * srcPerPx / freeY));
       renderPreview();
     });
-    const end = () => { drag = null; };
+    const end = () => { if (drag) rememberCrop(); drag = null; };
     pv.addEventListener("pointerup", end);
     pv.addEventListener("pointercancel", end);
     // While cropping, clicking the picture shouldn't open the file picker.
@@ -275,12 +363,15 @@
   }
   function setPicture(img, label = null) {
     state.fileTitle = null;
+    state.srcImage = img;
     state.image = img;
     state.label = label;
     state.cropX = state.cropY = 0.5;
+    state.rotation = 0; state.zoom = 1;
     renderPreview();
     updateNotes();
     refreshButton();
+    syncCropTools();
     const t = document.getElementById("emptyText");
     if (t) t.textContent = "Picture ready. Press Chonk it to build your mosaic.";
     el.tryExample.hidden = true;
@@ -295,11 +386,11 @@
   }
 
   function loadFile(file) {
-    if (!file) return;
+    if (!file || state.busy) return;
     if (!file.type.startsWith("image/")) { setPhase("That file isn't a picture", "Choose a JPG, PNG, WebP or GIF.", 0); return; }
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => { URL.revokeObjectURL(url); el.pickId.value = ""; setPicture(img, null); state.fileTitle = titleFromFile(file.name); if (!state.busy) setPhase("Ready", "Picture loaded", 0); };
+    img.onload = () => { URL.revokeObjectURL(url); el.pickId.value = ""; setPicture(img, null); state.fileTitle = titleFromFile(file.name); rememberPicture(); if (!state.busy) setPhase("Ready", "Picture loaded", 0); };
     img.onerror = () => { URL.revokeObjectURL(url); setPhase("Couldn't open that picture", "Try a JPG or PNG. Some phone formats (like HEIC) don't open in every browser.", 0); };
     img.src = url;
   }
@@ -308,7 +399,7 @@
   // falling back to the saved thumbnail if the RPC is busy.
   async function loadChonkPicture(id) {
     id = parseInt(id, 10);
-    if (!Number.isFinite(id) || !state.meta) return;
+    if (!Number.isFinite(id) || !state.meta || state.busy) return;
     const idx = state.idToIndex.get(id);
     setPhase("Loading Chonk…", `#${id}`, 0);
     const SIZE = 600;
@@ -337,9 +428,109 @@
       } catch (_) { /* nothing */ }
     }
     if (!ok) { setPhase("Couldn't load that Chonk", `Check the ID and try again.`, 0); return; }
+    if (state.busy) return;   // a build started while the Chonk was loading
     el.pickId.value = id;
     setPicture(c, `Chonk #${id}`);
+    rememberPicture();
     setPhase("Ready", `Chonk #${id} loaded as your picture`, 0);
+  }
+
+  // ---------------------------------------------------------------- remember the last picture
+  // A smaller copy of the last picture (plus its title, shape and crop) is kept
+  // in IndexedDB so it's back after a reload. One record in its own database.
+  const LastPic = (() => {
+    const DB = "chonkit-last", STORE = "last", KEY = "picture";
+    let dbp = null;
+    function open() {
+      if (!dbp) {
+        dbp = new Promise((resolve, reject) => {
+          let r;
+          try { r = indexedDB.open(DB, 1); } catch (err) { reject(err); return; }
+          r.onupgradeneeded = () => { if (!r.result.objectStoreNames.contains(STORE)) r.result.createObjectStore(STORE); };
+          r.onsuccess = () => resolve(r.result);
+          r.onerror = () => reject(r.error);
+          r.onblocked = () => reject(new Error("blocked"));
+        });
+        dbp.catch(() => { dbp = null; });
+      }
+      return dbp;
+    }
+    async function run(mode, fn) {
+      if (!window.indexedDB) throw new Error("IndexedDB unavailable");
+      const db = await open();
+      return new Promise((resolve, reject) => {
+        const t = db.transaction(STORE, mode);
+        const req = fn(t.objectStore(STORE));
+        t.oncomplete = () => resolve(req.result);
+        t.onerror = t.onabort = () => reject(t.error);
+      });
+    }
+    return {
+      get: () => run("readonly", (s) => s.get(KEY)),
+      put: (v) => run("readwrite", (s) => s.put(v, KEY)),
+    };
+  })();
+
+  let lastPic = null;   // { img, blob, label, fileTitle } for the picture on screen
+  function rememberPicture() {
+    const img = state.srcImage; if (!img) return;
+    const label = state.label, fileTitle = state.fileTitle;
+    try {
+      const w = imgW(img), h = imgH(img), k = Math.min(1, 2048 / Math.max(w, h));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w * k)); c.height = Math.max(1, Math.round(h * k));
+      const x = c.getContext("2d");
+      x.imageSmoothingEnabled = !label; x.imageSmoothingQuality = "high";
+      x.fillStyle = "#fff"; x.fillRect(0, 0, c.width, c.height);   // JPEG has no transparency
+      x.drawImage(img, 0, 0, c.width, c.height);
+      // Chonks stay PNG so their pixels stay crisp (they're small anyway).
+      c.toBlob((blob) => {
+        if (!blob || state.srcImage !== img) return;
+        lastPic = { img, blob, label, fileTitle };
+        writeLastPic();
+      }, label ? "image/png" : "image/jpeg", 0.9);
+    } catch (_) { /* never mind */ }
+  }
+  function writeLastPic() {
+    if (!lastPic || lastPic.img !== state.srcImage) return;
+    LastPic.put({
+      blob: lastPic.blob, label: lastPic.label, fileTitle: lastPic.fileTitle,
+      shape: state.shape, cropX: state.cropX, cropY: state.cropY, zoom: state.zoom, rotation: state.rotation,
+      saved: Date.now(),
+    }).catch(() => {});
+  }
+  let cropTimer = 0;
+  function rememberCrop() {
+    clearTimeout(cropTimer);
+    cropTimer = setTimeout(writeLastPic, 300);
+  }
+  async function restoreLastPicture() {
+    try {
+      const rec = await LastPic.get();
+      if (!rec || !(rec.blob instanceof Blob) || state.image || state.busy) return;
+      const url = URL.createObjectURL(rec.blob);
+      const img = await new Promise((resolve, reject) => {
+        const im = new Image();
+        im.onload = () => resolve(im);
+        im.onerror = reject;
+        im.src = url;
+      }).finally(() => URL.revokeObjectURL(url));
+      if (state.image || state.busy) return;   // a picture was chosen meanwhile
+      setPicture(img, rec.label || null);
+      state.fileTitle = rec.fileTitle || null;
+      lastPic = { img, blob: rec.blob, label: state.label, fileTitle: state.fileTitle };
+      if (rec.shape && SHAPES[rec.shape] && rec.shape !== state.shape) el.shape.querySelector(`button[data-v="${rec.shape}"]`)?.click();
+      const unit = (v) => (Number.isFinite(+v) ? Math.min(1, Math.max(0, +v)) : 0.5);
+      state.rotation = (rec.rotation | 0) & 3;
+      state.image = rotatedImage(img, state.rotation);
+      state.zoom = Number.isFinite(+rec.zoom) ? Math.min(3, Math.max(1, +rec.zoom)) : 1;
+      state.cropX = unit(rec.cropX); state.cropY = unit(rec.cropY);
+      const m = /^Chonk #(\d+)$/.exec(state.label || "");
+      if (m) el.pickId.value = m[1];
+      renderPreview(); updateNotes(); syncCropTools(); refreshButton();
+      clearTimeout(cropTimer);
+      setPhase("Ready", "Your last picture is back", 0);
+    } catch (_) { /* no saved picture, or storage blocked: start fresh */ }
   }
   const randomChonkId = () => state.meta.ids[Math.floor(Math.random() * state.meta.ids.length)];
   el.pickGo.addEventListener("click", () => loadChonkPicture(el.pickId.value));
@@ -356,7 +547,19 @@
     el.shape.querySelectorAll("button").forEach((x) => x.classList.toggle("on", x === b));
     state.shape = b.dataset.v;
     el.shapeNote.textContent = SHAPES[state.shape].note;
-    renderPreview(); updateNotes(); saveSettings();
+    renderPreview(); updateNotes(); saveSettings(); syncCropTools(); rememberCrop();
+  });
+  if (el.cropZoom) el.cropZoom.addEventListener("input", () => {
+    state.zoom = Math.min(3, Math.max(1, +el.cropZoom.value || 1));
+    el.cropZoomOut.textContent = `${state.zoom.toFixed(1)}×`;
+    renderPreview(); rememberCrop();
+  });
+  if (el.rotate) el.rotate.addEventListener("click", () => {
+    if (!state.srcImage || state.busy) return;
+    state.rotation = (state.rotation + 1) & 3;
+    state.image = rotatedImage(state.srcImage, state.rotation);
+    state.cropX = state.cropY = 0.5;
+    renderPreview(); updateNotes(); rememberCrop();
   });
 
   el.file.addEventListener("change", () => loadFile(el.file.files[0]));
@@ -372,15 +575,19 @@
   let goVisible = true;
   function syncMobileGo() {
     if (!mobileGo) return;
-    const show = !!state.image && !goVisible && !state.busy;
+    // While building, the bar turns into a Cancel button.
+    const show = !!state.image && !goVisible;
     mobileGo.classList.toggle("show", show);
+    mobileGo.classList.toggle("cancel", state.busy);
     document.body.classList.toggle("has-mobile-go", show);
-    mobileGo.disabled = el.go.disabled;
+    mobileGo.textContent = state.busy ? "Cancel" : "Chonk it";
+    mobileGo.disabled = state.busy ? false : el.go.disabled;
   }
   if (mobileGo && "IntersectionObserver" in window) {
     new IntersectionObserver(([en]) => { goVisible = en.isIntersecting; syncMobileGo(); }).observe(el.go);
-    mobileGo.addEventListener("click", () => build());
+    mobileGo.addEventListener("click", () => (state.busy ? cancelWork() : build()));
   }
+  if (el.cancel) el.cancel.addEventListener("click", () => cancelWork());
   ["dragenter", "dragover"].forEach((t) => el.drop.addEventListener(t, (e) => { e.preventDefault(); el.drop.classList.add("over"); }));
   ["dragleave", "drop"].forEach((t) => el.drop.addEventListener(t, (e) => { e.preventDefault(); el.drop.classList.remove("over"); }));
   el.drop.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
@@ -503,22 +710,44 @@
     addGalleryBtn.textContent = "Add to Gallery";
     if (openGalleryLink) openGalleryLink.hidden = true;
   }
-  if (addGalleryBtn) {
-    addGalleryBtn.addEventListener("click", async () => {
-      if (!state.last || state.busy) return;
-      addGalleryBtn.disabled = true; addGalleryBtn.textContent = "Adding…";
-      try {
-        await ChonkitGallery.addCanvas(el.canvas, { title: state.last.label || state.last.fileTitle || "Untitled", tiles: state.last.result.length });
-        state.last.inGallery = true;
-        addGalleryBtn.hidden = true;
-        if (openGalleryLink) openGalleryLink.hidden = false;
-        updateGalleryBadge();
-      } catch (err) {
-        console.error(err);
-        addGalleryBtn.disabled = false; addGalleryBtn.textContent = "Add to Gallery";
-        setPhase("Couldn't add to the gallery", "Your browser may be out of storage space, or blocking it in private mode.", 1);
-      }
+  // Add to Gallery first asks for a name (prefilled with the picture's title).
+  const nameDlg = document.getElementById("nameDialog");
+  const nameInput = document.getElementById("galName");
+  const defaultName = () => String(state.last.label || state.last.fileTitle || "Untitled").slice(0, 40);
+  if (nameDlg) {
+    document.getElementById("nameCancel")?.addEventListener("click", () => nameDlg.close("cancel"));
+    nameDlg.addEventListener("click", (e) => { if (e.target === nameDlg) nameDlg.close("cancel"); }); // click outside
+    nameDlg.addEventListener("close", () => {
+      if (nameDlg.returnValue === "add") addToGallery(nameInput.value.trim().slice(0, 40) || "Untitled");
     });
+  }
+  if (addGalleryBtn) {
+    addGalleryBtn.addEventListener("click", () => {
+      if (!state.last || state.busy) return;
+      if (!nameDlg || !nameInput || typeof nameDlg.showModal !== "function") { addToGallery(defaultName()); return; }
+      nameInput.value = defaultName();
+      nameDlg.returnValue = "";
+      nameDlg.showModal();
+      nameInput.focus(); nameInput.select();
+    });
+  }
+  async function addToGallery(title) {
+    if (!state.last || state.busy || !addGalleryBtn) return;
+    const last = state.last;
+    addGalleryBtn.disabled = true; addGalleryBtn.textContent = "Adding…";
+    try {
+      await ChonkitGallery.addCanvas(el.canvas, { title, tiles: last.result.length });
+      last.inGallery = true;
+      if (state.last !== last) return;   // a new build started meanwhile
+      addGalleryBtn.hidden = true;
+      if (openGalleryLink) openGalleryLink.hidden = false;
+      updateGalleryBadge();
+    } catch (err) {
+      console.error(err);
+      if (state.last !== last) return;
+      addGalleryBtn.disabled = false; addGalleryBtn.textContent = "Add to Gallery";
+      setPhase("Couldn't add to the gallery", "Your browser may be out of storage space, or blocking it in private mode.", 1);
+    }
   }
   updateGalleryBadge();
 
@@ -541,6 +770,28 @@
   })();
 
   // ---------------------------------------------------------------- build
+  // Cancel: the matcher can't be interrupted mid-match, so its worker is thrown
+  // away and a fresh one started. Loading art stops at the next sprite sheet,
+  // before the canvas is touched, so the last mosaic stays as it was. Fetching
+  // live Chonks stops at the next batch and keeps saved art for the rest.
+  const cancelError = () => Object.assign(new Error("Cancelled"), { cancelled: true });
+  function cancelWork() {
+    if (!state.busy) return;
+    if (state.fullAbort) { state.fullAbort.abort(); setPhase("Cancelling…", ""); return; }
+    const job = state.job;
+    if (!job || job.cancelled) return;
+    job.cancelled = true;
+    if (el.cancel) el.cancel.disabled = true;
+    setPhase("Cancelling…", "");
+    if (buildReject) {
+      const reject = buildReject;
+      buildResolve = buildReject = null;
+      restartWorker();
+      reject(cancelError());
+    }
+    if (job.onCancel) job.onCancel();
+  }
+
   async function build() {
     if (!state.ready || !state.image || state.busy) return;
     state.busy = true; refreshButton();
@@ -553,7 +804,9 @@
     if (window.MosaicZoom && MosaicZoom.setCompare) MosaicZoom.setCompare(false);
     saveSettings();
     // freeze what this build is for, so changing the picture or options mid-build can't mix things up
-    const job = { image: state.image, label: state.label, fileTitle: state.fileTitle, gap: state.gap, source: state.source };
+    const job = { image: state.image, label: state.label, fileTitle: state.fileTitle, gap: state.gap, source: state.source, cancelled: false };
+    state.job = job;
+    const check = () => { if (job.cancelled) throw cancelError(); };
     if (!state.gifBusy) { gifJob++; resetGif(); }          // an old GIF belongs to the old mosaic
     try {
       const { cols, rows } = gridSize();
@@ -575,9 +828,12 @@
       if (state.pool === "wallet") {
         // (re)load the wallet if none is loaded or the box now holds a different one
         if (!state.walletIdx || (el.wallet.value.trim() && el.wallet.value.trim() !== state.walletFor)) { if (el.wallet.value.trim()) await loadWallet(); }
+        check();
         if (!state.walletIdx || !state.walletIdx.length) throw new Error("Load a wallet that holds Chonks first (step 7), or switch to All Chonks.");
         allowed = Int32Array.from(state.walletIdx);
       }
+      await state.workerReady;   // after a Cancel the new matcher may still be loading
+      check();
       const done = await new Promise((resolve, reject) => {
         buildResolve = resolve; buildReject = reject;
         state.worker.postMessage({
@@ -585,15 +841,20 @@
         }, [rgba.buffer]);
       });
       buildResolve = buildReject = null;
+      check();
       const result = done.result;
-      state.last = { result, cols, rows, tile, source: job.source, label: job.label, fileTitle: job.fileTitle, gap: job.gap };
-
-      // 3. Draw.
       const used = new Map(); // index -> [tile positions]
       result.forEach((idx, pos) => {
         if (idx < 0) return;
         let arr = used.get(idx); if (!arr) used.set(idx, (arr = [])); arr.push(pos);
       });
+
+      // 3. Load the art (can be cancelled between sheets; the canvas isn't touched yet).
+      state.missingSheets = 0;
+      const sheets = await loadSheets(used, tile, job);
+
+      // 4. Draw.
+      state.last = { result, cols, rows, tile, source: job.source, label: job.label, fileTitle: job.fileTitle, gap: job.gap };
       $("sTiles").textContent = result.length.toLocaleString();
       $("sUnique").textContent = used.size.toLocaleString();
       $("sSize").textContent = `${cols * tile}×${rows * tile}`;
@@ -614,9 +875,12 @@
         Object.assign(canvas.style, { position: "static", width: "100%", height: "auto" });
       }
 
-      state.missingSheets = 0;
-      await drawFromAtlases(ctx, used, cols, tile);
-      if (job.source === "chain") await drawFromChain(ctx, used, cols, tile);
+      drawFromAtlases(ctx, used, cols, tile, sheets);
+      let chainStopped = false;
+      if (job.source === "chain") {
+        try { await drawFromChain(ctx, used, cols, tile, job); }
+        catch (err) { if (!err.cancelled) throw err; chainStopped = true; }
+      }
       drawGapGrid(ctx, cols, rows, tile, job.gap);
 
       drawOriginal(crop, cols * tile, rows * tile, job);
@@ -626,7 +890,8 @@
       if (el.makeGif) el.makeGif.disabled = !(window.ChonkGif && ChonkGif.supported());
       galleryReset(false);
       if (job.source !== "chain") state.onchainNote = "";
-      setPhase("Done", state.missingSheets
+      if (chainStopped) setPhase("Cancelled", "Stopped fetching live Chonks. The rest use saved art.", 1);
+      else setPhase("Done", state.missingSheets
         ? `Some Chonks couldn't load (blank squares). Check your connection and press Chonk it again.`
         : (job.source === "chain" && state.onchainNote) || `${used.size.toLocaleString()} different Chonks`, 1);
       el.dl.disabled = false;
@@ -638,10 +903,17 @@
           : "Your download is already the biggest size this device can make.";
       }
     } catch (err) {
-      console.error(err);
-      setPhase("Something went wrong", err.message || String(err));
+      if (err && err.cancelled) {
+        setPhase("Cancelled", state.last ? "Your last mosaic is still here." : "Press Chonk it when you're ready.", 0);
+      } else {
+        console.error(err);
+        setPhase("Something went wrong", err.message || String(err));
+      }
       if (state.last && el.canvas.width) restoreActions();
     } finally {
+      if (buildReject && state.job === job) buildResolve = buildReject = null;
+      job.onCancel = null;
+      state.job = null;
       state.busy = false; refreshButton();
     }
   }
@@ -685,23 +957,35 @@
     for (let r = 0; r <= rows; r++) ctx.fillRect(0, r * tile - ins, cols * tile, ins * 2);
   }
 
-  async function drawFromAtlases(ctx, used, cols, tile) {
-    const sheet = sheetFor(tile), thumb = sheet.thumb;
-    const { perAtlasSide } = state.meta;
-    ctx.imageSmoothingEnabled = tile < thumb;   // smooth only when shrinking
-    ctx.imageSmoothingQuality = "high";
-    const per = perAtlasSide * perAtlasSide;
+  // Loads every sprite sheet the mosaic needs, one at a time, checking for
+  // Cancel between sheets. Returns [[img, indexes]] for drawFromAtlases.
+  async function loadSheets(used, tile, job) {
+    const sheet = sheetFor(tile);
+    const per = state.meta.perAtlasSide * state.meta.perAtlasSide;
     const byAtlas = new Map();
     for (const idx of used.keys()) {
       const a = Math.floor(idx / per);
       if (!byAtlas.has(a)) byAtlas.set(a, []);
       byAtlas.get(a).push(idx);
     }
+    const out = [];
     let n = 0;
     for (const [a, list] of byAtlas) {
-      setPhase("Painting Chonks…", `sheet ${++n} of ${byAtlas.size}`, 0.6 + 0.4 * (n / byAtlas.size) * (state.source === "chain" ? 0.25 : 1));
-      let img;
-      try { img = await loadAtlas(a, sheet); } catch (_) { state.missingSheets = (state.missingSheets || 0) + 1; continue; }
+      if (job.cancelled) throw cancelError();
+      setPhase("Painting Chonks…", `sheet ${++n} of ${byAtlas.size}`, 0.6 + 0.4 * (n / byAtlas.size) * (job.source === "chain" ? 0.25 : 1));
+      try { out.push([await loadAtlas(a, sheet), list]); } catch (_) { state.missingSheets = (state.missingSheets || 0) + 1; }
+    }
+    if (job.cancelled) throw cancelError();
+    return { sheet, list: out };
+  }
+
+  function drawFromAtlases(ctx, used, cols, tile, sheets) {
+    const thumb = sheets.sheet.thumb;
+    const { perAtlasSide } = state.meta;
+    ctx.imageSmoothingEnabled = tile < thumb;   // smooth only when shrinking
+    ctx.imageSmoothingQuality = "high";
+    const per = perAtlasSide * perAtlasSide;
+    for (const [img, list] of sheets.list) {
       for (const idx of list) {
         const slot = idx % per;
         const sx = (slot % perAtlasSide) * thumb, sy = Math.floor(slot / perAtlasSide) * thumb;
@@ -721,15 +1005,23 @@
     return order.slice(0, ONCHAIN_LIMIT);
   }
 
-  async function drawFromChain(ctx, used, cols, tile) {
+  async function drawFromChain(ctx, used, cols, tile, job) {
     const picked = onchainPick(used);
     const ids = picked.map((i) => state.meta.ids[i]);
     const indexOf = (id) => state.idToIndex.get(id);
     let drawn = 0;
-    const images = await ChonkChain.getManyChonkImages(ids, {
+    const fetching = ChonkChain.getManyChonkImages(ids, {
       rpc: el.rpc.value.trim() || undefined,
-      onProgress: (p) => setPhase("Fetching Chonks from Base…", `${Math.round(p * ids.length).toLocaleString()} / ${ids.length.toLocaleString()}`, 0.7 + 0.3 * p),
+      onProgress: (p) => { if (!job.cancelled) setPhase("Fetching Chonks from Base…", `${Math.round(p * ids.length).toLocaleString()} / ${ids.length.toLocaleString()}`, 0.7 + 0.3 * p); },
     });
+    fetching.catch(() => {});
+    // Cancel stops waiting at once; batches already in flight just fill the cache.
+    const images = await new Promise((resolve, reject) => {
+      if (job.cancelled) { reject(cancelError()); return; }
+      job.onCancel = () => reject(cancelError());
+      fetching.then(resolve, reject);
+    });
+    job.onCancel = null;
     for (const [id, img] of images) {
       for (const pos of used.get(indexOf(id))) {
         const x = (pos % cols) * tile, y = Math.floor(pos / cols) * tile;
@@ -1033,6 +1325,9 @@
     const { result, cols, rows, source, gap } = state.last;
     const tile = fullSizeTile(cols, rows);
     const W = cols * tile, H = rows * tile;
+    const abort = new AbortController();
+    state.fullAbort = abort;
+    const check = () => { if (abort.signal.aborted) throw cancelError(); };
     state.busy = true; refreshButton();
     el.dl.disabled = el.dlFull.disabled = true;
     try {
@@ -1043,6 +1338,7 @@
       setPhase("Preparing full size…", `${W.toLocaleString()} × ${H.toLocaleString()} px`, 0);
       const atlasImgs = new Map();
       for (const a of new Set(used.map((i) => Math.floor(i / per)))) {
+        check();
         try { atlasImgs.set(a, await loadAtlas(a, BIG())); } catch (_) { /* skip */ }
       }
       let chainImgs = null;
@@ -1052,9 +1348,10 @@
         const live = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a)).slice(0, ONCHAIN_LIMIT);
         chainImgs = await ChonkChain.getManyChonkImages(live.map((i) => state.meta.ids[i]), {
           rpc: el.rpc.value.trim() || undefined,
-          onProgress: (p) => setPhase("Fetching Chonks from Base…", `${Math.round(p * 100)}%`, p * 0.1),
+          onProgress: (p) => { if (!abort.signal.aborted) setPhase("Fetching Chonks from Base…", `${Math.round(p * 100)}%`, p * 0.1); },
         });
       }
+      check();
       const ins = gapInset(gap, tile);
       const drawTile = (ctx, idx, x, y, size) => {
         if (idx < 0) return;
@@ -1077,8 +1374,8 @@
       const t0 = performance.now();
       const blob = await ChonkExport.exportPng({
         cols, rows, tile, drawTile, background: GAPS[gap].bg,
-        indexAt: (pos) => result[pos],
-        onProgress: (p) => setPhase("Building full-size PNG…", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${Math.round(p * 100)}%`, 0.1 + p * 0.9),
+        indexAt: (pos) => result[pos], signal: abort.signal,
+        onProgress: (p) => abort.signal.aborted || setPhase("Building full-size PNG…", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${Math.round(p * 100)}%`, 0.1 + p * 0.9),
       });
       if (DEVICE.mobile) {
         // Phones need a fresh tap to save, so ask with a small "ready" pop-up.
@@ -1091,9 +1388,10 @@
       }
       setPhase(DEVICE.mobile ? "Full size ready" : "Full size saved", `${W.toLocaleString()} × ${H.toLocaleString()} px · ${(blob.size / 1e6).toFixed(1)} MB · ${((performance.now() - t0) / 1000).toFixed(0)}s`, 1);
     } catch (err) {
-      console.error(err);
-      setPhase("Full-size download failed", err.message || String(err));
+      if (abort.signal.aborted) setPhase("Cancelled", "Full-size download stopped.", 0);
+      else { console.error(err); setPhase("Full-size download failed", err.message || String(err)); }
     } finally {
+      state.fullAbort = null;
       state.busy = false; refreshButton();
       el.dl.disabled = el.dlFull.disabled = false;
     }
@@ -1266,5 +1564,6 @@
   restoreSettings();
   updateResetAdv();
   updateNotes();
+  syncCropTools();
   loadDataset();
 })();

@@ -11,8 +11,9 @@
   function open() {
     if (dbp) return dbp;
     dbp = new Promise((resolve, reject) => {
-      if (!root.indexedDB) return reject(new Error("This browser can't store a gallery."));
-      const req = indexedDB.open(DB, VERSION);
+      let idb = null; try { idb = root.indexedDB; } catch (_) {}
+      if (!idb) return reject(new Error("This browser can't store a gallery."));
+      const req = idb.open(DB, VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
         if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
@@ -54,5 +55,6 @@
   const remove = (id) => tx("readwrite", (s) => s.delete(id));
   const count = () => tx("readonly", (s) => s.count());
 
-  root.ChonkitGallery = { addCanvas, list, remove, count, supported: !!root.indexedDB };
+  let ok = false; try { ok = !!root.indexedDB; } catch (_) {}
+  root.ChonkitGallery = { addCanvas, list, remove, count, supported: ok };
 })(window);

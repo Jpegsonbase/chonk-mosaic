@@ -30,6 +30,7 @@
   html, body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); }
   a { color: var(--blue); }
   header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px clamp(16px, 3vw, 32px); }
+  @media (max-width: 440px) { .logo .logo-text { display: none; } }
   .logo { display: flex; align-items: center; gap: 10px; font: 800 18px var(--display); color: var(--ink); text-decoration: none; }
   .logo .sq { width: 22px; height: 22px; border-radius: 6px; background: var(--yellow); box-shadow: inset -4px -4px 0 #E8A91F; }
   .logo small { font: 500 13px var(--body); color: var(--muted); }
@@ -38,6 +39,13 @@
     color: var(--ink); background: var(--surface); border: 1px solid var(--line); cursor: pointer; }
   .pill:hover { border-color: var(--blue); color: var(--blue); }
 
+  .site-nav { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+  .site-nav a { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font: 700 13.5px var(--body); color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .site-nav a:hover { color: var(--ink); }
+  .site-nav a[aria-current="page"] { background: var(--ink); color: var(--paper); }
+  .site-nav .short { display: none; }
+  .site-nav #galBadge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--yellow); color: #0E1230; font: 800 10.5px/18px var(--body); text-align: center; }
+  @media (max-width: 640px) { .site-nav .long { display: none; } .site-nav .short { display: inline; } .site-nav a { padding: 6px 9px; font-size: 12.5px; } }
   .studio { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; padding: 0 clamp(16px, 3vw, 32px) 32px; max-width: 1400px; margin: 0 auto; align-items: start; }
   .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 18px; }
   .panel h2 { font: 700 12px var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
@@ -73,9 +81,20 @@
 
   .board { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: clamp(10px, 2vw, 22px); display: flex; flex-direction: column; gap: 12px; align-items: center; min-width: 0; }
   .board-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-  .board-top .title { font: 700 18px var(--display); }
+  .board-top .title { font: 700 18px var(--display); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .board-top .count { font-size: 13px; color: var(--muted); }
-  #canvas { display: block; touch-action: none; cursor: crosshair; image-rendering: pixelated; border-radius: 6px; box-shadow: 0 10px 30px -14px rgba(14,18,48,.4); max-width: 100%; }
+  .bt-l { display: flex; align-items: center; gap: 10px; min-width: 0; }
+  .zoom { display: inline-flex; gap: 2px; background: var(--soft); border-radius: 10px; padding: 3px; flex: none; }
+  .zoom button { font: 700 13px var(--body); color: var(--ink); background: transparent; border: 0; border-radius: 7px; min-width: 30px; height: 26px; padding: 0 8px; cursor: pointer; }
+  .zoom button:hover:not(:disabled) { background: var(--quiet-hover); }
+  .zoom button:disabled { opacity: .4; cursor: default; }
+  #zoomFit { min-width: 52px; font-variant-numeric: tabular-nums; }
+  .viewport { position: relative; overflow: hidden; touch-action: none; border-radius: 6px; box-shadow: 0 10px 30px -14px rgba(14,18,48,.4); background: var(--cell-empty); flex: none; }
+  #canvas { display: block; touch-action: none; cursor: crosshair; image-rendering: pixelated; transform-origin: 0 0; }
+  .viewport.pan #canvas { cursor: grab; }
+  .viewport.panning #canvas { cursor: grabbing; }
+  .mguide { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px dashed var(--pink); opacity: .75; pointer-events: none; margin-left: -1px; }
+  .mguide[hidden] { display: none; }
   .status { min-height: 1.4em; font-size: 13px; color: var(--muted); text-align: center; }
   .status.ok { color: #12996F; }
   .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
@@ -85,31 +104,42 @@
 
   .quick { display: none; }
   @media (max-width: 900px) {
-    body { padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
-    .quick { display: flex; flex-direction: column; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+    body { padding-bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
+    .quick { display: flex; flex-direction: column; gap: 6px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
       background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(14,18,48,.12); }
     .quick .qsw { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
     .quick .qsw::-webkit-scrollbar { display: none; }
-    .quick .qsw .sw { flex: 0 0 34px; height: 34px; }
-    .quick .qtools { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
-    .quick .tool { padding: 7px 4px; font-size: 11px; justify-content: center; }
-    .quick .tool svg { width: 18px; height: 18px; }
+    .quick .qsw .sw { flex: 0 0 32px; height: 32px; }
+    .quick .qtools { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+    .quick .tool { padding: 6px 2px; font-size: 11px; justify-content: center; min-height: 36px; }
+    .quick .tool span { display: none; }
+    .quick .tool svg { width: 19px; height: 19px; }
+    .quick .qrow { display: flex; gap: 5px; align-items: stretch; }
+    .quick .qrow .seg { padding: 3px; gap: 2px; border-radius: 11px; }
+    .quick .qrow .seg button { padding: 6px 2px; font-size: 12.5px; }
+    .quick #qSizes { flex: 0 0 104px; }
+    .quick #qModes { flex: 1 1 auto; min-width: 0; }
+    .quick .qrow .tool { flex: 0 0 42px; font-size: 17px; line-height: 1; min-height: 0; }
+    .quick .qrow .seg button { white-space: nowrap; }
+    .toast { bottom: calc(150px + env(safe-area-inset-bottom, 0px)); max-width: calc(100vw - 32px); text-align: center; }
     .studio { grid-template-columns: 1fr; }
     .board { order: -1; }
     .logo small { display: none; }
   }
+  @media (max-width: 379px) { .quick .q-one { display: none; } }
   @media (max-width: 420px) { .tools { grid-template-columns: repeat(4, 1fr); } .tool span { font-size: 11px; } }
 </style>
-<script src="gallery-store.js?v=2"></script>
+<script src="gallery-store.js?v=3"></script>
 </head>
 <body>
 <div class="loading" id="loading">Loading Chonks…</div>
 <header class="top">
-  <a class="logo" href="./"><span class="sq" aria-hidden="true"></span>Chonkit Studio <small>· every pixel is a Chonk</small></a>
-  <nav class="nav">
-    <a class="pill" href="./">Chonkit</a>
-    <a class="pill" href="gallery.html">Gallery</a>
-  </nav>
+  <a class="logo" href="./"><span class="sq" aria-hidden="true"></span><span class="logo-text">Chonkit Studio <small>· every pixel is a Chonk</small></span></a>
+  <nav class="site-nav" aria-label="Chonkit">
+        <a href="./"><span class="long">Mosaic maker</span><span class="short">Mosaic</span></a>
+        <a href="gallery.html">Gallery</a>
+        <a href="studio.html" aria-current="page"><span class="long">Chonkit Studio</span><span class="short">Studio</span></a>
+      </nav>
 </header>
 
 <main class="studio">
@@ -118,9 +148,12 @@
       <h2>Tools</h2>
       <div class="tools" id="tools">
         <button class="tool" type="button" data-tool="brush" aria-pressed="true" title="Brush (B)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20c3 0 5-1 5-4a3 3 0 0 0-3-3c-2 0-2 3-2 7z"/><path d="M9 13 20 3l1 1-10 11"/></svg><span>Brush</span></button>
+        <button class="tool" type="button" data-tool="line" aria-pressed="false" title="Line (L): press, drag, release"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6.5 17.5 17.5 6.5"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/></svg><span>Line</span></button>
+        <button class="tool" type="button" data-tool="rect" aria-pressed="false" title="Rectangle (R): drag a box. Hold Shift to fill it"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="5" width="16" height="14" rx="1.5"/></svg><span>Rect</span></button>
         <button class="tool" type="button" data-tool="fill" aria-pressed="false" title="Fill (G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 11 7-7 8 8-7 7z"/><path d="M5 11h15"/><path d="M20 16s2 2.5 2 4a2 2 0 0 1-4 0c0-1.5 2-4 2-4z"/></svg><span>Fill</span></button>
         <button class="tool" type="button" data-tool="erase" aria-pressed="false" title="Eraser (E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 21-4-4 11-11 7 7-7 7z"/><path d="M7 21h14"/><path d="m9 11 6 6"/></svg><span>Erase</span></button>
         <button class="tool" type="button" data-tool="pick" aria-pressed="false" title="Pick a Chonk from the canvas (I)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14 4 6 6"/><path d="m17 3 4 4-3 3-4-4z"/><path d="M14 7 4 17v3h3L17 10"/></svg><span>Pick</span></button>
+        <button class="tool" type="button" id="mirror" aria-pressed="false" title="Mirror left–right (M)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18" stroke-dasharray="2.5 2.5"/><path d="M9 7 4 17h5z"/><path d="m15 7 5 10h-5z"/></svg><span>Mirror</span></button>
       </div>
       <div class="row" style="margin-top:8px">
         <div class="seg" id="sizes" style="flex:1" aria-label="Brush size"><button type="button" data-size="1" aria-pressed="true">1×1</button><button type="button" data-size="2" aria-pressed="false">2×2</button><button type="button" data-size="3" aria-pressed="false">3×3</button></div>
@@ -171,8 +204,16 @@
   </aside>
 
   <section class="board" aria-label="Canvas">
-    <div class="board-top"><span class="title" id="boardTitle">Untitled painting</span><span class="count" id="count">0 Chonks placed</span></div>
-    <canvas id="canvas" width="640" height="640" aria-label="Your painting. Click or drag to paint."></canvas>
+    <div class="board-top">
+      <div class="bt-l"><span class="title" id="boardTitle">Untitled painting</span>
+        <div class="zoom" role="group" aria-label="Zoom"><button type="button" id="zoomOut" title="Zoom out (−)" aria-label="Zoom out">−</button><button type="button" id="zoomFit" title="Fit the canvas (0)">Fit</button><button type="button" id="zoomIn" title="Zoom in (+). Pinch, scroll or Ctrl+scroll to zoom; Space+drag to pan" aria-label="Zoom in">+</button></div>
+      </div>
+      <span class="count" id="count">0 Chonks placed</span>
+    </div>
+    <div class="viewport" id="viewport">
+      <canvas id="canvas" width="640" height="640" aria-label="Your painting. Click or drag to paint."></canvas>
+      <div class="mguide" id="mguide" hidden></div>
+    </div>
     <div class="status" id="status" role="status" aria-live="polite"></div>
   </section>
 </main>
@@ -180,6 +221,7 @@
 <div class="quick" id="quick" aria-label="Quick tools">
   <div class="qsw" id="qSwatches"></div>
   <div class="qtools" id="qTools"></div>
+  <div class="qrow" id="qRow"></div>
 </div>
 
 <script>
@@ -249,7 +291,7 @@
                    "#7fd3ff", "#3d7bff", "#0052ff", "#1b2a8f", "#8b5cff", "#c9a6ff", "#f7b5d2", "#b8f2e0"];
   const NAMES = { "#0e1230": "Ink", "#ffffff": "White", "#ff4fa3": "Pink", "#e2324a": "Red", "#ff8a3d": "Orange", "#ffc93c": "Yellow", "#22d3a0": "Mint",
                   "#2e9d4f": "Green", "#3d7bff": "Blue", "#0052ff": "Base blue", "#8b5cff": "Violet", "#7fd3ff": "Sky", "#a0663b": "Brown", "#8a8fa8": "Grey" };
-  const S = { n: 32, cells: new Int32Array(32 * 32).fill(-1), tool: "brush", size: 1, mode: "colour", colour: "#3d7bff", chonk: null, variety: 14, grid: true, title: "" };
+  const S = { n: 32, cells: new Int32Array(32 * 32).fill(-1), tool: "brush", size: 1, mode: "colour", colour: "#3d7bff", chonk: null, variety: 14, grid: true, title: "", mirror: false };
   const undo = [], redo = [];
   const STORE = "chonkit-studio-v1";
   function save() {
@@ -267,17 +309,47 @@
   }
 
   // ------------------------------------------------------------- drawing
-  const cv = $("canvas"), ctx = cv.getContext("2d");
+  const cv = $("canvas"), ctx = cv.getContext("2d"), vp = $("viewport");
   let cellPx = 20, redrawQueued = false, colors = { empty: "#f4f5fa", line: "#e6e8f2" };
   function layout() {
-    const board = cv.parentElement, avail = Math.min(board.clientWidth - 2 * parseFloat(getComputedStyle(board).paddingLeft), innerHeight - (PHONE ? 210 : 170));
+    const board = vp.parentElement, avail = Math.min(board.clientWidth - 2 * parseFloat(getComputedStyle(board).paddingLeft), innerHeight - (PHONE ? 210 : 170));
     const dpr = Math.min(devicePixelRatio || 1, 3);
     cellPx = Math.max(4, Math.floor(Math.max(200, avail) * dpr / S.n));          // device pixels per cell (whole number = no blur)
     cv.width = cv.height = cellPx * S.n;
-    cv.style.width = cv.style.height = (cellPx * S.n / dpr) + "px";
+    const css = cellPx * S.n / dpr;
+    cv.style.width = cv.style.height = vp.style.width = vp.style.height = css + "px";
+    if (vpW) { Z.tx *= css / vpW; Z.ty *= css / vpW; }
+    vpW = css; applyZoom();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     redrawAll();
   }
+
+  // ------------------------------------------------------------- zoom & pan (CSS transform on the canvas inside #viewport)
+  const ZMAX = 6, Z = { z: 1, tx: 0, ty: 0 };
+  let vpW = 0;
+  function applyZoom() {
+    const max = vpW * (Z.z - 1);                                  // the canvas always covers the viewport: it can't get lost
+    Z.tx = Math.min(0, Math.max(-max, Z.tx)); Z.ty = Math.min(0, Math.max(-max, Z.ty));
+    cv.style.transform = Z.z === 1 ? "" : `translate(${Z.tx}px, ${Z.ty}px) scale(${Z.z})`;
+    $("zoomOut").disabled = $("zoomFit").disabled = Z.z <= 1; $("zoomIn").disabled = Z.z >= ZMAX;
+    $("zoomFit").textContent = Z.z <= 1 ? "Fit" : Math.round(Z.z * 100) + "%";
+    $("mguide").style.left = (Z.tx + vpW * Z.z / 2) + "px";
+  }
+  function zoomAt(z, px, py) {                                    // px, py: point in viewport CSS px that stays put
+    z = Math.min(ZMAX, Math.max(1, z)); if (z < 1.02) z = 1;
+    const cx = (px - Z.tx) / Z.z, cy = (py - Z.ty) / Z.z;
+    Z.tx = px - cx * z; Z.ty = py - cy * z; Z.z = z; applyZoom();
+  }
+  function zoomFit() { Z.z = 1; Z.tx = Z.ty = 0; applyZoom(); }
+  const zoomBy = (f) => zoomAt(Z.z * f, vpW / 2, vpW / 2);
+  $("zoomIn").onclick = () => zoomBy(1.5); $("zoomOut").onclick = () => zoomBy(1 / 1.5); $("zoomFit").onclick = zoomFit;
+  vp.addEventListener("wheel", (e) => {
+    const dy = e.deltaY * (e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1);
+    if (!e.ctrlKey && !e.metaKey && Z.z <= 1 && dy > 0) return;    // at fit, scrolling down still scrolls the page
+    e.preventDefault();
+    const r = vp.getBoundingClientRect();
+    zoomAt(Z.z * Math.exp(-dy * (e.ctrlKey ? 0.01 : 0.0025)), e.clientX - r.left, e.clientY - r.top);
+  }, { passive: false });
   function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
   function drawCell(i) {
     const x = (i % S.n) * cellPx, y = Math.floor(i / S.n) * cellPx, v = S.cells[i];
@@ -305,13 +377,19 @@
     const list = nearest(S.colour), k = Math.max(1, Math.min(list.length, S.variety));
     return list[Math.floor(Math.random() * k)];
   }
+  // paint (or erase) one cell, plus its mirror twin when Mirror is on
+  function put(x, y, changed) {
+    if (x < 0 || y < 0 || x >= S.n || y >= S.n) return;
+    const i = y * S.n + x;
+    if (S.tool === "erase") { if (S.cells[i] === -1) return; S.cells[i] = -1; }
+    else { if (changed.has(i)) return; S.cells[i] = pickFor(); }
+    changed.add(i); drawCell(i);
+  }
   function stamp(cx, cy, changed) {
     const r0 = -Math.floor((S.size - 1) / 2);
     for (let dy = 0; dy < S.size; dy++) for (let dx = 0; dx < S.size; dx++) {
-      const x = cx + r0 + dx, y = cy + r0 + dy; if (x < 0 || y < 0 || x >= S.n || y >= S.n) continue;
-      const i = y * S.n + x, v = S.tool === "erase" ? -1 : pickFor();
-      if (S.tool === "erase" ? S.cells[i] === -1 : changed.has(i)) continue;
-      S.cells[i] = v; changed.add(i); drawCell(i);
+      const x = cx + r0 + dx, y = cy + r0 + dy;
+      put(x, y, changed); if (S.mirror) put(S.n - 1 - x, y, changed);
     }
   }
   function fill(cx, cy) {
@@ -334,20 +412,66 @@
     const dl = LAB[a*3] - LAB[b*3], da = LAB[a*3+1] - LAB[b*3+1], db = LAB[a*3+2] - LAB[b*3+2];
     return dl * dl + da * da + db * db < 140;
   }
-  function cellAt(e) {
+  // line & rectangle: the set of cells the shape covers (brush size = thickness, Mirror adds the reflection)
+  function shapeCells(st, filled) {
+    const out = new Set(), n = S.n, [x0, y0] = st.a, [x1, y1] = st.b, r0 = -Math.floor((S.size - 1) / 2);
+    const one = (x, y) => { if (x < 0 || y < 0 || x >= n || y >= n) return; out.add(y * n + x); if (S.mirror) out.add(y * n + (n - 1 - x)); };
+    const add = (x, y) => { for (let dy = 0; dy < S.size; dy++) for (let dx = 0; dx < S.size; dx++) one(x + r0 + dx, y + r0 + dy); };
+    if (st.kind === "line") {                                       // Bresenham
+      let x = x0, y = y0; const dx = Math.abs(x1 - x0), dy = -Math.abs(y1 - y0), sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1; let err = dx + dy;
+      for (;;) { add(x, y); if (x === x1 && y === y1) break; const e2 = 2 * err; if (e2 >= dy) { err += dy; x += sx; } if (e2 <= dx) { err += dx; y += sy; } }
+    } else {
+      const xa = Math.min(x0, x1), xb = Math.max(x0, x1), ya = Math.min(y0, y1), yb = Math.max(y0, y1);
+      if (filled) { for (let y = ya; y <= yb; y++) for (let x = xa; x <= xb; x++) one(x, y); }
+      else { for (let x = xa; x <= xb; x++) { add(x, ya); add(x, yb); } for (let y = ya; y <= yb; y++) { add(xa, y); add(xb, y); } }
+    }
+    return out;
+  }
+  // live preview: only cells that enter or leave the shape are touched; leavers get their pre-gesture value back
+  function previewShape(st, filled) {
+    const next = shapeCells(st, filled);
+    for (const i of st.cur) if (!next.has(i)) { S.cells[i] = st.before[i]; drawCell(i); }
+    for (const i of next) {
+      let v = st.vals.get(i); if (v === undefined) { v = pickFor(); st.vals.set(i, v); }   // stable Chonk per cell while dragging
+      if (S.cells[i] !== v) { S.cells[i] = v; drawCell(i); }
+    }
+    st.cur = next; st.filled = filled;
+  }
+  function cellAt(e) {                 // getBoundingClientRect includes the zoom/pan transform, so this maps correctly when zoomed
     const r = cv.getBoundingClientRect();
     return [Math.floor((e.clientX - r.left) / (r.width / S.n)), Math.floor((e.clientY - r.top) / (r.height / S.n))];
   }
   let stroke = null;
-  function pushUndo(before) { undo.push(before); if (undo.length > 60) undo.shift(); redo.length = 0; syncUndo(); }
+  const snap = () => ({ n: S.n, cells: S.cells.slice() });
+  function pushUndo(entry) { undo.push(entry); if (undo.length > 60) undo.shift(); redo.length = 0; syncUndo(); }
   function syncUndo() { $("undo").disabled = !undo.length; $("redo").disabled = !redo.length; }
   const sameCells = (a, b) => { if (a.length !== b.length) return false; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; };
-  cv.addEventListener("pointerdown", (e) => {
-    if (e.button > 0) return;
-    if (stroke && e.pointerId !== stroke.pid) {               // second finger (pinch / scroll): undo this stroke
-      S.cells = stroke.before; stroke = null; redrawAll(); return;
+  function cancelStroke() { if (!stroke) return; S.cells = stroke.before; stroke = null; redrawAll(); }
+
+  const pts = new Map();               // active touch/pen pointers -> latest client position
+  let pinch = null, pan = null, gestureLock = false, recentFill = null, spaceHeld = false, overVp = false;
+  function startPinch() {
+    cancelStroke();                                                 // second finger: drop the stroke the first finger began
+    if (recentFill && performance.now() - recentFill.t < 400 && undo[undo.length - 1] === recentFill.entry) {
+      undo.pop(); S.cells = recentFill.entry.cells; redrawAll(); save(); syncUndo();   // a fill fired by the first finger of a pinch
     }
-    if (S.mode === "chonk" && S.chonk == null && (S.tool === "brush" || S.tool === "fill")) { status("Type a Chonk ID or use Pick to choose which Chonk to paint with."); return; }
+    recentFill = null; pan = null; gestureLock = true;
+    const [a, b] = [...pts.values()], r = vp.getBoundingClientRect();
+    pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, z0: Z.z, mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top, tx0: Z.tx, ty0: Z.ty };
+  }
+  vp.addEventListener("pointerenter", () => (overVp = true));
+  vp.addEventListener("pointerleave", () => (overVp = false));
+  vp.addEventListener("mousedown", (e) => { if (e.button === 1) e.preventDefault(); });   // no autoscroll on middle-drag
+  vp.addEventListener("pointerdown", (e) => {
+    if (e.pointerType !== "mouse") { pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); try { vp.setPointerCapture(e.pointerId); } catch {} }
+    if (pts.size >= 2) { startPinch(); return; }
+    if (gestureLock) return;
+    if (e.button === 1 || (e.button === 0 && spaceHeld)) {
+      e.preventDefault(); try { vp.setPointerCapture(e.pointerId); } catch {}
+      pan = { pid: e.pointerId, x0: e.clientX, y0: e.clientY, tx0: Z.tx, ty0: Z.ty }; vp.classList.add("panning"); return;
+    }
+    if (e.button > 0) return;
+    if (S.mode === "chonk" && S.chonk == null && S.tool !== "erase" && S.tool !== "pick") { status("Type a Chonk ID or use Pick to choose which Chonk to paint with."); return; }
     const [x, y] = cellAt(e); if (x < 0 || y < 0 || x >= S.n || y >= S.n) return;
     if (S.tool === "pick") {
       const v = S.cells[y * S.n + x];
@@ -356,28 +480,75 @@
       return;
     }
     const before = S.cells.slice();
-    if (S.tool === "fill") { fill(x, y); if (!sameCells(before, S.cells)) { pushUndo(before); save(); } updateCount(); return; }
-    cv.setPointerCapture(e.pointerId);
-    stroke = { before, changed: new Set(), last: [x, y], pid: e.pointerId };
+    if (S.tool === "fill") {
+      fill(x, y);
+      if (!sameCells(before, S.cells)) { const entry = { n: S.n, cells: before }; pushUndo(entry); recentFill = { t: performance.now(), entry }; save(); }
+      updateCount(); return;
+    }
+    try { vp.setPointerCapture(e.pointerId); } catch {}
+    if (S.tool === "line" || S.tool === "rect") {
+      stroke = { kind: S.tool, before, pid: e.pointerId, a: [x, y], b: [x, y], cur: new Set(), vals: new Map() };
+      previewShape(stroke, S.tool === "rect" && e.shiftKey); return;
+    }
+    stroke = { kind: "paint", before, changed: new Set(), last: [x, y], pid: e.pointerId };
     stamp(x, y, stroke.changed);
   });
-  cv.addEventListener("pointermove", (e) => {
+  vp.addEventListener("pointermove", (e) => {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch) {
+      if (pts.size < 2) return;
+      const [a, b] = [...pts.values()], r = vp.getBoundingClientRect();
+      const z = Math.min(ZMAX, Math.max(1, pinch.z0 * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d0));
+      const mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+      const cx = (pinch.mx - pinch.tx0) / pinch.z0, cy = (pinch.my - pinch.ty0) / pinch.z0;   // content point that was under the start midpoint
+      Z.z = z < 1.02 ? 1 : z; Z.tx = mx - cx * Z.z; Z.ty = my - cy * Z.z; applyZoom(); return;
+    }
+    if (pan) { if (e.pointerId !== pan.pid) return; Z.tx = pan.tx0 + e.clientX - pan.x0; Z.ty = pan.ty0 + e.clientY - pan.y0; applyZoom(); return; }
     if (!stroke || e.pointerId !== stroke.pid) return;
-    const [x, y] = cellAt(e), [lx, ly] = stroke.last;
+    let [x, y] = cellAt(e);
+    if (stroke.kind !== "paint") {
+      x = Math.min(S.n - 1, Math.max(0, x)); y = Math.min(S.n - 1, Math.max(0, y));
+      const filled = stroke.kind === "rect" && e.shiftKey;
+      if (x === stroke.b[0] && y === stroke.b[1] && filled === stroke.filled) return;
+      stroke.b = [x, y]; previewShape(stroke, filled); return;
+    }
+    const [lx, ly] = stroke.last;
     if (x === lx && y === ly) return;
     const steps = Math.max(Math.abs(x - lx), Math.abs(y - ly));       // fill gaps on fast strokes
     for (let s = 1; s <= steps; s++) stamp(Math.round(lx + (x - lx) * s / steps), Math.round(ly + (y - ly) * s / steps), stroke.changed);
     stroke.last = [x, y];
   });
-  const endStroke = (e) => { if (!stroke || (e && e.pointerId !== stroke.pid)) return; if (stroke.changed.size && !sameCells(stroke.before, S.cells)) { pushUndo(stroke.before); save(); } stroke = null; updateCount(); };
-  cv.addEventListener("pointerup", endStroke); cv.addEventListener("pointercancel", endStroke);
-  function doUndo() { if (!undo.length || stroke) return; redo.push(S.cells.slice()); S.cells = undo.pop(); redrawAll(); save(); syncUndo(); }
-  function doRedo() { if (!redo.length || stroke) return; undo.push(S.cells.slice()); S.cells = redo.pop(); redrawAll(); save(); syncUndo(); }
+  function endStroke(e) {
+    if (!stroke || (e && e.pointerId !== stroke.pid)) return;
+    if (stroke.kind !== "paint") {
+      if (e && e.type === "pointercancel") { cancelStroke(); return; }
+      previewShape(stroke, stroke.kind === "rect" && !!(e ? e.shiftKey : stroke.filled));
+    }
+    if (!sameCells(stroke.before, S.cells)) { pushUndo({ n: S.n, cells: stroke.before }); save(); }   // the whole gesture is ONE undo step
+    stroke = null; updateCount();
+  }
+  const pointerEnd = (e) => {
+    pts.delete(e.pointerId);
+    if (pinch && pts.size < 2) pinch = null;
+    if (!pts.size) gestureLock = false;
+    if (pan && pan.pid === e.pointerId) { pan = null; vp.classList.remove("panning"); return; }
+    endStroke(e);
+  };
+  vp.addEventListener("pointerup", pointerEnd); vp.addEventListener("pointercancel", pointerEnd);
+  function applySnap(s) {
+    const resized = s.n !== S.n; S.n = s.n; S.cells = s.cells;
+    if (resized) { syncGridButtons(); zoomFit(); layout(); } else redrawAll();
+    save();
+  }
+  function doUndo() { if (!undo.length || stroke) return; redo.push(snap()); applySnap(undo.pop()); syncUndo(); }
+  function doRedo() { if (!redo.length || stroke) return; undo.push(snap()); applySnap(redo.pop()); syncUndo(); }
   $("undo").onclick = doUndo; $("redo").onclick = doRedo;
 
   // ------------------------------------------------------------- UI
-  function setTool(t) { S.tool = t; for (const b of document.querySelectorAll("#tools .tool")) b.setAttribute("aria-pressed", b.dataset.tool === t); }
-  $("tools").addEventListener("click", (e) => { const b = e.target.closest(".tool"); if (b) setTool(b.dataset.tool); });
+  function setTool(t) { S.tool = t; for (const b of document.querySelectorAll("#tools .tool[data-tool]")) b.setAttribute("aria-pressed", b.dataset.tool === t); }
+  $("tools").addEventListener("click", (e) => { const b = e.target.closest(".tool[data-tool]"); if (b) setTool(b.dataset.tool); });
+  function setMirror(on) { S.mirror = on; $("mirror").setAttribute("aria-pressed", on); $("mguide").hidden = !on; }
+  $("mirror").onclick = () => { setMirror(!S.mirror); toast(S.mirror ? "Mirror on: left and right paint together" : "Mirror off"); };
   $("sizes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S.size = +b.dataset.size; for (const x of $("sizes").children) x.setAttribute("aria-pressed", x === b); });
   function setMode(m) {
     S.mode = m; for (const b of $("modes").children) b.setAttribute("aria-pressed", b.dataset.mode === m);
@@ -426,17 +597,18 @@
       bp.drawImage(img, s.sx, s.sy, T, T, inset, inset, 60 - inset * 2, 60 - inset * 2);
     } catch {}
   }
-  function setGridSize(n, { confirmClear = true } = {}) {
-    if (n === S.n) return;
+  // a new size starts a fresh canvas; the old size + painting go on the undo stack (no confirm needed)
+  function setGridSize(n) {
+    if (n === S.n || stroke) return;
     const used = S.cells.some((v) => v >= 0);
-    if (used && confirmClear && !confirm("Changing the canvas size starts a new painting. Your current one will be cleared. Continue?")) { syncGridButtons(); return; }
-    pushUndo(S.cells.slice()); undo.length = 0; redo.length = 0; syncUndo();
-    S.n = n; S.cells = new Int32Array(n * n).fill(-1); syncGridButtons(); layout(); save();
+    pushUndo(snap());
+    S.n = n; S.cells = new Int32Array(n * n).fill(-1); syncGridButtons(); zoomFit(); layout(); save();
+    if (used) toast(`New ${n}×${n} canvas — Undo brings your old painting back`, 3600);
   }
   function syncGridButtons() { for (const b of $("gridSizes").children) b.setAttribute("aria-pressed", +b.dataset.n === S.n); }
   $("gridSizes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setGridSize(+b.dataset.n); });
   $("toggleGrid").onclick = () => { S.grid = !S.grid; $("toggleGrid").setAttribute("aria-pressed", S.grid); redrawAll(); save(); };
-  $("clear").onclick = () => { if (!S.cells.some((v) => v >= 0)) return; if (!confirm("Clear the whole canvas?")) return; pushUndo(S.cells.slice()); S.cells.fill(-1); redrawAll(); save(); };
+  $("clear").onclick = () => { if (!S.cells.some((v) => v >= 0)) return; if (!confirm("Clear the whole canvas?")) return; pushUndo(snap()); S.cells.fill(-1); redrawAll(); save(); };
   $("title").addEventListener("input", (e) => { S.title = e.target.value.trim(); $("boardTitle").textContent = S.title || "Untitled painting"; save(); });
 
   // ------------------------------------------------------------- export
@@ -486,32 +658,57 @@
   // phones: a quick bar at the bottom mirrors the tools, undo/redo and colours
   (function quickBar() {
     const qt = $("qTools"), qs = $("qSwatches");
+    const mk = (tag, cls, text) => { const e = document.createElement(tag); if (tag === "button") e.type = "button"; if (cls) e.className = cls; if (text) e.textContent = text; return e; };
     for (const b of document.querySelectorAll("#tools .tool")) {
-      const c = b.cloneNode(true); c.removeAttribute("id"); c.onclick = () => setTool(b.dataset.tool); qt.append(c);
+      const c = b.cloneNode(true); c.removeAttribute("id"); c.setAttribute("aria-label", b.textContent.trim());
+      if (b.dataset.tool) c.onclick = () => setTool(b.dataset.tool);
+      else { c.dataset.proxy = b.id; c.onclick = () => b.click(); }          // e.g. Mirror: click the panel's button
+      qt.append(c);
     }
-    for (const [id, label] of [["undo", "↶ Undo"], ["redo", "↷ Redo"]]) {
-      const c = document.createElement("button"); c.type = "button"; c.className = "tool"; c.dataset.mirror = id; c.textContent = label; c.onclick = () => $(id).click(); qt.append(c);
+    // second row: brush size, paint mode, undo/redo (all proxies of the panel controls)
+    const row = $("qRow"), qSizes = mk("div", "seg"), qModes = mk("div", "seg");
+    qSizes.id = "qSizes"; qSizes.setAttribute("aria-label", "Brush size"); qModes.id = "qModes"; qModes.setAttribute("aria-label", "Paint with");
+    for (const sz of [1, 2, 3]) { const c = mk("button", "", String(sz)); c.dataset.size = sz; c.setAttribute("aria-label", `Brush ${sz}×${sz}`); c.onclick = () => $("sizes").querySelector(`[data-size="${sz}"]`).click(); qSizes.append(c); }
+    for (const [m, label] of [["colour", "Colour"], ["chonk", '<span class="q-one">One </span>Chonk']]) { const c = mk("button", ""); c.innerHTML = label; c.dataset.mode = m; c.setAttribute("aria-label", m === "chonk" ? "Paint with one Chonk" : "Paint with a colour"); c.onclick = () => setMode(m); qModes.append(c); }
+    row.append(qSizes, qModes);
+    for (const [id, label, name] of [["undo", "↶", "Undo"], ["redo", "↷", "Redo"]]) {
+      const c = mk("button", "tool", label); c.dataset.proxy = id; c.setAttribute("aria-label", name); c.title = name; c.onclick = () => $(id).click(); row.append(c);
     }
     for (const c of PALETTE) { const b = document.createElement("button"); b.type = "button"; b.className = "sw"; b.style.background = c; b.dataset.c = c; b.setAttribute("aria-label", NAMES[c] || c); b.onclick = () => setColour(c); qs.append(b); }
   })();
   function syncQuick() {
     for (const b of document.querySelectorAll("#qTools .tool[data-tool]")) b.setAttribute("aria-pressed", b.dataset.tool === S.tool);
-    for (const b of document.querySelectorAll("#qTools [data-mirror]")) b.disabled = $(b.dataset.mirror).disabled;
+    for (const b of document.querySelectorAll("#quick [data-proxy]")) { const src = $(b.dataset.proxy); b.disabled = src.disabled; if (src.hasAttribute("aria-pressed")) b.setAttribute("aria-pressed", src.getAttribute("aria-pressed")); }
+    for (const b of document.querySelectorAll("#qSizes button")) b.setAttribute("aria-pressed", +b.dataset.size === S.size);
+    for (const b of document.querySelectorAll("#qModes button")) b.setAttribute("aria-pressed", b.dataset.mode === S.mode);
     for (const b of document.querySelectorAll("#qSwatches .sw")) b.setAttribute("aria-pressed", S.mode === "colour" && b.dataset.c === S.colour);
   }
   new MutationObserver(syncQuick).observe(document.querySelector(".panel"), { attributes: true, subtree: true, attributeFilter: ["aria-pressed", "disabled"] });
 
   function status(msg, kind = "") { const s = $("status"); s.textContent = msg; s.className = "status " + kind; }
   let toastT = 0;
-  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2200); }
+  function toast(msg, ms = 2200) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), ms); }
 
+  const typing = () => /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
   addEventListener("keydown", (e) => {
-    if (/INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+    if (typing()) return;
+    if (e.code === "Space" && (overVp || spaceHeld) && !e.ctrlKey && !e.metaKey && !e.altKey) {   // hold Space over the canvas + drag = pan
+      e.preventDefault(); if (!spaceHeld) { spaceHeld = true; vp.classList.add("pan"); } return;
+    }
+    if (e.key === "Shift" && stroke?.kind === "rect") previewShape(stroke, true);
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); doRedo(); return; }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
-    const k = { b: "brush", g: "fill", e: "erase", i: "pick" }[e.key.toLowerCase()]; if (k) setTool(k);
+    const key = e.key.toLowerCase();
+    const k = { b: "brush", l: "line", r: "rect", g: "fill", e: "erase", i: "pick" }[key]; if (k) { if (!stroke) setTool(k); return; }
+    if (key === "m") { if (!stroke) $("mirror").click(); return; }
+    if (key === "+" || key === "=") zoomBy(1.5); else if (key === "-" || key === "_") zoomBy(1 / 1.5); else if (key === "0") zoomFit();
   });
+  addEventListener("keyup", (e) => {
+    if (e.code === "Space" && spaceHeld) { e.preventDefault(); spaceHeld = false; vp.classList.remove("pan"); }
+    if (e.key === "Shift" && stroke?.kind === "rect") previewShape(stroke, false);
+  });
+  addEventListener("blur", () => { spaceHeld = false; vp.classList.remove("pan"); });
   let rt = 0, lastW = innerWidth, lastH = innerHeight;
   addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => {
     if (innerWidth === lastW && Math.abs(innerHeight - lastH) < 160) return;

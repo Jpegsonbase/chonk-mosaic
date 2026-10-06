@@ -126,6 +126,7 @@
 
   /* ---------- nav ---------- */
   nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; }
+  @media (max-width: 440px) { .logo .logo-text { display: none; } }
   .logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; font-size: 18px; text-decoration: none; color: var(--ink); }
   .logo i { display: grid; grid-template-columns: repeat(11, 4px); gap: 0; }
   .logo i b { width: 4px; height: 4px; }
@@ -134,6 +135,13 @@
   .logo i .w { background: #E6E7E8; }
   .logo i .k { background: #31373D; }
   .logo i .o { background: transparent; }
+  .site-nav { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); }
+  .site-nav a { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font: 700 13.5px var(--body); color: var(--muted); text-decoration: none; white-space: nowrap; }
+  .site-nav a:hover { color: var(--ink); }
+  .site-nav a[aria-current="page"] { background: var(--ink); color: var(--paper); }
+  .site-nav .short { display: none; }
+  .site-nav #galBadge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--yellow); color: #0E1230; font: 800 10.5px/18px var(--body); text-align: center; }
+  @media (max-width: 640px) { .site-nav .long { display: none; } .site-nav .short { display: inline; } .site-nav a { padding: 6px 9px; font-size: 12.5px; } }
   .gallery-pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font: 700 14px var(--body); text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); }
   @media (max-width: 520px) { .studio-pill { display: none; } }
   .gallery-pill:hover { border-color: var(--blue); color: var(--blue); }
@@ -409,13 +417,13 @@
     padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; display: none;
   }
   footer { align-items: center; }
-  dialog#fullDialog, dialog#readyDialog, dialog#holdDialog, dialog#gifDialog {
+  dialog#fullDialog, dialog#readyDialog, dialog#holdDialog, dialog#gifDialog, dialog#nameDialog {
     border: 0; border-radius: 22px; padding: 26px; max-width: 420px; width: calc(100% - 32px);
     background: var(--surface); color: var(--ink); box-shadow: 0 30px 80px -20px var(--shadow);
   }
-  dialog#fullDialog::backdrop, dialog#readyDialog::backdrop, dialog#holdDialog::backdrop, dialog#gifDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
-  dialog#fullDialog h2, dialog#readyDialog h2, dialog#holdDialog h2, dialog#gifDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
-  dialog#fullDialog p, dialog#readyDialog p, dialog#holdDialog p, dialog#gifDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  dialog#fullDialog::backdrop, dialog#readyDialog::backdrop, dialog#holdDialog::backdrop, dialog#gifDialog::backdrop, dialog#nameDialog::backdrop { background: rgba(14, 18, 48, .45); backdrop-filter: blur(3px); }
+  dialog#fullDialog h2, dialog#readyDialog h2, dialog#holdDialog h2, dialog#gifDialog h2, dialog#nameDialog h2 { font-family: var(--display); font-weight: 700; font-size: 20px; margin: 0 0 12px; }
+  dialog#fullDialog p, dialog#readyDialog p, dialog#holdDialog p, dialog#gifDialog p, dialog#nameDialog p { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
   dialog#fullDialog p strong, dialog#readyDialog p strong, dialog#holdDialog p strong, dialog#gifDialog p strong { color: var(--ink); white-space: nowrap; }
   .dlg-warn {
     width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; margin-bottom: 14px;
@@ -489,15 +497,37 @@
     .side .row input { flex: 1 1 140px; }
     footer { flex-direction: column; align-items: flex-start; }
   }
+  /* ---------- shapes, crop zoom / rotate, cancel, name dialog ---------- */
+  .seg.seg-shape { grid-template-columns: repeat(6, 1fr); }
+  .seg.seg-shape button { grid-column: span 2; padding: 10px 4px; font-size: 13.5px; }
+  .seg.seg-shape button:nth-child(n+4) { grid-column: span 3; }
+  .crop-tools { display: flex; align-items: center; gap: 12px; margin-top: 10px; }
+  .zoom-ctl { flex: 1; display: flex; align-items: center; gap: 10px; min-width: 0; font-size: 13.5px; font-weight: 600; color: var(--muted); }
+  .zoom-ctl[hidden] { display: none; }
+  .zoom-ctl input { flex: 1; min-width: 0; }
+  .zoom-ctl output { min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); }
+  .btn.quiet.rotate-btn { margin-left: auto; padding: 8px 14px; font-size: 14px; white-space: nowrap; }
+  .go-row { display: flex; gap: 10px; }
+  .go-row #go { flex: 1; min-width: 0; }
+  .btn.quiet.cancel-btn { padding: 15px 22px; font-size: 16px; }
+  .controls.locked .drop, .controls.locked .seg, .controls.locked .crop-tools, .controls.locked input[type=range] { opacity: .55; pointer-events: none; }
+  .controls.locked .drop { cursor: not-allowed; }
+  .mobile-go.cancel { background: var(--surface); color: var(--ink); border: 1.5px solid var(--drop-line); box-shadow: 0 10px 30px -8px var(--shadow); }
+  .mobile-go.cancel:hover:not(:disabled) { background: var(--soft); }
+  dialog#nameDialog label.f { font-size: 14px; font-weight: 600; color: var(--muted); gap: 6px; }
+  dialog#nameDialog input[type=text] { font-size: 16px; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <nav>
-    <a class="logo" href="./"><i aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></i>Chonkit</a>
+    <a class="logo" href="./"><i aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></i><span class="logo-text">Chonkit</span></a>
     <div class="nav-right">
-      <a class="gallery-pill studio-pill" href="studio.html">Chonkit Studio</a>
-      <a class="gallery-pill" href="gallery.html">Gallery<span id="galBadge" hidden></span></a>
+      <nav class="site-nav" aria-label="Chonkit">
+        <a href="./" aria-current="page"><span class="long">Mosaic maker</span><span class="short">Mosaic</span></a>
+        <a href="gallery.html">Gallery<span id="galBadge" hidden></span></a>
+        <a href="studio.html"><span class="long">Chonkit Studio</span><span class="short">Studio</span></a>
+      </nav>
       <a class="chain-pill" id="contractLink" target="_blank" rel="noopener">Chonks on Base</a>
       <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -545,10 +575,16 @@
 
       <div>
         <div class="step-head"><span class="n" style="--c: var(--pink)">2</span>Shape</div>
-        <div class="seg seg3" id="shape">
+        <div class="seg seg-shape" id="shape">
           <button data-v="original" class="on">Original</button>
           <button data-v="square">Square PFP</button>
           <button data-v="banner">X banner</button>
+          <button data-v="4:5">4:5 post</button>
+          <button data-v="16:9">16:9</button>
+        </div>
+        <div class="crop-tools">
+          <label class="zoom-ctl" id="zoomRow" hidden><span>Zoom</span><input type="range" id="cropZoom" min="1" max="3" step="0.05" value="1" aria-label="Crop zoom" disabled><output id="cropZoomOut">1.0×</output></label>
+          <button class="btn quiet rotate-btn" id="rotate" type="button" disabled title="Turn the picture a quarter turn">Rotate ↻</button>
         </div>
         <div class="note" id="shapeNote">Keeps your picture's shape.</div>
       </div>
@@ -622,7 +658,10 @@
         <button class="link-btn reset-btn" id="resetAdv" type="button" hidden>&#8634; Reset advanced settings to default</button>
       </details>
 
-      <button class="btn" id="go" disabled>Loading Chonks…</button>
+      <div class="go-row">
+        <button class="btn" id="go" disabled>Loading Chonks…</button>
+        <button class="btn quiet cancel-btn" id="cancelBuild" type="button" hidden>Cancel</button>
+      </div>
     </div>
 
     <div class="stage">
@@ -761,6 +800,17 @@
     </div>
   </form>
 </dialog>
+<dialog id="nameDialog" class="dlg" aria-labelledby="nameTitle">
+  <form method="dialog" id="nameForm">
+    <h2 id="nameTitle">Add to Gallery</h2>
+    <p>Give your mosaic a name. It shows on the label next to it in the gallery.</p>
+    <label class="f">Name<input type="text" id="galName" maxlength="40" autocomplete="off" spellcheck="false"></label>
+    <div class="dlg-actions">
+      <button class="btn quiet" type="button" id="nameCancel">Cancel</button>
+      <button class="btn" value="add">Add to Gallery</button>
+    </div>
+  </form>
+</dialog>
 <dialog id="holdDialog" class="dlg hold" aria-labelledby="holdTitle">
   <form method="dialog">
     <h2 id="holdTitle">Save to Photos</h2>
@@ -772,12 +822,12 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=40"></script>
-<script src="zoom.js?v=40"></script>
-<script src="export.js?v=40"></script>
-<script src="vendor/gifenc.js?v=40"></script>
-<script src="gif.js?v=40"></script>
-<script src="gallery-store.js?v=2"></script>
-<script src="app.js?v=40"></script>
+<script src="chain.js?v=41"></script>
+<script src="zoom.js?v=41"></script>
+<script src="export.js?v=41"></script>
+<script src="vendor/gifenc.js?v=41"></script>
+<script src="gif.js?v=41"></script>
+<script src="gallery-store.js?v=3"></script>
+<script src="app.js?v=41"></script>
 </body>
 </html>
