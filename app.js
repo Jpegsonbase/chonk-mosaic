@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=37");
+      state.worker = new Worker("worker.js?v=39");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -492,7 +492,7 @@
   function galleryReset(busy) {
     if (!addGalleryBtn) return;
     const ok = window.ChonkitGallery && ChonkitGallery.supported;
-    addGalleryBtn.hidden = !ok;
+    addGalleryBtn.hidden = !ok || !!(state.last && state.last.inGallery && !busy);
     addGalleryBtn.disabled = busy || !state.last;
     addGalleryBtn.textContent = "Add to Gallery";
     if (openGalleryLink) openGalleryLink.hidden = true;
@@ -503,7 +503,8 @@
       addGalleryBtn.disabled = true; addGalleryBtn.textContent = "Adding…";
       try {
         await ChonkitGallery.addCanvas(el.canvas, { title: state.last.label || state.last.fileTitle || "Untitled", tiles: state.last.result.length });
-        addGalleryBtn.textContent = "In your Gallery ✓";
+        state.last.inGallery = true;
+        addGalleryBtn.hidden = true;
         if (openGalleryLink) openGalleryLink.hidden = false;
         updateGalleryBadge();
       } catch (err) {
@@ -591,7 +592,7 @@
       drawGapGrid(ctx, cols, rows, tile, state.gap);
 
       drawOriginal(crop, cols * tile, rows * tile);
-      el.artTitle.textContent = state.label ? `${state.label}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
+      el.artTitle.textContent = (state.label || state.fileTitle) ? `${state.label || state.fileTitle}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
       setShareEnabled(true);
       preparePhoto();
       if (el.makeGif) el.makeGif.disabled = !(window.ChonkGif && ChonkGif.supported());

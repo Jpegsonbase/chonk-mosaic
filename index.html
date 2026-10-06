@@ -357,11 +357,10 @@
   .empty .big { font-family: var(--display); font-weight: 700; font-size: 20px; color: var(--ink); margin-bottom: 6px; }
 
   .label-card {
-    display: grid; grid-template-columns: 1fr auto; gap: 18px 24px; align-items: end;
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-items: start;
     background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 20px 22px;
   }
-  @media (max-width: 640px) { .label-card { grid-template-columns: 1fr; } }
-  .label-card .title { font-style: italic; font-weight: 500; font-size: 18px; }
+  .label-card .title { font-style: italic; font-weight: 500; font-size: 20px; line-height: 1.3; overflow-wrap: anywhere; }
   .label-card .status { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 14px; }
   #phase { font-weight: 700; }
   #msg { color: var(--muted); }
@@ -372,8 +371,16 @@
   .stat { background: var(--soft); border-radius: 14px; padding: 12px 14px; }
   .stat b { display: block; font-family: var(--display); font-weight: 700; font-size: 20px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .stat span { font-size: 13px; color: var(--muted); }
-  .actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end; }
-  @media (max-width: 640px) { .actions { justify-content: flex-start; } }
+  .actions { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 158px), 1fr)); gap: 10px; padding-top: 2px; }
+  .actions .btn { white-space: nowrap; width: 100%; justify-content: center; text-align: center; padding-left: 12px; padding-right: 12px; }
+  .actions [hidden] { display: none !important; }
+  @media (max-width: 640px) {
+    .actions { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .actions .btn { font-size: 14px; padding: 11px 8px; }
+    .actions #share { grid-column: 1 / -1; }
+  }
+  #addGallery:not(:disabled) { border: 1.5px solid var(--yellow); }
+  #openGallery { background: var(--yellow); color: #0E1230; }
 
   /* ---------- viewer ---------- */
   .viewer { display: grid; grid-template-columns: 180px 1fr; gap: 22px; align-items: start; }
@@ -652,7 +659,7 @@
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
           <button class="btn quiet" id="makeGif" disabled>Make GIF</button>
           <button class="btn quiet" id="addGallery" disabled>Add to Gallery</button>
-          <a class="btn quiet" id="openGallery" href="gallery.html" hidden>Open Gallery &rarr;</a>
+          <a class="btn quiet" id="openGallery" href="gallery.html" hidden>In Gallery · Open &rarr;</a>
           <a class="btn quiet share" id="share" target="_blank" rel="noopener" role="button" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</a>
         </div>
         <div class="bar"><div id="progress"></div></div>
@@ -763,12 +770,12 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=37"></script>
-<script src="zoom.js?v=37"></script>
-<script src="export.js?v=37"></script>
-<script src="vendor/gifenc.js?v=37"></script>
-<script src="gif.js?v=37"></script>
+<script src="chain.js?v=39"></script>
+<script src="zoom.js?v=39"></script>
+<script src="export.js?v=39"></script>
+<script src="vendor/gifenc.js?v=39"></script>
+<script src="gif.js?v=39"></script>
 <script src="gallery-store.js?v=1"></script>
-<script src="app.js?v=37"></script>
+<script src="app.js?v=39"></script>
 </body>
 </html>
