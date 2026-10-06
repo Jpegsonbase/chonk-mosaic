@@ -17,7 +17,7 @@
         const db = req.result;
         if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath: "id", autoIncrement: true });
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => { const db = req.result; db.onclose = () => { dbp = null; }; db.onversionchange = () => { db.close(); dbp = null; }; resolve(db); };
       req.onerror = () => reject(req.error || new Error("Couldn't open the gallery."));
     });
     dbp.catch(() => { dbp = null; });
@@ -25,7 +25,9 @@
   }
   function tx(mode, fn) {
     return open().then((db) => new Promise((resolve, reject) => {
-      const t = db.transaction(STORE, mode), s = t.objectStore(STORE);
+      let t;
+      try { t = db.transaction(STORE, mode); } catch (e) { dbp = null; reject(e); return; }   // connection went stale: reopen next time
+      const s = t.objectStore(STORE);
       let out; const r = fn(s);
       if (r) r.onsuccess = () => { out = r.result; };
       t.oncomplete = () => resolve(out);

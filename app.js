@@ -68,8 +68,13 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=39");
+      state.worker = new Worker("worker.js?v=40");
       state.worker.onmessage = onWorker;
+      state.worker.onerror = (e) => {
+        e.preventDefault?.();
+        if (buildReject) { buildReject(new Error("The matcher stopped (your device may be low on memory). Try a lower Detail and press Chonk it again.")); buildResolve = buildReject = null; }
+        else if (!state.ready) { setPhase("Couldn't start the matcher", "Refresh the page to try again.", 0); el.go.textContent = "Refresh to retry"; }
+      };
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
     } catch (err) {
@@ -134,7 +139,7 @@
 
   // ---------------------------------------------------------------- inputs
   function refreshButton() {
-    el.go.disabled = !(state.ready && state.image) || state.busy;
+    el.go.disabled = !(state.ready && state.image) || state.busy || !!state.gifBusy;
     el.go.textContent = state.busy ? "Working…" : state.ready ? (state.image ? "Chonk it" : "Pick a picture") : el.go.textContent;
     if (typeof syncMobileGo === "function") syncMobileGo();
   }
@@ -294,8 +299,8 @@
     if (!file.type.startsWith("image/")) { setPhase("That file isn't a picture", "Choose a JPG, PNG, WebP or GIF.", 0); return; }
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => { el.pickId.value = ""; setPicture(img, null); state.fileTitle = titleFromFile(file.name); setPhase("Ready", "Picture loaded", 0); };
-    img.onerror = () => setPhase("Couldn't open that picture", "Try a JPG or PNG. Some phone formats (like HEIC) don't open in every browser.", 0);
+    img.onload = () => { URL.revokeObjectURL(url); el.pickId.value = ""; setPicture(img, null); state.fileTitle = titleFromFile(file.name); if (!state.busy) setPhase("Ready", "Picture loaded", 0); };
+    img.onerror = () => { URL.revokeObjectURL(url); setPhase("Couldn't open that picture", "Try a JPG or PNG. Some phone formats (like HEIC) don't open in every browser.", 0); };
     img.src = url;
   }
 
@@ -468,6 +473,7 @@
       const ids = await ChonkChain.getWalletChonks(addr, el.rpc.value.trim() || undefined);
       state.walletAddr = addr;
       state.walletName = name;
+      state.walletFor = input;
       state.walletIdx = ids.map((id) => state.idToIndex.get(id)).filter((i) => i !== undefined);
       showWalletNote();
       saveSettings();
@@ -516,6 +522,24 @@
   }
   updateGalleryBadge();
 
+  // after a failed build, the previous mosaic is still on screen: let people save it again
+  function restoreActions() {
+    const { cols, rows, tile } = state.last;
+    el.dl.disabled = false;
+    if (el.dlFull) el.dlFull.disabled = !window.ChonkExport || !ChonkExport.supported || fullSizeTile(cols, rows) <= tile;
+    if (el.makeGif) el.makeGif.disabled = !(window.ChonkGif && ChonkGif.supported());
+    setShareEnabled(true);
+    galleryReset(false);
+  }
+
+  // option buttons tell screen readers which one is chosen
+  (function syncPressed() {
+    const groups = ["shape", "source", "pool", "gap", "gifStyle"].map((id) => document.getElementById(id)).filter(Boolean);
+    const sync = () => groups.forEach((g) => g.querySelectorAll("button").forEach((b) => b.setAttribute("aria-pressed", b.classList.contains("on"))));
+    groups.forEach((g) => new MutationObserver(sync).observe(g, { subtree: true, attributes: true, attributeFilter: ["class"] }));
+    sync();
+  })();
+
   // ---------------------------------------------------------------- build
   async function build() {
     if (!state.ready || !state.image || state.busy) return;
@@ -528,6 +552,9 @@
     galleryReset(true);
     if (window.MosaicZoom && MosaicZoom.setCompare) MosaicZoom.setCompare(false);
     saveSettings();
+    // freeze what this build is for, so changing the picture or options mid-build can't mix things up
+    const job = { image: state.image, label: state.label, fileTitle: state.fileTitle, gap: state.gap, source: state.source };
+    if (!state.gifBusy) { gifJob++; resetGif(); }          // an old GIF belongs to the old mosaic
     try {
       const { cols, rows } = gridSize();
       const tile = effectiveTile(cols, rows);
@@ -540,13 +567,14 @@
       cx.fillStyle = "#fff"; cx.fillRect(0, 0, c.width, c.height);
       cx.imageSmoothingQuality = "high";
       const crop = cropRect();
-      cx.drawImage(state.image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, c.width, c.height);
+      cx.drawImage(job.image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, c.width, c.height);
       const rgba = cx.getImageData(0, 0, c.width, c.height).data;
 
       // 2. Match in the worker.
       let allowed = null;
       if (state.pool === "wallet") {
-        if (!state.walletIdx) { if (el.wallet.value.trim()) await loadWallet(); }
+        // (re)load the wallet if none is loaded or the box now holds a different one
+        if (!state.walletIdx || (el.wallet.value.trim() && el.wallet.value.trim() !== state.walletFor)) { if (el.wallet.value.trim()) await loadWallet(); }
         if (!state.walletIdx || !state.walletIdx.length) throw new Error("Load a wallet that holds Chonks first (step 7), or switch to All Chonks.");
         allowed = Int32Array.from(state.walletIdx);
       }
@@ -558,7 +586,7 @@
       });
       buildResolve = buildReject = null;
       const result = done.result;
-      state.last = { result, cols, rows, tile, source: state.source, label: state.label, fileTitle: state.fileTitle, gap: state.gap };
+      state.last = { result, cols, rows, tile, source: job.source, label: job.label, fileTitle: job.fileTitle, gap: job.gap };
 
       // 3. Draw.
       const used = new Map(); // index -> [tile positions]
@@ -576,7 +604,7 @@
       canvas.width = cols * tile; canvas.height = rows * tile;
       const ctx = canvas.getContext("2d");
       ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = GAPS[state.gap].bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = GAPS[job.gap].bg; ctx.fillRect(0, 0, canvas.width, canvas.height);
       el.empty.style.display = "none"; canvas.style.display = "block";
       if (window.MosaicZoom) MosaicZoom.reset();
       else {
@@ -588,19 +616,19 @@
 
       state.missingSheets = 0;
       await drawFromAtlases(ctx, used, cols, tile);
-      if (state.source === "chain") await drawFromChain(ctx, used, cols, tile);
-      drawGapGrid(ctx, cols, rows, tile, state.gap);
+      if (job.source === "chain") await drawFromChain(ctx, used, cols, tile);
+      drawGapGrid(ctx, cols, rows, tile, job.gap);
 
-      drawOriginal(crop, cols * tile, rows * tile);
-      el.artTitle.textContent = (state.label || state.fileTitle) ? `${state.label || state.fileTitle}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
+      drawOriginal(crop, cols * tile, rows * tile, job);
+      el.artTitle.textContent = (job.label || job.fileTitle) ? `${job.label || job.fileTitle}, rebuilt from Chonks` : "Untitled, Chonks on canvas";
       setShareEnabled(true);
       preparePhoto();
       if (el.makeGif) el.makeGif.disabled = !(window.ChonkGif && ChonkGif.supported());
       galleryReset(false);
-      if (state.source !== "chain") state.onchainNote = "";
+      if (job.source !== "chain") state.onchainNote = "";
       setPhase("Done", state.missingSheets
         ? `Some Chonks couldn't load (blank squares). Check your connection and press Chonk it again.`
-        : (state.source === "chain" && state.onchainNote) || `${used.size.toLocaleString()} different Chonks`, 1);
+        : (job.source === "chain" && state.onchainNote) || `${used.size.toLocaleString()} different Chonks`, 1);
       el.dl.disabled = false;
       if (el.dlFull) {
         const ft = fullSizeTile(cols, rows);
@@ -612,6 +640,7 @@
     } catch (err) {
       console.error(err);
       setPhase("Something went wrong", err.message || String(err));
+      if (state.last && el.canvas.width) restoreActions();
     } finally {
       state.busy = false; refreshButton();
     }
@@ -734,14 +763,14 @@
 
   // ---------------------------------------------------------------- before / after
   // A lighter copy of the original picture, laid over the mosaic by zoom.js.
-  function drawOriginal(crop, mw, mh) {
+  function drawOriginal(crop, mw, mh, job = state) {
     const o = el.original; if (!o) return;
     const k = Math.min(1, 2048 / mw);
     o.width = Math.max(1, Math.round(mw * k)); o.height = Math.max(1, Math.round(mh * k));
     const c = o.getContext("2d");
-    c.imageSmoothingEnabled = !state.label;
+    c.imageSmoothingEnabled = !job.label;
     c.fillStyle = "#fff"; c.fillRect(0, 0, o.width, o.height);
-    c.drawImage(state.image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, o.width, o.height);
+    c.drawImage(job.image, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, o.width, o.height);
   }
 
   // ---------------------------------------------------------------- save to Photos (phones)
@@ -885,7 +914,7 @@
     zoom: "Starts on a single Chonk, then pulls back to show your whole picture.",
     reveal: "Your picture turns into Chonks, from the middle outwards.",
   };
-  let gifStyle = "zoom", gifBlob = null, gifUrl = null, gifBusy = false;
+  let gifStyle = "zoom", gifBlob = null, gifUrl = null, gifBusy = false, gifJob = 0;
   function resetGif() {
     gifBlob = null;
     gifUrl = null;
@@ -903,15 +932,19 @@
     });
     gifUi.go.addEventListener("click", async () => {
       if (gifBusy || !state.last) return;
-      gifBusy = true; resetGif();
+      gifBusy = state.gifBusy = true; resetGif(); refreshButton();
       gifUi.go.disabled = true; gifUi.go.textContent = "Making…";
+      const job = ++gifJob;
+      const snap = (src) => { const c = document.createElement("canvas"); c.width = src.width; c.height = src.height; c.getContext("2d").drawImage(src, 0, 0); return c; };
       try {
-        gifBlob = await ChonkGif.makeGif({
-          mosaic: el.canvas, original: el.original,
+        const blob = await ChonkGif.makeGif({
+          mosaic: snap(el.canvas), original: snap(el.original),
           cols: state.last.cols, rows: state.last.rows, style: gifStyle,
           maxSide: DEVICE.mobile ? 480 : 600,
           onProgress: (p) => { gifUi.status.textContent = `Making your GIF… ${Math.round(p * 100)}%`; },
         });
+        if (job !== gifJob) return;                       // dialog was closed / a newer GIF started
+        gifBlob = blob;
         // A data: URL (not blob:) so press-and-hold shares the GIF itself, not a link.
         gifUrl = await new Promise((res) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.readAsDataURL(gifBlob); });
         gifUi.img.src = gifUrl;
@@ -931,7 +964,7 @@
         gifUi.status.textContent = "Couldn't make the GIF. Try a smaller Detail setting and make the mosaic again.";
         gifUi.go.textContent = "Make GIF";
       } finally {
-        gifBusy = false; gifUi.go.disabled = false;
+        gifBusy = state.gifBusy = false; gifUi.go.disabled = false; refreshButton();
       }
     });
     gifUi.save.addEventListener("click", async () => {
@@ -1142,19 +1175,24 @@
     return slug ? `https://www.chonks.xyz/traits/${slug}?category=${cat}` : null;
   }
 
+  let inspectReq = 0, inspectUrl = null;
   async function showChonk(id) {
     id = parseInt(id, 10);
     if (!Number.isFinite(id)) return;
+    const req = ++inspectReq;
     el.vInfo.textContent = `Reading Chonk #${id} from Base…`;
     el.vTraits.innerHTML = "";
     el.vArt.innerHTML = "";
     try {
       const meta = await ChonkChain.getChonkMeta(id, el.rpc.value.trim() || undefined);
+      if (req !== inspectReq) return;                       // a newer Chonk was asked for
+      el.vArt.innerHTML = ""; el.vTraits.innerHTML = "";
+      if (inspectUrl) { URL.revokeObjectURL(inspectUrl); inspectUrl = null; }
       const img = new Image();
       img.alt = `Chonk #${id}`;
       img.src = meta.image && !meta.image.trim().startsWith("<")
         ? meta.image
-        : URL.createObjectURL(new Blob([meta.image || meta.image_data], { type: "image/svg+xml" }));
+        : (inspectUrl = URL.createObjectURL(new Blob([meta.image || meta.image_data], { type: "image/svg+xml" })));
       el.vArt.appendChild(img);
       el.vInfo.textContent = meta.name || `Chonk #${id}`;
       for (const t of meta.attributes || []) {
@@ -1171,6 +1209,7 @@
         el.vTraits.appendChild(chip);
       }
     } catch (err) {
+      if (req !== inspectReq) return;
       el.vInfo.textContent = /not returned|execution reverted|nonexistent/i.test(err.message || "")
         ? `There's no Chonk #${id}. Check the ID.`
         : `Couldn't load Chonk #${id} from Base right now. Try again in a moment.`;

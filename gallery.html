@@ -3,7 +3,7 @@
 <title>Chonkit Gallery</title>
 <meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
 <link rel="icon" href="apple-touch-icon.png">
-<script src="gallery-store.js?v=1"></script>
+<script src="gallery-store.js?v=2"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
@@ -81,6 +81,13 @@ body.settings-open .keys, body.settings-open #joy, body.settings-open .tbtns { d
 .edit-bar .eb-modes button { padding: 6px 10px; font-size: 12px; border-radius: 999px; }
 .edit-bar .eb-done { background: var(--skin); color: var(--ink); border-color: var(--skin-deep); font-weight: 700; padding: 7px 16px; border-radius: 999px; }
 @media (min-width: 761px) { body.photo .edit-bar { left: calc(50% + 170px); } }
+body.touch kbd { display: none; }
+body.top-busy .empty-note { display: none; }
+@media (max-width: 760px) {
+  #photoBtn .lbl { display: none; } #photoBtn { padding: 9px 12px; }
+  .toast { top: auto; bottom: calc(176px + env(safe-area-inset-bottom, 0px)); }
+  .edit-bar { top: calc(64px + env(safe-area-inset-top, 0px)); }
+}
 /* touch controls */
 #joy { position: fixed; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 124px; height: 124px; border-radius: 50%; z-index: 6;
   background: rgba(10,11,16,.35); border: 1px solid rgba(255,255,255,.22); touch-action: none; }
@@ -215,7 +222,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
   </button>
   <button id="photoBtn" aria-label="Open photo mode">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
-    Photo mode <kbd>P</kbd>
+    <span class="lbl">Photo mode</span> <kbd>P</kbd>
   </button>
   <button class="hudBtn" id="soundBtn" aria-label="Mute sound" aria-pressed="false" title="Sound on/off (M)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/><path class="mute" d="m16 9 6 6m0-6-6 6" style="display:none"/></svg>
@@ -1165,19 +1172,23 @@ async function voxFor(id) {
   const got = await fetchChonk(id); if (!got) throw new Error("missing"); return got.vox;
 }
 async function restoreStatue() {
-  try { placeStatue(await voxFor(STATUE.id), STATUE.id); }
-  catch { placeStatue(await unpackSample(1), 1); }
+  const req = statueReq, id = STATUE.id;
+  let vox; try { vox = await voxFor(id); } catch { vox = await unpackSample(1); }
+  if (req === statueReq) placeStatue(vox, vox === (await unpackSample(1)) && id !== 1 ? 1 : id);
 }
 function statueStatus(msg, kind = "") { const el = document.getElementById("statueStatus"); el.textContent = msg; el.className = "status " + kind; }
+let statueReq = 0;
 async function gildStatue(id, vox) {
-  statueStatus(vox ? "" : `Gilding Chonk #${id}…`);
+  const req = ++statueReq;
+  statueStatus(vox ? "" : `Loading Chonk #${id}…`);
   try {
     if (!vox) vox = await voxFor(id);
+    if (req !== statueReq) return;
     placeStatue(vox, id);
     saveStatue();
     statueStatus(`The statue is now Chonk #${id}.`, "ok");
     toast(`The statue is now Chonk #${id}`);
-  } catch (e) { statueStatus(e?.message === "missing" ? `Chonk #${id} wasn't found. Check the ID.` : "Couldn't reach the Chonks servers. Try again in a moment.", "err"); }
+  } catch (e) { if (req !== statueReq) return; statueStatus(e?.message === "missing" ? `Chonk #${id} wasn't found. Check the ID.` : "Couldn't reach the Chonks servers. Try again in a moment.", "err"); }
 }
 const shortTitle = (t) => { t = String(t || "Untitled").replace(/\s+/g, " ").trim(); return t.length > 26 ? t.slice(0, 25) + "…" : t; };
 function emptyFrameTex(h) {
@@ -1195,7 +1206,7 @@ async function loadGallery() {
   try { items = window.ChonkitGallery ? await ChonkitGallery.list() : []; } catch {}
   await Promise.all(items.map((it) => new Promise((res) => {
     it.url = URL.createObjectURL(it.blob); const img = new Image();
-    img.onload = () => { it.img = img; res(); }; img.onerror = () => res(); img.src = it.url;
+    img.onload = () => { it.img = img; res(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
   })));
   GALLERY.all = items.filter((it) => it.img);
   GALLERY.shown = GALLERY.all.slice(0, FRAMES);
@@ -1280,7 +1291,10 @@ let loc = null, kit = null, locGroup = null, locSettings = null;
 let customScene = null, customBase = 1;
 function applyLocation(id, { keepPositions = false } = {}) {
   const L = LOCATIONS.find(l => l.id === id);
-  if (locGroup) { scene.remove(locGroup); locGroup.traverse(o => { if (o.geometry && o.geometry !== BOX) o.geometry.dispose(); }); }
+  if (locGroup) { scene.remove(locGroup); locGroup.traverse(o => {
+    if (o.geometry && o.geometry !== BOX) o.geometry.dispose();
+    for (const m of [].concat(o.material || [])) { if (m === colourMat) continue; m.map?.dispose(); m.emissiveMap?.dispose(); m.dispose(); }
+  }); }
   locGroup = new THREE.Group(); scene.add(locGroup);
   kit = new Kit(locGroup); loc = L;
   GALLERY.spots = []; GALLERY.views = [];
@@ -1296,7 +1310,7 @@ function applyLocation(id, { keepPositions = false } = {}) {
   document.getElementById("glbRow").hidden = id !== "custom";
   for (const b of document.querySelectorAll(".loc")) b.setAttribute("aria-pressed", b.dataset.id === id);
   if (!keepPositions) placeAtSpawn();
-  onLocationBuilt();
+  onLocationBuilt({ keepProps: keepPositions });
   saveSoon();
 }
 const sunDir = new THREE.Vector3(0.4, 0.8, 0.45);
@@ -1354,9 +1368,11 @@ function blockedForward(from, dir, dist) {
    =================================================================== */
 const keys = new Set();
 let jumpQueued = false;
-const isTyping = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
+const isTyping = () => { const a = document.activeElement; if (!a) return false;
+  if (a.tagName === "TEXTAREA" || a.isContentEditable) return true;
+  return a.tagName === "INPUT" && ["text", "number", "search", "url", "email", ""].includes(a.type); };
 addEventListener("keydown", (e) => {
-  if (isTyping()) return;
+  if (isTyping()) { if (e.key === "Escape") document.activeElement.blur(); return; }
   if (e.key === "Escape") { if (!resultEl.hidden) { resultEl.hidden = true; return; } if (!document.getElementById("settingsPanel").hidden) { setSettings(false); return; } if (picked) { setPicked(null); return; } if (mode === "photo") setMode("walk"); return; }
   if (!resultEl.hidden) return;
   if (e.code === "KeyP") { setMode(mode === "photo" ? "walk" : "photo"); return; }
@@ -1376,7 +1392,11 @@ addEventListener("blur", () => keys.clear());
 // Chonk walking on its own. Held keys repeat their key-down every ~30 ms, so once a key has started
 // repeating, a gap with no repeats means it was let go.
 const keySeen = new Map();
-addEventListener("keydown", (e) => { if (keys.has(e.code)) keySeen.set(e.code, { t: performance.now(), rep: e.repeat || keySeen.get(e.code)?.rep }); }, true);
+addEventListener("keydown", (e) => {
+  // a fresh key press stops the OS repeating the others, so they must not be timed out
+  if (!e.repeat) for (const [code, k] of keySeen) if (code !== e.code) k.rep = false;
+  if (keys.has(e.code)) keySeen.set(e.code, { t: performance.now(), rep: e.repeat || keySeen.get(e.code)?.rep });
+}, true);
 function expireKeys() {
   const now = performance.now();
   for (const [code, k] of keySeen) if (k.rep && now - k.t > 350) { keys.delete(code); keySeen.delete(code); }
@@ -1746,6 +1766,7 @@ document.getElementById("saveShot").onclick = async () => {
   }
   if (inClaude) { st.textContent = "Saving isn't available in this view. Right-click or long-press the photo to save it."; st.className = "status err"; return; }
   const a = document.createElement("a"); a.href = URL.createObjectURL(lastShot.blob); a.download = lastShot.name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   st.textContent = "Saved."; st.className = "status ok";
 };
 
@@ -1989,7 +2010,7 @@ function editKey(e) {
 /* the "Selected" panel */
 function renderEditBar() {
   const bar = document.getElementById("editBar"), on = !!picked && picked.kind !== "painting";
-  bar.hidden = !on; if (!on) return;
+  bar.hidden = !on; try { updateDlPrompt(); } catch {} if (!on) return;
   document.getElementById("ebName").textContent = picked.kind === "chonk" ? `Chonk #${picked.ref.id}` : picked.ref.trait.name;
   for (const b of document.querySelectorAll("#ebModes button")) { b.setAttribute("aria-pressed", b.dataset.mode === gizmoMode); b.hidden = b.dataset.mode === "scale" && picked.kind !== "prop"; }
 }
@@ -2082,9 +2103,9 @@ document.getElementById("paintLinkForm").addEventListener("submit", (e) => {
 document.getElementById("paintReset").onclick = () => { if (picked?.kind === "painting") { resetPainting(picked.ref); paintStatus("Back to the original artwork."); } };
 
 /* when a location is (re)built */
-function onLocationBuilt() {
+function onLocationBuilt({ keepProps = false } = {}) {
   updateDlPrompt(true);
-  setPicked(null); clearProps();
+  setPicked(null); if (!keepProps) clearProps();
   // in the Chonkit gallery the frames show your mosaics, so they aren't swappable
   for (const p of kit.paintings) delete p.art.userData.painting;
   kit.paintings.length = 0;
@@ -2112,11 +2133,14 @@ function checkNearArt() {
   if (dismissed && dismissed !== sp) dismissed = null;            // walking away resets "No"
   updateDlPrompt();
 }
+function syncTopSlot() {
+  document.body.classList.toggle("top-busy", !document.getElementById("dlPrompt").hidden || !document.getElementById("editBar").hidden);
+}
 function updateDlPrompt(clear = false) {
   if (clear) { nearSpot = null; dismissed = null; }
   const el = document.getElementById("dlPrompt");
-  const show = nearSpot && nearSpot !== dismissed;
-  el.hidden = !show;
+  const show = nearSpot && nearSpot !== dismissed && !picked;
+  el.hidden = !show; syncTopSlot();
   if (show) {
     const easel = nearSpot.kind === "easel";
     document.querySelector("#dlPrompt .dl-q").innerHTML = easel ? 'Paint in the <b>Chonkit Studio</b>?' : 'Download <b id="dlName"></b>?';
@@ -2165,10 +2189,10 @@ function saveVisitors() { try { localStorage.setItem(VISITOR_KEY, JSON.stringify
 const L = (x, z, lx, lz, t = [4, 9]) => ({ x, z, look: [lx, lz], t });
 const W = (x, z) => ({ x, z });
 const ROUTE_MIDDLE = [                      // between the partitions: the two inner paintings and the statue
-  L(-3.9, -1.5, -5.8, -1.5), L(3.9, -1.5, 5.8, -1.5), L(0, 5.6, 0, 8.6, [3, 6]),
+  L(-3.9, -1.5, -5.8, -1.5), L(3.9, -1.5, 5.8, -1.5), L(1.5, 5.9, 0, 8.6, [3, 6]),
 ];
 const ROUTE_OUTER = [                       // clockwise around the outside, every painting + statue + easel
-  L(0, 5.6, 0, 8.6, [3, 6]), W(-6, 5.4), W(-11.4, 5.2),
+  L(-1.3, 5.5, 0, 8.6, [3, 6]), W(-6, 5.4), W(-11.4, 5.2),
   L(-12.1, 6.5, -14, 6.5), L(-12.1, 1, -14, 1), L(-8.2, -1.5, -6.2, -1.5), L(-12.1, -5, -14, -5),
   W(-12, -8.3), L(-9.5, -8.3, -9.5, -10), L(-3.2, -8.3, -3.2, -10), L(3.2, -8.3, 3.2, -10), L(9.5, -8.3, 9.5, -10),
   W(12, -8.3), L(12.1, -5, 14, -5), W(8.3, -3.6), L(8.2, -1.5, 6.2, -1.5), L(9.3, -0.05, 10.2, -1.6, [3, 6]),
@@ -2265,7 +2289,8 @@ renderVisitorInputs();
 const SOUND_KEY = "chonkit-gallery-sound-v2";
 const sound = { ctx: null, music: 0.15, crowd: 0.13, muted: false, gains: {}, started: false };
 try { const v = JSON.parse(localStorage.getItem(SOUND_KEY) || "null");
-  if (v) { if (Number.isFinite(v.music)) sound.music = v.music; if (Number.isFinite(v.crowd)) sound.crowd = v.crowd; sound.muted = !!v.muted; } } catch {}
+  const c01 = (n) => Math.max(0, Math.min(1, n));
+  if (v) { if (Number.isFinite(v.music)) sound.music = c01(v.music); if (Number.isFinite(v.crowd)) sound.crowd = c01(v.crowd); sound.muted = !!v.muted; } } catch {}
 function saveSound() { try { localStorage.setItem(SOUND_KEY, JSON.stringify({ music: sound.music, crowd: sound.crowd, muted: sound.muted })); } catch {} }
 const curve = (v) => v * v;                                   // sliders feel even across the range
 function applyVolumes(ramp = 0.25) {
@@ -2307,7 +2332,7 @@ syncSoundUI();
 
 /* boot */
 resize(); camera.fov = WALK_FOV; camera.updateProjectionMatrix();
-window.chonkBooth = { get sel() { return sel; }, get visitors() { return visitors; }, get sound() { return sound; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
+window.chonkBooth = { rebuild: () => applyLocation("gallery", { keepPositions: true }), get sel() { return sel; }, get visitors() { return visitors; }, get sound() { return sound; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
   get paintings() { return kit?.paintings ?? []; }, camera, setPicked, gizmo, pickAt, renderer, freeCamState: freeCam,
   async addTrait(name) { return addProp((await loadTraitCatalog()).find(t => t.name === name)); },
   project(obj) { const v = new THREE.Vector3(); obj.getWorldPosition(v); v.project(camera); const r = renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; } };
@@ -2325,7 +2350,8 @@ window.chonkBooth = { get sel() { return sel; }, get visitors() { return visitor
     const fillSlot = async (c, id) => { if (SAMPLES[id]) { c.setVoxels(await unpackSample(id), { id, label: SAMPLE_META[id] + " · sample" }); renderRoster(); return; }
       try { const got = await fetchChonk(id); if (got) { c.setVoxels(got.vox, got); renderRoster(); } } catch {} };
     if (first !== 1) fillSlot(sel, first);
-    for (const id of saved.ids.slice(1, MAX_CHONKS)) { const c = new Chonk(sel.vox, { id: sel.id, label: sel.label }); chonks.push(c); fillSlot(c, id); }
+    if (first !== 1) sel.id = first;
+    for (const id of saved.ids.slice(1, MAX_CHONKS)) { const c = new Chonk(sel.vox, { id, label: "loading…" }); chonks.push(c); fillSlot(c, id); }
     placeAtSpawn(); renderRoster();
   }
 }

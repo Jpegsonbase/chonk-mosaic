@@ -100,7 +100,7 @@
   }
   @media (max-width: 420px) { .tools { grid-template-columns: repeat(4, 1fr); } .tool span { font-size: 11px; } }
 </style>
-<script src="gallery-store.js?v=1"></script>
+<script src="gallery-store.js?v=2"></script>
 </head>
 <body>
 <div class="loading" id="loading">Loading Chonks…</div>
@@ -173,10 +173,10 @@
   <section class="board" aria-label="Canvas">
     <div class="board-top"><span class="title" id="boardTitle">Untitled painting</span><span class="count" id="count">0 Chonks placed</span></div>
     <canvas id="canvas" width="640" height="640" aria-label="Your painting. Click or drag to paint."></canvas>
-    <div class="status" id="status"></div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
   </section>
 </main>
-<div class="toast" id="toast" hidden></div>
+<div class="toast" id="toast" hidden role="status" aria-live="polite"></div>
 <div class="quick" id="quick" aria-label="Quick tools">
   <div class="qsw" id="qSwatches"></div>
   <div class="qtools" id="qTools"></div>
@@ -191,26 +191,31 @@
   // ------------------------------------------------------------- Chonk data
   let meta, LAB, count;
   const sheets = new Map();          // key -> Promise<HTMLImageElement>
-  function sheet(prefix, n, cb) {
+  const failedAt = new Map();        // key -> time of last failure (don't hammer the network)
+  let SHEET = "atlas", T = 60;       // set from meta: the light 30 px sheets when built
+  function sheet(prefix, n) {
     const key = prefix + n;
-    if (!sheets.has(key)) sheets.set(key, new Promise((res, rej) => {
+    if (!sheets.has(key)) {
+      if (Date.now() - (failedAt.get(key) || 0) < 8000) return Promise.reject(new Error("sheet"));
+      sheets.set(key, new Promise((res, rej) => {
       const img = new Image();
-      img.onload = () => res(img); img.onerror = () => { sheets.delete(key); rej(new Error("sheet")); };
+      img.onload = () => res(img); img.onerror = () => { sheets.delete(key); failedAt.set(key, Date.now()); rej(new Error("sheet")); };
       img.src = `data/atlas/${prefix}_${String(n).padStart(3, "0")}.${meta.atlasFormat || "webp"}?b=${meta.built || 0}.${prefix === "atlas" ? meta.thumb : meta.smallThumb}`;
     }));
+    }
     return sheets.get(key);
   }
   const loaded = new Map();          // key -> image, once loaded
-  function tileSource(idx, small) {
-    const per = meta.perAtlasSide * meta.perAtlasSide, n = Math.floor(idx / per), slot = idx % per;
-    const prefix = small && meta.smallThumb ? "atlas_s" : "atlas", t = prefix === "atlas" ? meta.thumb : meta.smallThumb;
-    const key = prefix + n, img = loaded.get(key);
-    if (!img) { sheet(prefix, n).then((im) => { loaded.set(key, im); scheduleRedraw(); }).catch(() => {}); return null; }
-    return { img, sx: (slot % meta.perAtlasSide) * t, sy: Math.floor(slot / meta.perAtlasSide) * t, t };
+  function slotOf(idx) { const per = meta.perAtlasSide * meta.perAtlasSide, slot = idx % per; return { n: Math.floor(idx / per), sx: (slot % meta.perAtlasSide) * T, sy: Math.floor(slot / meta.perAtlasSide) * T }; }
+  function tileSource(idx) {
+    const { n, sx, sy } = slotOf(idx), key = SHEET + n, img = loaded.get(key);
+    if (!img) { sheet(SHEET, n).then((im) => { loaded.set(key, im); scheduleRedraw(); }).catch(() => {}); return null; }
+    return { img, sx, sy, t: T };
   }
   async function loadData() {
     meta = await (await fetch("data/meta.json")).json();
     const buf = new Uint8Array(await (await fetch(`data/features.bin?b=${meta.built || 0}`)).arrayBuffer());
+    if (meta.smallThumb) { SHEET = "atlas_s"; T = meta.smallThumb; } else T = meta.thumb;
     count = meta.count; LAB = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) { const o = i * meta.recordBytes; LAB[i*3] = buf[o] / 2.55; LAB[i*3+1] = buf[o+1] - 128; LAB[i*3+2] = buf[o+2] - 128; }
   }
@@ -256,21 +261,21 @@
       if ([16, 24, 32, 48, 64].includes(d.n)) { S.n = d.n; S.cells = new Int32Array(S.n * S.n).fill(-1); }
       if (Array.isArray(d.cells) && d.cells.length === S.n * S.n) d.cells.forEach((id, i) => { if (id && idxOf.has(id)) S.cells[i] = idxOf.get(id); });
       if (/^#[0-9a-f]{6}$/i.test(d.colour)) S.colour = d.colour.toLowerCase();
-      if (typeof d.title === "string") S.title = d.title;
+      if (typeof d.title === "string") S.title = d.title.slice(0, 40);
       if (typeof d.grid === "boolean") S.grid = d.grid;
     } catch {}
   }
 
   // ------------------------------------------------------------- drawing
   const cv = $("canvas"), ctx = cv.getContext("2d");
-  let cellPx = 20, redrawQueued = false;
+  let cellPx = 20, redrawQueued = false, colors = { empty: "#f4f5fa", line: "#e6e8f2" };
   function layout() {
     const board = cv.parentElement, avail = Math.min(board.clientWidth - 2 * parseFloat(getComputedStyle(board).paddingLeft), innerHeight - (PHONE ? 210 : 170));
-    cellPx = Math.max(4, Math.floor(Math.max(200, avail) / S.n));
-    const dpr = Math.min(devicePixelRatio || 1, 2);
-    cv.style.width = cv.style.height = cellPx * S.n + "px";
-    cv.width = cv.height = Math.round(cellPx * S.n * dpr);
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const dpr = Math.min(devicePixelRatio || 1, 3);
+    cellPx = Math.max(4, Math.floor(Math.max(200, avail) * dpr / S.n));          // device pixels per cell (whole number = no blur)
+    cv.width = cv.height = cellPx * S.n;
+    cv.style.width = cv.style.height = (cellPx * S.n / dpr) + "px";
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     redrawAll();
   }
   function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
@@ -278,20 +283,20 @@
     const x = (i % S.n) * cellPx, y = Math.floor(i / S.n) * cellPx, v = S.cells[i];
     ctx.imageSmoothingEnabled = false;
     if (v < 0) {
-      ctx.fillStyle = cssVar("--cell-empty"); ctx.fillRect(x, y, cellPx, cellPx);
-      if (S.grid) { ctx.strokeStyle = cssVar("--cell-line"); ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, cellPx - 1, cellPx - 1); }
+      ctx.fillStyle = colors.empty; ctx.fillRect(x, y, cellPx, cellPx);
+      if (S.grid) { ctx.strokeStyle = colors.line; ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, cellPx - 1, cellPx - 1); }
       return;
     }
-    const src = tileSource(v, PHONE && cellPx * (devicePixelRatio || 1) <= 34);
+    const src = tileSource(v);
     if (src) ctx.drawImage(src.img, src.sx, src.sy, src.t, src.t, x, y, cellPx, cellPx);
     else { const [L] = [LAB[v*3]]; ctx.fillStyle = `hsl(0 0% ${L}%)`; ctx.fillRect(x, y, cellPx, cellPx); }
   }
-  function redrawAll() { for (let i = 0; i < S.cells.length; i++) drawCell(i); updateCount(); }
+  function redrawAll() { colors = { empty: cssVar("--cell-empty"), line: cssVar("--cell-line") }; for (let i = 0; i < S.cells.length; i++) drawCell(i); updateCount(); }
   function scheduleRedraw() { if (redrawQueued) return; redrawQueued = true; requestAnimationFrame(() => { redrawQueued = false; redrawAll(); }); }
   function updateCount() {
     let c = 0; for (const v of S.cells) if (v >= 0) c++;
     $("count").textContent = `${c.toLocaleString()} Chonk${c === 1 ? "" : "s"} placed · ${S.n}×${S.n}`;
-    $("download").disabled = $("toGallery").disabled = c === 0;
+    $("download").disabled = $("toGallery").disabled = c === 0 || !!S.exporting;
   }
 
   // ------------------------------------------------------------- painting
@@ -336,32 +341,38 @@
   let stroke = null;
   function pushUndo(before) { undo.push(before); if (undo.length > 60) undo.shift(); redo.length = 0; syncUndo(); }
   function syncUndo() { $("undo").disabled = !undo.length; $("redo").disabled = !redo.length; }
+  const sameCells = (a, b) => { if (a.length !== b.length) return false; for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false; return true; };
   cv.addEventListener("pointerdown", (e) => {
     if (e.button > 0) return;
+    if (stroke && e.pointerId !== stroke.pid) {               // second finger (pinch / scroll): undo this stroke
+      S.cells = stroke.before; stroke = null; redrawAll(); return;
+    }
+    if (S.mode === "chonk" && S.chonk == null && (S.tool === "brush" || S.tool === "fill")) { status("Type a Chonk ID or use Pick to choose which Chonk to paint with."); return; }
     const [x, y] = cellAt(e); if (x < 0 || y < 0 || x >= S.n || y >= S.n) return;
     if (S.tool === "pick") {
       const v = S.cells[y * S.n + x];
-      if (v >= 0) { S.chonk = v; setMode("chonk"); setTool("brush"); toast(`Picked Chonk #${idOf(v)}`); }
+      if (v >= 0) { S.chonk = v; $("chonkId").value = idOf(v); setMode("chonk"); setTool("brush"); toast(`Picked Chonk #${idOf(v)}`); }
+      else toast("That square is empty. Pick a painted one.");
       return;
     }
     const before = S.cells.slice();
-    if (S.tool === "fill") { const ch = fill(x, y); if (ch.size) { pushUndo(before); save(); updateCount(); } return; }
+    if (S.tool === "fill") { fill(x, y); if (!sameCells(before, S.cells)) { pushUndo(before); save(); } updateCount(); return; }
     cv.setPointerCapture(e.pointerId);
-    stroke = { before, changed: new Set(), last: [x, y] };
+    stroke = { before, changed: new Set(), last: [x, y], pid: e.pointerId };
     stamp(x, y, stroke.changed);
   });
   cv.addEventListener("pointermove", (e) => {
-    if (!stroke) return;
+    if (!stroke || e.pointerId !== stroke.pid) return;
     const [x, y] = cellAt(e), [lx, ly] = stroke.last;
     if (x === lx && y === ly) return;
     const steps = Math.max(Math.abs(x - lx), Math.abs(y - ly));       // fill gaps on fast strokes
     for (let s = 1; s <= steps; s++) stamp(Math.round(lx + (x - lx) * s / steps), Math.round(ly + (y - ly) * s / steps), stroke.changed);
     stroke.last = [x, y];
   });
-  const endStroke = () => { if (!stroke) return; if (stroke.changed.size) { pushUndo(stroke.before); save(); } stroke = null; updateCount(); };
+  const endStroke = (e) => { if (!stroke || (e && e.pointerId !== stroke.pid)) return; if (stroke.changed.size && !sameCells(stroke.before, S.cells)) { pushUndo(stroke.before); save(); } stroke = null; updateCount(); };
   cv.addEventListener("pointerup", endStroke); cv.addEventListener("pointercancel", endStroke);
-  function doUndo() { if (!undo.length) return; redo.push(S.cells.slice()); S.cells = undo.pop(); redrawAll(); save(); syncUndo(); }
-  function doRedo() { if (!redo.length) return; undo.push(S.cells.slice()); S.cells = redo.pop(); redrawAll(); save(); syncUndo(); }
+  function doUndo() { if (!undo.length || stroke) return; redo.push(S.cells.slice()); S.cells = undo.pop(); redrawAll(); save(); syncUndo(); }
+  function doRedo() { if (!redo.length || stroke) return; undo.push(S.cells.slice()); S.cells = redo.pop(); redrawAll(); save(); syncUndo(); }
   $("undo").onclick = doUndo; $("redo").onclick = doRedo;
 
   // ------------------------------------------------------------- UI
@@ -393,7 +404,9 @@
     S.chonk = idxOf.get(id); setTool("brush"); updateBrush(); status("");
   });
   const bp = $("brushPreview").getContext("2d");
+  let brushReq = 0;
   async function updateBrush() {
+    const req = ++brushReq;
     bp.imageSmoothingEnabled = false; bp.clearRect(0, 0, 60, 60);
     let idx, name, sub;
     if (S.mode === "chonk") {
@@ -405,11 +418,12 @@
       bp.fillStyle = S.colour; bp.fillRect(0, 0, 60, 60);
     }
     $("brushName").textContent = name; $("brushSub").textContent = sub;
-    const per = meta.perAtlasSide * meta.perAtlasSide, n = Math.floor(idx / per), slot = idx % per;
+    const s = slotOf(idx);
     try {
-      const img = await sheet("atlas", n);
+      const img = await sheet(SHEET, s.n);
+      if (req !== brushReq) return;                         // a newer brush was chosen meanwhile
       const inset = S.mode === "colour" ? 14 : 0;
-      bp.drawImage(img, (slot % meta.perAtlasSide) * meta.thumb, Math.floor(slot / meta.perAtlasSide) * meta.thumb, meta.thumb, meta.thumb, inset, inset, 60 - inset * 2, 60 - inset * 2);
+      bp.drawImage(img, s.sx, s.sy, T, T, inset, inset, 60 - inset * 2, 60 - inset * 2);
     } catch {}
   }
   function setGridSize(n, { confirmClear = true } = {}) {
@@ -432,28 +446,32 @@
     x.fillStyle = "#ffffff"; x.fillRect(0, 0, c.width, c.height);
     const per = meta.perAtlasSide * meta.perAtlasSide;
     const need = new Set(); for (const v of S.cells) if (v >= 0) need.add(Math.floor(v / per));
-    const imgs = {}; await Promise.all([...need].map(async (n) => { imgs[n] = await sheet("atlas", n); }));
+    const imgs = {}; await Promise.all([...need].map(async (n) => { imgs[n] = await sheet(SHEET, n); }));
     S.cells.forEach((v, i) => {
-      if (v < 0) return; const n = Math.floor(v / per), slot = v % per;
-      x.drawImage(imgs[n], (slot % meta.perAtlasSide) * meta.thumb, Math.floor(slot / meta.perAtlasSide) * meta.thumb, meta.thumb, meta.thumb, (i % S.n) * tile, Math.floor(i / S.n) * tile, tile, tile);
+      if (v < 0) return; const s = slotOf(v);
+      x.drawImage(imgs[s.n], s.sx, s.sy, T, T, (i % S.n) * tile, Math.floor(i / S.n) * tile, tile, tile);
     });
     return c;
   }
   const slug = () => (S.title || "chonk-studio").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "chonk-studio";
   $("download").onclick = async () => {
+    if (S.exporting) return; S.exporting = true;
     status("Making your PNG…");
     try {
       const c = await renderFull(60);
       const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+      if (!blob) throw new Error("toBlob");
       const file = new File([blob], `${slug()}.png`, { type: "image/png" });
       if (PHONE && navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); status(""); return; } catch (e) { if (e?.name === "AbortError") { status(""); return; } } }
       const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.append(a); a.click(); a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       status(`Saved ${file.name} (${c.width} × ${c.height} px)`, "ok");
     } catch { status("Couldn't make the PNG. Try again."); }
+    finally { S.exporting = false; }
   };
   $("toGallery").onclick = async () => {
     if (!window.ChonkitGallery?.supported) { status("This browser can't keep a gallery."); return; }
+    if (S.exporting) return; S.exporting = true;
     $("toGallery").disabled = true; status("Hanging it in your gallery…");
     try {
       const c = await renderFull(Math.max(16, Math.min(60, Math.floor(2048 / S.n))));
@@ -462,7 +480,7 @@
       $("finishNote").innerHTML = 'Added to your gallery. <a href="gallery.html">Go and see it hanging →</a>';
       toast("Added to your gallery");
     } catch { status("Couldn't add it to the gallery. Your browser may be out of space."); }
-    $("toGallery").disabled = false;
+    S.exporting = false; updateCount();
   };
 
   // phones: a quick bar at the bottom mirrors the tools, undo/redo and colours
@@ -491,9 +509,13 @@
     if (/INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return;
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); return; }
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); doRedo(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = { b: "brush", g: "fill", e: "erase", i: "pick" }[e.key.toLowerCase()]; if (k) setTool(k);
   });
-  let rt = 0; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(layout, 120); });
+  let rt = 0, lastW = innerWidth, lastH = innerHeight;
+  addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => {
+    if (innerWidth === lastW && Math.abs(innerHeight - lastH) < 160) return;
+    lastW = innerWidth; lastH = innerHeight; layout(); }, 120); });
   matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", redrawAll);
 
   // ------------------------------------------------------------- boot
