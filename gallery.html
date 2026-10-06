@@ -318,6 +318,16 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
       <div class="roster" id="propList"></div>
     </section>
     <section>
+      <h2>Visitors</h2>
+      <label class="check"><input type="checkbox" id="visitorsOn" checked> Chonks wander the gallery and look at the art</label>
+      <form id="visitorForm" style="display:flex;flex-direction:column;gap:8px">
+        <div class="row" id="visitorIds"></div>
+        <button type="submit">Use these visitors</button>
+      </form>
+      <div class="status" id="visitorStatus"></div>
+    </section>
+
+    <section>
       <h2>Clone</h2>
       <p class="hint" style="margin:0">Chonks in the scene. The highlighted one is you.</p>
       <div class="roster" id="roster"></div>
@@ -934,7 +944,9 @@ const LOCATIONS = [
           tex = new THREE.Texture(item.img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16; tex.needsUpdate = true; frameCol = 0x1a1a1a;
         } else tex = emptyFrameTex(Math.round(256 * h / w));
         k.picture(tex, w, h, x, item ? Math.max(1.75, h / 2 + 0.55) : 1.75, z, facing, frameCol, item ? 0.07 : 0.06);
-        if (item) { const nrm = { "+z": [0, 1], "-z": [0, -1], "+x": [1, 0], "-x": [-1, 0] }[facing]; GALLERY.spots.push({ item, x, z, nx: nrm[0], nz: nrm[1], w }); }
+        const nrm = { "+z": [0, 1], "-z": [0, -1], "+x": [1, 0], "-x": [-1, 0] }[facing];
+        if (item) GALLERY.spots.push({ item, x, z, nx: nrm[0], nz: nrm[1], w });
+        GALLERY.views.push({ x, z, nx: nrm[0], nz: nrm[1], w, weight: item ? 4 : 0.6, dist: item ? 2.2 : 2.0 });
         const off = w / 2 + 0.35, ax = facing === "+z" || facing === "-z"; const lx = ax ? x + (facing === "+z" ? off : -off) : x, lz = ax ? z : z + (facing === "+x" ? -off : off);
         label(lx, 1.35, lz, facing, item); };
       hang(-3.2, -9.98, "+z", 1.6, 2.0, 2); hang(3.2, -9.98, "+z", 2.6, 1.6, 4); hang(-9.5, -9.98, "+z", 2.2, 1.6, 0); hang(9.5, -9.98, "+z", 1.6, 1.6, 1);
@@ -955,6 +967,7 @@ const LOCATIONS = [
       k.box(mat(0x2b2b2b, { r: .5 }), 3.6, 0.5, 2.4, 0, 0, 8.6, { solid: true, walk: true });
       STATUE.label = plane(k, statueLabelTex(STATUE.id), 1.2, 0.4, 0, 0.25, 7.39, PI, { transparent: true });
       STATUE.parent = g; STATUE.mat = goldM; STATUE.group = null;
+      GALLERY.views.push({ x: 0, z: 8.6, nx: 0, nz: -1, w: 2.4, weight: 1.5, dist: 3.0 });
       if (STATUE.vox) placeStatue(STATUE.vox, STATUE.id); else restoreStatue();
       k.solidBox(-1.8, 1.8, 7.4, 9.8, 0, 99);
       // the studio easel: "Paint me" -> Chonk Studio
@@ -1065,7 +1078,7 @@ const LOCATIONS = [
 /* Chonkit Gallery: only the Art Gallery scene */
 for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
 const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
-const GALLERY = { all: [], shown: [], spots: [] };
+const GALLERY = { all: [], shown: [], spots: [], views: [] };
 /* an easel with a blank canvas that opens the Chonk Studio */
 function easelCanvasTex() {
   return canvasTex(256, 320, (c, w, h) => {
@@ -1097,6 +1110,7 @@ function buildEasel(k, x, z, ry) {
   [0xff4fa3, 0xffc93c, 0x22d3a0, 0x3d7bff].forEach((c, i) => { const d = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.012, 10), mat(c)); d.position.set(0.3 + (i % 2) * 0.09, 0.775, 0.19 + Math.floor(i / 2) * 0.06); g.add(d); });
   k.solidCircle(x, z, 0.55);
   GALLERY.spots.push({ kind: "easel", x, z, nx: Math.sin(ry), nz: Math.cos(ry), w: 1.1 });
+  GALLERY.views.push({ x, z, nx: Math.sin(ry), nz: Math.cos(ry), w: 1.0, weight: 1.2, dist: 1.8 });
 }
 
 /* the gold statue: any Chonk you like, remembered in this browser */
@@ -1242,7 +1256,7 @@ function applyLocation(id, { keepPositions = false } = {}) {
   if (locGroup) { scene.remove(locGroup); locGroup.traverse(o => { if (o.geometry && o.geometry !== BOX) o.geometry.dispose(); }); }
   locGroup = new THREE.Group(); scene.add(locGroup);
   kit = new Kit(locGroup); loc = L;
-  GALLERY.spots = [];
+  GALLERY.spots = []; GALLERY.views = [];
   const s = L.build(kit); locSettings = s;
   if (L.custom && customScene) { locGroup.add(customScene); customScene.traverse(o => { if (o.isMesh) kit.walk.push(o); }); }
   skyMat.uniforms.top.value.setHex(s.top); skyMat.uniforms.bottom.value.setHex(s.bottom); skyMat.uniforms.power.value = s.power ?? 0.7;
@@ -1295,7 +1309,7 @@ function collide(p, y, self) {
       }
     }
   }
-  for (const o of chonks) { if (o === self || Math.abs(o.pos.y - y) > 0.9) continue;
+  for (const o of chonks.concat(visitors)) { if (o === self || Math.abs(o.pos.y - y) > 0.9) continue;
     const dx = p.x - o.pos.x, dz = p.z - o.pos.z, d = Math.hypot(dx, dz), m = RADIUS * 1.6;
     if (d < m && d > 1e-4) { p.x += dx / d * (m - d); p.z += dz / d * (m - d); } }
   const b = loc.bounds; p.x = Math.max(b[0], Math.min(b[1], p.x)); p.z = Math.max(b[2], Math.min(b[3], p.z));
@@ -1716,6 +1730,7 @@ function animate() {
     const freeze = c.freeze && !(mode === "walk" && c === sel);
     c.rig.pose(anim, freeze ? c.phase * P.period : t + c.offset);
   }
+  updateVisitors(dt);
   updateCamera(dt);
   checkNearArt();
   for (const fn of kit?.updates ?? []) fn(t, dt, focusPoint());
@@ -2077,9 +2092,96 @@ document.getElementById("statueStyle").addEventListener("click", (e) => {
 });
 syncStatueStyleUI();
 
+/* ===================================================================
+   Visitors: Chonks that wander the gallery and look at the art
+   =================================================================== */
+const VISITOR_KEY = "chonkit-gallery-visitors";
+const DEFAULT_VISITORS = [172, 171, 30183, 55683];
+const visitors = [];
+let visitorIds = DEFAULT_VISITORS.slice(), visitorsOn = true;
+try { const v = JSON.parse(localStorage.getItem(VISITOR_KEY) || "null");
+  if (v) { if (Array.isArray(v.ids) && v.ids.length === 4 && v.ids.every(Number.isFinite)) visitorIds = v.ids; if (typeof v.on === "boolean") visitorsOn = v.on; } } catch {}
+function saveVisitors() { try { localStorage.setItem(VISITOR_KEY, JSON.stringify({ ids: visitorIds, on: visitorsOn })); } catch {} }
+const SPAWNS = [[-9, 2], [9, 2], [-3, -5], [3, -5]];
+function pickView(v) {
+  const views = GALLERY.views; if (!views.length) return null;
+  let total = 0; for (const w of views) total += (w === v.view ? 0 : w.weight);
+  let r = Math.random() * total;
+  for (const w of views) { if (w === v.view) continue; r -= w.weight; if (r <= 0) return w; }
+  return views[0];
+}
+function sendTo(v) {
+  const w = pickView(v); if (!w) { v.state = "look"; v.timer = 3; return; }
+  // stand in front of it, a little to one side, so visitors don't stack up
+  const side = (Math.random() - .5) * Math.min(1.6, w.w), d = w.dist + Math.random() * 0.6;
+  v.view = w; v.tx = w.x + w.nx * d + w.nz * side; v.tz = w.z + w.nz * d - w.nx * side;
+  v.state = "walk"; v.stuck = 0; v.lastD = Infinity;
+}
+async function visitorVox(id) {
+  if (SAMPLES[id]) return { vox: await unpackSample(id), label: SAMPLE_META[id] };
+  const got = await fetchChonk(id); if (!got) throw new Error("missing"); return got;
+}
+async function spawnVisitors() {
+  for (const v of visitors) v.remove(); visitors.length = 0;
+  if (!visitorsOn || !loc) return;
+  const base = await unpackSample(1);
+  visitorIds.forEach((id, i) => {
+    const v = new Chonk(base, { id, label: "visitor" });
+    v.holder.userData.chonk = null; v.holder.visible = false;      // shown once its own look has loaded
+    const [x, z] = SPAWNS[i]; v.pos.set(x, groundAt(x, z, 5) ?? 0, z); v.yaw = Math.random() * Math.PI * 2;
+    v.speed = 0.9 + Math.random() * 0.35; v.offset = Math.random() * 10;
+    v.state = "look"; v.timer = 0.5 + i * 1.3; visitors.push(v);
+    visitorVox(id).then((got) => { if (!visitors.includes(v)) return; v.setVoxels(got.vox, { id, label: got.label }); v.holder.visible = true; })
+      .catch(async () => { const fb = [3, 23, 42, 123, 404][i % 5]; v.setVoxels(await unpackSample(fb), { id: fb, label: "sample" }); v.holder.visible = true;
+        visitorStatus(`Chonk #${id} couldn't load, so a sample Chonk is standing in.`, "err"); });
+  });
+}
+function updateVisitors(dt) {
+  for (const v of visitors) {
+    if (v.state === "look") {
+      v.timer -= dt;
+      if (v.view) { const want = Math.atan2(-v.view.nx, -v.view.nz); let dy = want - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 4); }
+      v.moveAnim = v.gesture && v.timer > v.gestureUntil ? v.gesture : "idle";
+      if (v.timer <= 0) sendTo(v);
+    } else {
+      const dx = v.tx - v.pos.x, dz = v.tz - v.pos.z, d = Math.hypot(dx, dz);
+      if (d < 0.18) {
+        v.state = "look"; v.timer = 4 + Math.random() * 6; v.moveAnim = "idle";
+        // now and then, react to the art
+        const r = Math.random(); v.gesture = r < 0.15 ? "wave" : r < 0.25 ? "bow" : null; v.gestureUntil = v.timer - 1.6;
+        continue;
+      }
+      const step = Math.min(d, v.speed * dt), nx = v.pos.x + dx / d * step, nz = v.pos.z + dz / d * step;
+      const next = new THREE.Vector3(nx, v.pos.y, nz); collide(next, v.pos.y, v);
+      v.pos.x = next.x; v.pos.z = next.z; v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + STEP + 0.05) ?? v.pos.y;
+      let dy = Math.atan2(dx, dz) - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 6);
+      v.moveAnim = "walk";
+      // stuck behind a wall or bench: pick somewhere else
+      if (d > v.lastD - 0.004) { v.stuck += dt; if (v.stuck > 1.6) sendTo(v); } else v.stuck = 0;
+      v.lastD = d;
+    }
+    v.holder.position.copy(v.pos); v.holder.rotation.y = v.yaw;
+    v.rig.pose(v.moveAnim, t * (v.moveAnim === "walk" ? v.speed / WALK_SPEED * 1.6 : 1) + v.offset);
+  }
+}
+function visitorStatus(msg, kind = "") { const el = document.getElementById("visitorStatus"); el.textContent = msg; el.className = "status " + kind; }
+function renderVisitorInputs() {
+  const row = document.getElementById("visitorIds"); row.textContent = "";
+  visitorIds.forEach((id, i) => { const inp = document.createElement("input"); inp.type = "number"; inp.min = "0"; inp.value = id; inp.setAttribute("aria-label", `Visitor ${i + 1} Chonk ID`); inp.style.textAlign = "center"; row.append(inp); });
+}
+document.getElementById("visitorForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  const ids = [...document.querySelectorAll("#visitorIds input")].map((i) => parseInt(i.value, 10));
+  if (!ids.every((n) => Number.isFinite(n) && n >= 0)) { visitorStatus("Enter four Chonk IDs.", "err"); return; }
+  visitorIds = ids; saveVisitors(); visitorStatus(`Visitors: #${ids.join(", #")}`, "ok"); spawnVisitors(); document.activeElement.blur();
+});
+document.getElementById("visitorsOn").addEventListener("change", (e) => { visitorsOn = e.target.checked; saveVisitors(); spawnVisitors(); });
+document.getElementById("visitorsOn").checked = visitorsOn;
+renderVisitorInputs();
+
 /* boot */
 resize(); camera.fov = WALK_FOV; camera.updateProjectionMatrix();
-window.chonkBooth = { get sel() { return sel; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
+window.chonkBooth = { get sel() { return sel; }, get visitors() { return visitors; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
   get paintings() { return kit?.paintings ?? []; }, camera, setPicked, gizmo, pickAt, renderer, freeCamState: freeCam,
   async addTrait(name) { return addProp((await loadTraitCatalog()).find(t => t.name === name)); },
   project(obj) { const v = new THREE.Vector3(); obj.getWorldPosition(v); v.project(camera); const r = renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; } };
@@ -2102,6 +2204,7 @@ window.chonkBooth = { get sel() { return sel; }, get chonks() { return chonks; }
   }
 }
 renderTraitList(); renderPicked(); renderProps();
+spawnVisitors();
 animate();
 
 </script>
