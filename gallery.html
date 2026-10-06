@@ -1,5 +1,24 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1, maximum-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}
+/* iPhone: stop Safari zooming in on text boxes (it left people stuck zoomed in) and on double-taps */
+@media (pointer: coarse) { input[type=text], input[type=number], input[type=search], input:not([type]), select, textarea { font-size: 16px !important; } }
+button, a, label, input, select { touch-action: manipulation; }
+</style>
+<script>
+/* If Safari still ends up zoomed in (e.g. after typing), snap back to normal size when the keyboard closes or the phone turns. */
+(function () {
+  var m = document.querySelector('meta[name="viewport"]'); if (!m || !window.visualViewport) return;
+  var base = m.content;
+  function reset() {
+    if (visualViewport.scale <= 1.01) return;
+    m.content = base.replace("maximum-scale=1", "maximum-scale=1.0");
+    setTimeout(function () { m.content = base; }, 50);
+  }
+  document.addEventListener("focusout", function () { setTimeout(reset, 120); });
+  window.addEventListener("orientationchange", function () { setTimeout(reset, 400); });
+  visualViewport.addEventListener("resize", function () { var a = document.activeElement; if (!a || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) setTimeout(reset, 200); });
+})();
+</script></head><body>
 <title>Chonkit Gallery</title>
 <meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
 <link rel="icon" href="apple-touch-icon.png">
