@@ -223,6 +223,28 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
   #snap .lens { width: 36px; height: 36px; }
   .pill .brand { display: none; }
 }
+
+/* ---------- gallery tour (video + GIF) ---------- */
+.dock { gap: 10px; }
+#tourBtn { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 8px 20px 8px 8px; border-radius: 999px;
+  background: var(--panel-solid); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.35); text-align: left; }
+#tourBtn .ico { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; background: #2a2d38; color: var(--skin); box-shadow: inset 0 0 0 3px rgba(239,177,94,.35); }
+#tourBtn .ico svg { width: 22px; height: 22px; }
+#tourBtn strong { font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: .04em; }
+#tourBtn small { display: block; font: 11px var(--mono); color: var(--muted); }
+#tourBtn:hover .ico { color: #f5c07a; }
+@media (max-width: 760px) { #tourBtn { padding: 6px 14px 6px 6px; } #tourBtn .ico { width: 36px; height: 36px; } #tourBtn .ico svg { width: 18px; height: 18px; } }
+#tour { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(6,7,11,.86); padding: 16px; }
+#tour[hidden] { display: none; }
+#tour .card { background: var(--panel-solid); border: 1px solid var(--line); border-radius: 16px; padding: 16px; width: min(600px, 100%); max-height: 100%; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; }
+#tour .tour-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+#tour .tour-head strong { font: 400 16px var(--display); }
+#tour .tour-head span { font: 12px var(--mono); color: var(--muted); }
+#tour .tour-bar { height: 8px; border-radius: 99px; background: rgba(255,255,255,.08); overflow: hidden; }
+#tour .tour-bar i { display: block; height: 100%; width: 0; background: var(--skin); transition: width .15s linear; }
+#tour video, #tour img { width: 100%; max-height: 58vh; object-fit: contain; border-radius: 10px; background: #000; display: block; -webkit-user-select: auto; user-select: auto; }
+#tour .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+#tour .hint { margin: 0; }
 @media (prefers-reduced-motion: reduce) { #flash.go { animation: none; } }
 </style>
 
@@ -407,7 +429,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
   <div class="eb-modes" id="ebModes"><button type="button" data-mode="translate">Move</button><button type="button" data-mode="rotate">Turn</button><button type="button" data-mode="scale">Size</button></div>
   <button type="button" class="eb-done" id="ebDone">✓ Done</button>
 </div>
-<div class="dock photo-only"><button id="snap" aria-label="Take photo"><span class="lens"></span><span><strong>Snap</strong><small id="snapSize">2048 × 2048 px</small></span></button></div>
+<div class="dock photo-only"><button id="snap" aria-label="Take photo"><span class="lens"></span><span><strong>Snap</strong><small id="snapSize">2048 × 2048 px</small></span></button><button id="tourBtn" aria-label="Make a tour video and GIF of your gallery"><span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2"/><path d="m16 10 5-3v10l-5-3z"/></svg></span><span><strong>Tour</strong><small id="tourSize">Video + GIF</small></span></button></div>
 
 <div id="result" hidden>
   <div class="card">
@@ -417,6 +439,28 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <div class="actions">
       <button id="closeShot">Back to the booth</button>
       <button class="primary" id="saveShot">Save PNG</button>
+    </div>
+  </div>
+</div>
+
+<div id="tour" hidden role="dialog" aria-modal="true" aria-labelledby="tourTitle">
+  <div class="card">
+    <div class="tour-head"><strong id="tourTitle">Gallery tour</strong><span id="tourMeta"></span></div>
+    <div id="tourWork" style="display:flex;flex-direction:column;gap:10px">
+      <p class="hint" id="tourStep">Planning the route…</p>
+      <div class="tour-bar"><i id="tourBar"></i></div>
+      <p class="hint">Keep this tab open. The camera glides past your mosaics and the statue, then it's ready to save.</p>
+    </div>
+    <div id="tourDone" hidden style="display:flex;flex-direction:column;gap:10px">
+      <div class="seg" id="tourKind" role="group" aria-label="Preview"><button type="button" data-k="video">Video (MP4)</button><button type="button" data-k="gif">GIF</button></div>
+      <video id="tourVideo" playsinline muted loop autoplay controls></video>
+      <img id="tourGif" alt="Your gallery tour as a GIF" hidden>
+    </div>
+    <div class="status" id="tourStatus"></div>
+    <div class="actions">
+      <button id="tourClose" type="button">Cancel</button>
+      <button id="tourShare" type="button" hidden>Share</button>
+      <button class="primary" id="tourSave" type="button" hidden>Save</button>
     </div>
   </div>
 </div>
@@ -1870,6 +1914,309 @@ document.getElementById("saveShot").onclick = async () => {
 };
 
 /* ===================================================================
+   Tour: the camera glides through your gallery and records it as a video (MP4) and a GIF
+   =================================================================== */
+// The route is built from these pieces. `need` = which frame (1-14, newest mosaic first) has to hold a mosaic for that stop to be used.
+const TS = (x, y, z, ax, ay, az, need) => ({ p: [x, y, z], at: [ax, ay, az], need });
+const TOUR_OPEN = TS(3.9, 2.1, 3.4, 0, 2.0, 8.6);                         // opening shot: the statue
+const TOUR_MIDDLE = [                                                     // straight down the middle, glancing at the inner partition mosaics
+  TS(0.9, 1.85, 1.4, 0, 1.85, -10), TS(-1.6, 1.7, -0.6, -5.82, 1.8, -1.5, 5), TS(1.6, 1.7, -2.2, 5.82, 1.8, -1.5, 6), TS(0, 1.75, -4.6, 0, 1.9, -10)];
+const TOUR_LEFT = [                                                       // down the left side when it has mosaics (round the far side of the sculpture plinth)
+  TS(-4.5, 1.9, 4.6, -14, 1.8, 5), TS(-8.2, 1.85, 5.7, -14, 1.8, 6.5), TS(-11.4, 1.7, 5.6, -14, 1.75, 6.5, 13), TS(-12.3, 1.8, 3.4, -14, 1.8, 2),
+  TS(-11.3, 1.7, 1.0, -14, 1.8, 1, 11), TS(-9.0, 1.8, 0.6, -9, 1.8, -6), TS(-8.6, 1.7, -2.4, -6.18, 1.8, -1.5, 7),
+  TS(-11.3, 1.7, -4.8, -14, 1.85, -5, 9)];
+const TOUR_BACK = [TS(-9.5, 1.75, -6.2, -9.5, 1.85, -10, 3), TS(-3.2, 1.75, -6.2, -3.2, 1.9, -10, 1)];
+const TOUR_DIP = [TS(-1.8, 1.75, -2.6, -5.82, 1.8, -1.5, 5), TS(1.8, 1.75, -2.6, 5.82, 1.8, -1.5, 6)];   // pop up the middle for the inner mosaics
+const TOUR_BACK2 = [TS(3.2, 1.75, -6.2, 3.2, 1.9, -10, 2), TS(9.5, 1.75, -6.2, 9.5, 1.85, -10, 4)];
+const TOUR_RIGHT = [                                                      // back up the right side when it has mosaics
+  TS(11.3, 1.7, -4.8, 14, 1.85, -5, 10), TS(8.4, 1.7, -3.0, 6.18, 1.8, -1.5, 8), TS(8.9, 1.8, 0.2, 9, 1.8, 6),
+  TS(11.2, 1.7, 1.0, 14, 1.8, 1, 12), TS(11.3, 1.7, 5.0, 14, 1.75, 6.5, 14)];
+const TOUR_FPS = 30, TOUR_GIF_EVERY = 2;              // video at 30 fps, GIF at 15 fps
+let touring = false, tourJob = 0, tourOut = null;
+
+function tourPlan(nTest) {
+  const n = Math.max(1, nTest ?? GALLERY.shown.length), has = (k) => k <= n;
+  const left = has(7), right = has(8);
+  // keep a stop if its frame has a mosaic; plain waypoints (no `need`) inside a section are kept only up to the section's last needed stop
+  const take = (list, { trimEnd = false } = {}) => {
+    let last = list.length - 1;
+    if (trimEnd) { last = -1; list.forEach((s, i) => { if (s.need && has(s.need)) last = i; }); }
+    return list.filter((s, i) => i <= last && (!s.need || has(s.need))).map((s) => ({ ...s, stop: !!s.need }));
+  };
+  let pts = [{ ...TOUR_OPEN, stop: true }];
+  if (left) pts.push(...take(TOUR_LEFT).filter((s) => s.stop || !s.need));
+  else pts.push(...take(TOUR_MIDDLE));
+  pts.push(...take(TOUR_BACK));
+  if (left) pts.push(...take(TOUR_DIP));
+  pts.push(...take(TOUR_BACK2, { trimEnd: !right }));
+  let end;
+  if (right) { pts.push(...take(TOUR_RIGHT, { trimEnd: true })); end = { p: [6.8, 3.3, 6.2], at: [-3, 1.0, -6] }; }   // finish wide from the front corner
+  else {                                              // finish by drifting back and up from the last wall
+    const L = pts[pts.length - 1], dx = L.p[0] - L.at[0], dz = L.p[2] - L.at[2], d = Math.hypot(dx, dz) || 1;
+    end = { p: [L.p[0] + dx / d * 2.6, L.p[1] + 1.2, L.p[2] + dz / d * 2.6], at: [L.at[0], 1.35, L.at[2]] };
+  }
+  pts.push(end);
+  const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
+  const path = new THREE.CatmullRomCurve3(pts.map((q) => V(q.p)), false, "centripetal");
+  const look = new THREE.CatmullRomCurve3(pts.map((q) => V(q.at)), false, "centripetal");
+  const len = path.getLength(), stops = pts.filter((q) => q.stop).map((q) => V(q.p));
+  // ease through the room: slow down at each mosaic, speed up between them, and ease in and out at the ends
+  const N = 800, cum = new Float64Array(N + 1), tmp = new THREE.Vector3();
+  const sm = (e0, e1, x) => { const k = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return k * k * (3 - 2 * k); };
+  for (let k = 1; k <= N; k++) {
+    const u = (k - 0.5) / N; path.getPointAt(u, tmp);
+    let near = Infinity; for (const s of stops) near = Math.min(near, tmp.distanceTo(s));
+    const s = u * len, f = (0.42 + 0.58 * sm(0, 2.4, near)) * (0.3 + 0.7 * sm(0, 1.6, s)) * (0.3 + 0.7 * sm(0, 1.6, len - s));
+    cum[k] = cum[k - 1] + (len / N) / f;
+  }
+  const duration = Math.max(8, Math.min(cum[N] / 3.0, 9 + 0.65 * n, 18));   // ~9 s for one mosaic, up to 18 s for a full gallery
+  function at(time) {                                  // camera position and look target at `time` seconds
+    const want = Math.max(0, Math.min(1, time / duration)) * cum[N];
+    let lo = 0, hi = N; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] < want) lo = m; else hi = m; }
+    const u = Math.min(1, (lo + (want - cum[lo]) / ((cum[hi] - cum[lo]) || 1)) / N);
+    return { pos: path.getPointAt(u), target: look.getPoint(path.getUtoTmapping(u)) };
+  }
+  return { at, duration, pts };
+}
+
+function tourSizes() {
+  const [aw, ah] = ASPECTS[aspect], r = aw / ah, even = (x) => Math.max(2, Math.round(x / 2) * 2);
+  const vl = r === 1 || aspect === "4:5" ? 1080 : 1280, gl = 480;
+  const fit = (L) => (r >= 1 ? [even(L), even(L / r)] : [even(L * r), even(L)]);
+  return { video: fit(vl), gif: fit(gl), fov: r >= 1.5 ? 52 : r >= 1 ? 58 : 66 };
+}
+
+function tourWatermark(ctx, W, H) {
+  const u = Math.max(6, Math.round(Math.min(W, H) / 46)), text = "chonkit.xyz";
+  ctx.font = `600 ${u * 1.5}px Sora, "Space Grotesk", system-ui, sans-serif`;
+  const tw = ctx.measureText(text).width, h = u * 2.8, w = tw + u * 3.6, x = W - w - u * 1.4, y = H - h - u * 1.4;
+  ctx.fillStyle = "rgba(15,17,23,.66)"; ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x, y, w, h, h / 2) : ctx.rect(x, y, w, h); ctx.fill();
+  ctx.fillStyle = "#efb15e"; ctx.fillRect(x + u * 1.0, y + h / 2 - u * 0.5, u, u);
+  ctx.fillStyle = "#ffffff"; ctx.textBaseline = "middle"; ctx.fillText(text, x + u * 2.5, y + h / 2 + 1);
+}
+
+function loadGifenc() {
+  if (window.gifenc) return Promise.resolve(window.gifenc);
+  return new Promise((res, rej) => { const sc = document.createElement("script"); sc.src = "vendor/gifenc.js?v=42";
+    sc.onload = () => (window.gifenc ? res(window.gifenc) : rej(new Error("GIF encoder missing"))); sc.onerror = () => rej(new Error("Couldn't load the GIF encoder.")); document.head.append(sc); });
+}
+async function pickVideoCodec(w, h) {
+  if (!window.VideoEncoder || !window.VideoFrame) return null;
+  for (const codec of window.__tourCodecs || ["avc1.640028", "avc1.4d0028", "avc1.42e028", "avc1.42e01f"]) {
+    try { const r = await VideoEncoder.isConfigSupported({ codec, width: w, height: h, bitrate: 6e6, framerate: TOUR_FPS }); if (r.supported) return codec; } catch {}
+  }
+  return null;
+}
+// the gallery's jazz (and a little crowd) for the video, faded in and out; skipped when the sound is muted
+async function tourAudio(seconds) {
+  if (sound.muted || (sound.music <= 0 && sound.crowd <= 0) || !window.AudioEncoder || !window.AudioData || !window.OfflineAudioContext) return null;
+  const cfg = { codec: window.__tourAudioCodec || "mp4a.40.2", sampleRate: 48000, numberOfChannels: 2, bitrate: 128000 };
+  try { if (!(await AudioEncoder.isConfigSupported(cfg)).supported) return null; } catch { return null; }
+  try {
+    const frames = Math.ceil(48000 * seconds), oac = new OfflineAudioContext(2, frames, 48000);
+    const add = async (url, level) => {
+      if (level <= 0) return;
+      const buf = await oac.decodeAudioData(await (await fetch(url)).arrayBuffer());
+      const src = oac.createBufferSource(); src.buffer = buf; src.loop = true; const g = oac.createGain();
+      g.gain.setValueAtTime(0, 0); g.gain.linearRampToValueAtTime(level, 0.5);
+      g.gain.setValueAtTime(level, Math.max(0.6, seconds - 1.4)); g.gain.linearRampToValueAtTime(0, seconds);
+      src.connect(g); g.connect(oac.destination); src.start(0);
+    };
+    await Promise.all([add("audio/gallery-jazz.mp3", sound.music > 0 ? 0.7 : 0), add("audio/gallery-crowd.mp3", sound.crowd > 0 ? 0.22 : 0)]);
+    return { cfg, buffer: await oac.startRendering() };
+  } catch { return null; }
+}
+
+function tourUI(state) {
+  const work = state === "work";
+  document.getElementById("tourWork").hidden = !work; document.getElementById("tourDone").hidden = work;
+  document.getElementById("tourClose").textContent = work ? "Cancel" : "Close";
+  document.getElementById("tourSave").hidden = work; document.getElementById("tourShare").hidden = work || !canShareFiles();
+}
+function tourProgress(step, frac) {
+  if (step != null) document.getElementById("tourStep").textContent = step;
+  document.getElementById("tourBar").style.width = Math.round(Math.max(0, Math.min(1, frac)) * 100) + "%";
+}
+const canShareFiles = () => { try { return !!navigator.canShare && navigator.canShare({ files: [new File([new Blob(["x"])], "x.gif", { type: "image/gif" })] }); } catch { return false; } };
+
+async function makeTour() {
+  if (touring) return;
+  const job = ++tourJob; touring = true; tourOut = null;
+  const st = document.getElementById("tourStatus"); st.textContent = ""; st.className = "status";
+  tourEl.hidden = false; tourUI("work"); tourProgress("Planning the route…", 0);
+  document.getElementById("tourMeta").textContent = "";
+  const prevPR = renderer.getPixelRatio(), prevFov = camera.fov, gizmoWas = gizmoHelper.visible;
+  const hiddenChonks = [];
+  let vEnc = null, aEnc = null;
+  const cancelled = () => job !== tourJob;
+  try {
+    const plan = tourPlan(), sz = tourSizes(), [VW, VH] = sz.video, [GW, GH] = sz.gif;
+    const nFrames = Math.ceil(plan.duration * TOUR_FPS);
+    const { GIFEncoder, quantize, applyPalette } = await loadGifenc();
+    // video encoder (MP4, H.264) where the browser has one; otherwise GIF only
+    const codec = await pickVideoCodec(VW, VH);
+    let muxer = null, target = null;
+    if (codec) {
+      tourProgress("Getting the music ready…", 0.01);
+      const audio = await tourAudio(nFrames / TOUR_FPS);
+      if (cancelled()) return;
+      const { Muxer, ArrayBufferTarget } = await import("./vendor/mp4-muxer.mjs");
+      target = new ArrayBufferTarget();
+      muxer = new Muxer({ target, fastStart: "in-memory", firstTimestampBehavior: "offset",
+        video: { codec: codec.startsWith("vp09") ? "vp9" : "avc", width: VW, height: VH, frameRate: TOUR_FPS },
+        ...(audio ? { audio: { codec: audio.cfg.codec === "opus" ? "opus" : "aac", numberOfChannels: 2, sampleRate: 48000 } } : {}) });
+      vEnc = new VideoEncoder({ output: (chunk, meta) => muxer.addVideoChunk(chunk, meta), error: (e) => { vEnc.failed = e; } });
+      vEnc.configure({ codec, width: VW, height: VH, bitrate: Math.round(VW * VH * TOUR_FPS * 0.16), framerate: TOUR_FPS, latencyMode: "quality" });
+      if (audio) {
+        aEnc = new AudioEncoder({ output: (chunk, meta) => muxer.addAudioChunk(chunk, meta), error: () => {} });
+        aEnc.configure(audio.cfg);
+        const b = audio.buffer, L0 = b.getChannelData(0), R0 = b.getChannelData(1), STEP = 4096;
+        for (let s = 0; s < b.length; s += STEP) {
+          const n = Math.min(STEP, b.length - s), data = new Float32Array(n * 2); data.set(L0.subarray(s, s + n), 0); data.set(R0.subarray(s, s + n), n);
+          const ad = new AudioData({ format: "f32-planar", sampleRate: 48000, numberOfFrames: n, numberOfChannels: 2, timestamp: Math.round(s / 48000 * 1e6), data });
+          aEnc.encode(ad); ad.close();
+        }
+      }
+    }
+    // render offscreen at the output size
+    gizmoHelper.visible = false;
+    renderer.setPixelRatio(1); renderer.setSize(VW, VH, false);
+    camera.clearViewOffset(); camera.aspect = VW / VH; camera.fov = sz.fov; camera.updateProjectionMatrix();
+    const comp = document.createElement("canvas"); comp.width = VW; comp.height = VH; const cctx = comp.getContext("2d");
+    const gcv = document.createElement("canvas"); gcv.width = GW; gcv.height = GH; const gctx = gcv.getContext("2d", { willReadFrequently: true });
+    gctx.imageSmoothingQuality = "high";
+    const look = new THREE.Vector3(), dir = new THREE.Vector3(), want = new THREE.Vector3(), focus = new THREE.Vector3();
+    const place = (p, smooth, dt) => {
+      camera.position.copy(p.pos);
+      want.copy(p.target).sub(p.pos).normalize();
+      if (!smooth) dir.copy(want); else dir.lerp(want, 1 - Math.exp(-dt / 0.38)).normalize();
+      camera.lookAt(look.copy(p.pos).add(dir));
+      focus.copy(p.pos).addScaledVector(dir, 3.5); focus.y = 0.8;
+      sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(sunDir, 30); sun.target.updateMatrixWorld();
+      fill.position.copy(camera.position).add(new THREE.Vector3(0, 2.5, 0)); fill.target.position.copy(focus); fill.target.updateMatrixWorld();
+      sky.position.copy(camera.position);
+      // keep Chonks from filling the lens when the camera passes right by them
+      for (const c of [...chonks, ...visitors]) {
+        const dx = c.holder.position.x - p.pos.x, dz = c.holder.position.z - p.pos.z, d2 = dx * dx + dz * dz, ahead = dx * dir.x + dz * dir.z > 0;
+        if (c.holder.visible && p.pos.y < c.holder.position.y + 2.4 && (d2 < 1.0 || (ahead && d2 < 2.1 * 2.1))) { c.holder.visible = false; if (!visitors.includes(c)) hiddenChonks.push(c); }
+      }
+    };
+    const shoot = () => { renderer.render(scene, camera); cctx.drawImage(renderer.domElement, 0, 0, VW, VH); tourWatermark(cctx, VW, VH); };
+    // 1) one palette for the whole GIF, from a handful of moments along the route
+    tourProgress("Picking colours for the GIF…", 0.02);
+    const K = 8, sample = new Uint8ClampedArray(K * GW * GH * 4);
+    for (let k = 0; k < K; k++) {
+      place(plan.at((k + 0.5) / K * plan.duration), false, 0); shoot();
+      gctx.drawImage(comp, 0, 0, GW, GH); sample.set(gctx.getImageData(0, 0, GW, GH).data, k * GW * GH * 4);
+      await new Promise((r) => setTimeout(r, 0)); if (cancelled()) return;
+    }
+    const palette = quantize(sample, 256);
+    const gif = GIFEncoder();
+    // 2) fly the route: every frame goes to the video, every other one to the GIF
+    const dt = 1 / TOUR_FPS; let first = true;
+    for (let f = 0; f < nFrames; f++) {
+      if (cancelled()) return;
+      if (vEnc?.failed) throw vEnc.failed;
+      // move the world on by one frame (visitors walk, sculptures turn)
+      t += dt;
+      for (const c of chonks) {
+        c.holder.position.copy(c.pos); c.holder.rotation.y = c.yaw;
+        const P = POSES.find((q) => q.id === c.pose); c.rig.pose(c.pose, c.freeze ? c.phase * P.period : t + c.offset);
+      }
+      for (const c of hiddenChonks.splice(0)) c.holder.visible = true;
+      updateVisitors(dt);
+      for (const fn of kit?.updates ?? []) fn(t, dt, camera.position);
+      place(plan.at(f * dt), !first, dt); first = false;
+      shoot();
+      if (vEnc) {
+        const vf = new VideoFrame(comp, { timestamp: Math.round(f * 1e6 / TOUR_FPS), duration: Math.round(1e6 / TOUR_FPS) });
+        vEnc.encode(vf, { keyFrame: f % (TOUR_FPS * 2) === 0 }); vf.close();
+        while (vEnc.encodeQueueSize > 6) await new Promise((r) => setTimeout(r, 4));
+      }
+      if (f % TOUR_GIF_EVERY === 0) {
+        gctx.drawImage(comp, 0, 0, GW, GH);
+        gif.writeFrame(applyPalette(gctx.getImageData(0, 0, GW, GH).data, palette), GW, GH, { palette, delay: Math.round(1000 * TOUR_GIF_EVERY / TOUR_FPS), repeat: 0 });
+      }
+      if (f % 3 === 0) { tourProgress(`Filming the tour… ${Math.round(f / TOUR_FPS)} of ${Math.round(plan.duration)} s`, 0.04 + 0.9 * f / nFrames); await new Promise((r) => setTimeout(r, 0)); }
+    }
+    tourProgress("Finishing the files…", 0.96);
+    gif.finish();
+    const gifBlob = new Blob([gif.bytes()], { type: "image/gif" });
+    let mp4 = null;
+    if (vEnc) {
+      try { await vEnc.flush(); if (aEnc) await aEnc.flush(); muxer.finalize(); mp4 = new Blob([target.buffer], { type: "video/mp4" }); }
+      catch { mp4 = null; }
+    }
+    if (cancelled()) return;
+    tourOut = { gif: gifBlob, mp4, kind: mp4 ? "video" : "gif", secs: plan.duration, sizes: sz };
+    showTourResult();
+  } catch (e) {
+    if (!cancelled()) { st.textContent = "Couldn't make the tour: " + (e?.message || e); st.className = "status err"; tourUI("work"); tourProgress("Something went wrong.", 0); document.getElementById("tourClose").textContent = "Close"; }
+  } finally {
+    try { if (vEnc && vEnc.state !== "closed") vEnc.close(); } catch {}
+    try { if (aEnc && aEnc.state !== "closed") aEnc.close(); } catch {}
+    for (const c of hiddenChonks.splice(0)) c.holder.visible = true;
+    syncVisitorVisibility();
+    gizmoHelper.visible = gizmoWas;
+    renderer.setPixelRatio(prevPR); camera.fov = prevFov; resize();
+    if (job === tourJob) touring = false;
+  }
+}
+
+function showTourResult() {
+  const o = tourOut; if (!o) return;
+  tourUI("done");
+  const kindEl = document.getElementById("tourKind"); kindEl.hidden = !o.mp4;
+  const mb = (b) => (b.size / 1048576).toFixed(b.size < 1048576 ? 2 : 1) + " MB";
+  const vid = document.getElementById("tourVideo"), img = document.getElementById("tourGif");
+  if (vid.src) URL.revokeObjectURL(vid.src); if (img.src) URL.revokeObjectURL(img.src);
+  if (o.mp4) vid.src = URL.createObjectURL(o.mp4); else vid.removeAttribute("src");
+  img.src = URL.createObjectURL(o.gif);
+  const show = (k) => {
+    o.kind = k; vid.hidden = k !== "video"; img.hidden = k !== "gif";
+    for (const b of kindEl.children) b.setAttribute("aria-pressed", b.dataset.k === k);
+    const [w, h] = k === "video" ? o.sizes.video : o.sizes.gif, blob = k === "video" ? o.mp4 : o.gif;
+    document.getElementById("tourMeta").textContent = `${Math.round(o.secs)} s · ${w} × ${h} · ${mb(blob)}`;
+    document.getElementById("tourSave").textContent = k === "video" ? "Save video" : "Save GIF";
+    if (k === "video") vid.play?.().catch(() => {}); else vid.pause?.();
+  };
+  for (const b of kindEl.children) b.onclick = () => show(b.dataset.k);
+  show(o.mp4 ? "video" : "gif");
+  if (!o.mp4) { const st = document.getElementById("tourStatus"); st.textContent = "This browser can't make videos, so here's the GIF."; st.className = "status"; }
+}
+function tourFile() {
+  const o = tourOut; if (!o) return null;
+  const v = o.kind === "video" && o.mp4, blob = v ? o.mp4 : o.gif, name = `chonkit-gallery-tour.${v ? "mp4" : "gif"}`;
+  return { blob, name };
+}
+async function saveBlob(blob, name, st) {
+  if (downloads) {
+    try { await downloads.save({ filename: name, data: blob }); st.textContent = "Saved."; st.className = "status ok"; }
+    catch (e) { st.textContent = e?.code === "declined" ? "Not saved." : "Saving isn't available here."; st.className = "status " + (e?.code === "declined" ? "" : "err"); }
+    return;
+  }
+  if (inClaude) { st.textContent = "Saving isn't available in this view."; st.className = "status err"; return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  st.textContent = "Saved."; st.className = "status ok";
+}
+const tourEl = document.getElementById("tour");
+function closeTour() {
+  if (touring) { tourJob++; touring = false; }     // cancel: the recorder notices on its next frame and tidies up
+  tourEl.hidden = true;
+  const vid = document.getElementById("tourVideo"); vid.pause?.();
+}
+document.getElementById("tourBtn").onclick = () => { makeTour(); };
+document.getElementById("tourClose").onclick = closeTour;
+document.getElementById("tourSave").onclick = () => { const f = tourFile(); if (f) saveBlob(f.blob, f.name, document.getElementById("tourStatus")); };
+document.getElementById("tourShare").onclick = async () => {
+  const f = tourFile(); if (!f) return; const st = document.getElementById("tourStatus");
+  try { await navigator.share({ files: [new File([f.blob], f.name, { type: f.blob.type })], text: "My Chonkit gallery 🟨 chonkit.xyz" }); }
+  catch (e) { if (e?.name !== "AbortError") { st.textContent = "Couldn't share. Use Save instead."; st.className = "status err"; } }
+};
+addEventListener("keydown", (e) => { if (e.key === "Escape" && !tourEl.hidden) { e.stopPropagation(); closeTour(); } }, true);
+
+/* ===================================================================
    Remember the scene between visits (this browser only)
    =================================================================== */
 const STORE = "chonkit-gallery-scene-v1";
@@ -1883,6 +2230,7 @@ function loadSaved() { try { return JSON.parse(localStorage.getItem(STORE) || "n
    =================================================================== */
 const clock = new THREE.Clock(); let t = 0;
 function animate() {
+  if (touring) { clock.getDelta(); requestAnimationFrame(animate); return; }   // the tour recorder drives the scene itself
   const dt = Math.min(clock.getDelta(), 0.05); t += dt;
   expireKeys();
   if (loc && sel) stepSelected(dt);
@@ -2466,7 +2814,7 @@ syncSoundUI();
 
 /* boot */
 resize(); camera.fov = WALK_FOV; camera.updateProjectionMatrix();
-window.chonkBooth = { rebuild: () => applyLocation("gallery", { keepPositions: true }), get sel() { return sel; }, get visitors() { return visitors; }, get sound() { return sound; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
+window.chonkBooth = { tourPlan, rebuild: () => applyLocation("gallery", { keepPositions: true }), get sel() { return sel; }, get visitors() { return visitors; }, get sound() { return sound; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
   get paintings() { return kit?.paintings ?? []; }, camera, setPicked, gizmo, pickAt, renderer, freeCamState: freeCam,
   async addTrait(name) { return addProp((await loadTraitCatalog()).find(t => t.name === name)); },
   project(obj) { const v = new THREE.Vector3(); obj.getWorldPosition(v); v.project(camera); const r = renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; } };
