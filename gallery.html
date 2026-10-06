@@ -69,6 +69,9 @@ input { -webkit-user-select: text; user-select: text; }
 .rail.settings-panel { z-index: 7; }
 @media (min-width: 761px) { .rail.settings-panel { left: auto; right: 16px; top: calc(66px + env(safe-area-inset-top, 0px)); } }
 body.settings-open .keys, body.settings-open #joy, body.settings-open .tbtns { display: none !important; }
+#soundBtn { padding: 9px 11px; }
+#soundBtn[aria-pressed="true"] { background: var(--panel); color: var(--warn); border-color: var(--line); }
+#soundBtn[aria-pressed="true"] .wave { display: none; } #soundBtn[aria-pressed="true"] .mute { display: inline !important; }
 #settingsBtn[aria-expanded="true"] { border-color: var(--skin); color: var(--skin); }
 /* touch controls */
 #joy { position: fixed; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 124px; height: 124px; border-radius: 50%; z-index: 6;
@@ -198,6 +201,9 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
     <span class="lbl">Free cam</span> <kbd>F</kbd>
   </button>
+  <button class="hudBtn" id="soundBtn" aria-label="Mute sound" aria-pressed="false" title="Sound on/off (M)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z"/><path class="wave" d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/><path class="mute" d="m16 9 6 6m0-6-6 6" style="display:none"/></svg>
+  </button>
   <button class="hudBtn" id="settingsBtn" aria-label="Settings" aria-expanded="false">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
     <span class="lbl">Settings</span>
@@ -209,7 +215,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
   </div>
 </div>
 <div class="keys walk-only follow-only">
-  <span><b>WASD</b> / arrows move</span><span><b>Shift</b> run</span><span><b>Space</b> jump</span><span><b>1</b> wave</span><span><b>2</b> bow</span><span><b>Drag</b> look · <b>scroll</b> zoom</span><span><b>F</b> free cam</span>
+  <span><b>WASD</b> / arrows move</span><span><b>Shift</b> run</span><span><b>Space</b> jump</span><span><b>1</b> wave</span><span><b>2</b> bow</span><span><b>Drag</b> look · <b>scroll</b> zoom</span><span><b>F</b> free cam</span><span><b>M</b> mute</span>
 </div>
 <div class="keys walk-only free-only">
   <span><b>WASD</b> fly</span><span><b>Q</b> / <b>E</b> down / up</span><span><b>Shift</b> fast</span><span><b>Drag</b> look · <b>scroll</b> forward</span><span><b>F</b> back to your Chonk</span>
@@ -278,6 +284,13 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <button id="closeSettings" type="button">Done</button>
   </header>
   <div class="rail-body">
+    <section>
+      <h2>Sound</h2>
+      <label class="slider" for="volMusic">Music <input type="range" id="volMusic" min="0" max="100" step="1" value="45"><output id="volMusicOut">45%</output></label>
+      <label class="slider" for="volCrowd">Crowd <input type="range" id="volCrowd" min="0" max="100" step="1" value="35"><output id="volCrowdOut">35%</output></label>
+      <p class="hint" style="margin:0" id="soundHint">Smooth jazz and gallery chatter start when you first click or press a key.</p>
+    </section>
+
     <section>
       <h2>Load Chonks</h2>
       <form class="row" id="idForm">
@@ -2179,9 +2192,55 @@ document.getElementById("visitorsOn").addEventListener("change", (e) => { visito
 document.getElementById("visitorsOn").checked = visitorsOn;
 renderVisitorInputs();
 
+/* ===================================================================
+   Sound: smooth jazz (music) + gallery chatter (crowd), looping
+   =================================================================== */
+const SOUND_KEY = "chonkit-gallery-sound";
+const sound = { ctx: null, music: 0.45, crowd: 0.35, muted: false, gains: {}, started: false };
+try { const v = JSON.parse(localStorage.getItem(SOUND_KEY) || "null");
+  if (v) { if (Number.isFinite(v.music)) sound.music = v.music; if (Number.isFinite(v.crowd)) sound.crowd = v.crowd; sound.muted = !!v.muted; } } catch {}
+function saveSound() { try { localStorage.setItem(SOUND_KEY, JSON.stringify({ music: sound.music, crowd: sound.crowd, muted: sound.muted })); } catch {} }
+const curve = (v) => v * v;                                   // sliders feel even across the range
+function applyVolumes(ramp = 0.25) {
+  if (!sound.ctx) return;
+  const now = sound.ctx.currentTime, m = sound.muted ? 0 : 1;
+  sound.gains.music?.gain.setTargetAtTime(curve(sound.music) * m, now, ramp);
+  sound.gains.crowd?.gain.setTargetAtTime(curve(sound.crowd) * 0.9 * m, now, ramp);
+}
+async function startSound() {
+  if (sound.started) { sound.ctx?.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  sound.started = true; sound.ctx = new AC();
+  const load = async (name, url) => {
+    try {
+      const buf = await sound.ctx.decodeAudioData(await (await fetch(url)).arrayBuffer());
+      const g = sound.ctx.createGain(); g.gain.value = 0; g.connect(sound.ctx.destination); sound.gains[name] = g;
+      const src = sound.ctx.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(g);
+      src.start(0, name === "crowd" ? Math.random() * buf.duration : 0);
+      applyVolumes(name === "music" ? 1.2 : 2);                  // gentle fade in
+    } catch { document.getElementById("soundHint").textContent = "Couldn't load the sound. Check your connection."; }
+  };
+  load("music", "audio/gallery-jazz.mp3"); load("crowd", "audio/gallery-crowd.mp3");
+}
+["pointerdown", "keydown", "touchstart"].forEach((ev) => addEventListener(ev, startSound, { once: false, passive: true }));
+document.addEventListener("visibilitychange", () => { if (!sound.ctx) return; document.hidden ? sound.ctx.suspend() : sound.ctx.resume(); });
+function syncSoundUI() {
+  for (const [k, id] of [["music", "volMusic"], ["crowd", "volCrowd"]]) {
+    const el = document.getElementById(id); el.value = Math.round(sound[k] * 100); document.getElementById(id + "Out").textContent = el.value + "%";
+  }
+  const b = document.getElementById("soundBtn"); b.setAttribute("aria-pressed", sound.muted); b.setAttribute("aria-label", sound.muted ? "Turn sound on" : "Mute sound");
+}
+for (const [k, id] of [["music", "volMusic"], ["crowd", "volCrowd"]]) document.getElementById(id).addEventListener("input", (e) => {
+  sound[k] = e.target.value / 100; if (sound.muted && sound[k] > 0) sound.muted = false; syncSoundUI(); applyVolumes(0.05); saveSound(); startSound();
+});
+function toggleMute() { sound.muted = !sound.muted; syncSoundUI(); applyVolumes(0.15); saveSound(); }
+document.getElementById("soundBtn").onclick = toggleMute;
+addEventListener("keydown", (e) => { if (e.code === "KeyM" && !isTyping()) toggleMute(); });
+syncSoundUI();
+
 /* boot */
 resize(); camera.fov = WALK_FOV; camera.updateProjectionMatrix();
-window.chonkBooth = { get sel() { return sel; }, get visitors() { return visitors; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
+window.chonkBooth = { get sel() { return sel; }, get visitors() { return visitors; }, get sound() { return sound; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
   get paintings() { return kit?.paintings ?? []; }, camera, setPicked, gizmo, pickAt, renderer, freeCamState: freeCam,
   async addTrait(name) { return addProp((await loadTraitCatalog()).find(t => t.name === name)); },
   project(obj) { const v = new THREE.Vector3(); obj.getWorldPosition(v); v.project(camera); const r = renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; } };
