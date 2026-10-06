@@ -449,7 +449,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <div id="tourWork" style="display:flex;flex-direction:column;gap:10px">
       <p class="hint" id="tourStep">Planning the route…</p>
       <div class="tour-bar"><i id="tourBar"></i></div>
-      <p class="hint">Keep this tab open. The camera glides past your mosaics and the statue, then it's ready to save.</p>
+      <p class="hint">Keep this tab open. The camera glides round your gallery and ends at the statue, then it's ready to save.</p>
     </div>
     <div id="tourDone" hidden style="display:flex;flex-direction:column;gap:10px">
       <div class="seg" id="tourKind" role="group" aria-label="Preview"><button type="button" data-k="video">Video (MP4)</button><button type="button" data-k="gif">GIF</button></div>
@@ -1916,67 +1916,43 @@ document.getElementById("saveShot").onclick = async () => {
 /* ===================================================================
    Tour: the camera glides through your gallery and records it as a video (MP4) and a GIF
    =================================================================== */
-// The route is built from these pieces. `need` = which frame (1-14, newest mosaic first) has to hold a mosaic for that stop to be used.
-const TS = (x, y, z, ax, ay, az, need) => ({ p: [x, y, z], at: [ax, ay, az], need });
-const TOUR_OPEN = TS(3.9, 2.1, 3.4, 0, 2.0, 8.6);                         // opening shot: the statue
-const TOUR_MIDDLE = [                                                     // straight down the middle, glancing at the inner partition mosaics
-  TS(0.9, 1.85, 1.4, 0, 1.85, -10), TS(-1.6, 1.7, -0.6, -5.82, 1.8, -1.5, 5), TS(1.6, 1.7, -2.2, 5.82, 1.8, -1.5, 6), TS(0, 1.75, -4.6, 0, 1.9, -10)];
-const TOUR_LEFT = [                                                       // down the left side when it has mosaics (round the far side of the sculpture plinth)
-  TS(-4.5, 1.9, 4.6, -14, 1.8, 5), TS(-8.2, 1.85, 5.7, -14, 1.8, 6.5), TS(-11.4, 1.7, 5.6, -14, 1.75, 6.5, 13), TS(-12.3, 1.8, 3.4, -14, 1.8, 2),
-  TS(-11.3, 1.7, 1.0, -14, 1.8, 1, 11), TS(-9.0, 1.8, 0.6, -9, 1.8, -6), TS(-8.6, 1.7, -2.4, -6.18, 1.8, -1.5, 7),
-  TS(-11.3, 1.7, -4.8, -14, 1.85, -5, 9)];
-const TOUR_BACK = [TS(-9.5, 1.75, -6.2, -9.5, 1.85, -10, 3), TS(-3.2, 1.75, -6.2, -3.2, 1.9, -10, 1)];
-const TOUR_DIP = [TS(-1.8, 1.75, -2.6, -5.82, 1.8, -1.5, 5), TS(1.8, 1.75, -2.6, 5.82, 1.8, -1.5, 6)];   // pop up the middle for the inner mosaics
-const TOUR_BACK2 = [TS(3.2, 1.75, -6.2, 3.2, 1.9, -10, 2), TS(9.5, 1.75, -6.2, 9.5, 1.85, -10, 4)];
-const TOUR_RIGHT = [                                                      // back up the right side when it has mosaics
-  TS(11.3, 1.7, -4.8, 14, 1.85, -5, 10), TS(8.4, 1.7, -3.0, 6.18, 1.8, -1.5, 8), TS(8.9, 1.8, 0.2, 9, 1.8, 6),
-  TS(11.2, 1.7, 1.0, 14, 1.8, 1, 12), TS(11.3, 1.7, 5.0, 14, 1.75, 6.5, 14)];
+// One smooth loop around the outside of the gallery, then up the centre aisle to finish looking up at the statue.
+// The camera always looks where it's going (a few metres ahead along the path), so it only turns gently at the corners.
+const TOUR_PATH = [
+  [2.5, 2.0, -7.6], [-5.0, 2.0, -7.6], [-7.6, 2.0, -6.6], [-8.2, 2.0, -4.0],    // along the back wall, round the back-left corner
+  [-8.2, 2.0, 2.6], [-7.6, 2.0, 4.6], [-5.0, 2.0, 5.2],                         // up the left side
+  [5.0, 2.0, 5.2], [7.6, 2.0, 4.6], [8.2, 2.0, 2.6],                            // across the front, past the statue
+  [8.2, 2.0, -4.0], [7.6, 2.0, -6.6], [5.0, 2.0, -7.4], [1.8, 1.9, -7.0],       // down the right side and back along the back wall
+  [0, 1.8, -4.6], [0, 1.6, 0.5], [0, 1.35, 4.6],                                 // turn into the centre aisle and glide up to the statue
+];
+const TOUR_STATUE = [0, 3.3, 8.6];                    // where the camera ends up looking: the statue's head
+const TOUR_SECONDS = 24;
 const TOUR_FPS = 30, TOUR_GIF_EVERY = 2;              // video at 30 fps, GIF at 15 fps
 let touring = false, tourJob = 0, tourOut = null;
 
-function tourPlan(nTest) {
-  const n = Math.max(1, nTest ?? GALLERY.shown.length), has = (k) => k <= n;
-  const left = has(7), right = has(8);
-  // keep a stop if its frame has a mosaic; plain waypoints (no `need`) inside a section are kept only up to the section's last needed stop
-  const take = (list, { trimEnd = false } = {}) => {
-    let last = list.length - 1;
-    if (trimEnd) { last = -1; list.forEach((s, i) => { if (s.need && has(s.need)) last = i; }); }
-    return list.filter((s, i) => i <= last && (!s.need || has(s.need))).map((s) => ({ ...s, stop: !!s.need }));
-  };
-  let pts = [{ ...TOUR_OPEN, stop: true }];
-  if (left) pts.push(...take(TOUR_LEFT).filter((s) => s.stop || !s.need));
-  else pts.push(...take(TOUR_MIDDLE));
-  pts.push(...take(TOUR_BACK));
-  if (left) pts.push(...take(TOUR_DIP));
-  pts.push(...take(TOUR_BACK2, { trimEnd: !right }));
-  let end;
-  if (right) { pts.push(...take(TOUR_RIGHT, { trimEnd: true })); end = { p: [6.8, 3.3, 6.2], at: [-3, 1.0, -6] }; }   // finish wide from the front corner
-  else {                                              // finish by drifting back and up from the last wall
-    const L = pts[pts.length - 1], dx = L.p[0] - L.at[0], dz = L.p[2] - L.at[2], d = Math.hypot(dx, dz) || 1;
-    end = { p: [L.p[0] + dx / d * 2.6, L.p[1] + 1.2, L.p[2] + dz / d * 2.6], at: [L.at[0], 1.35, L.at[2]] };
-  }
-  pts.push(end);
-  const V = (a) => new THREE.Vector3(a[0], a[1], a[2]);
-  const path = new THREE.CatmullRomCurve3(pts.map((q) => V(q.p)), false, "centripetal");
-  const look = new THREE.CatmullRomCurve3(pts.map((q) => V(q.at)), false, "centripetal");
-  const len = path.getLength(), stops = pts.filter((q) => q.stop).map((q) => V(q.p));
-  // ease through the room: slow down at each mosaic, speed up between them, and ease in and out at the ends
-  const N = 800, cum = new Float64Array(N + 1), tmp = new THREE.Vector3();
+function tourPlan() {
+  const path = new THREE.CatmullRomCurve3(TOUR_PATH.map((p) => new THREE.Vector3(p[0], p[1], p[2])), false, "centripetal");
+  const len = path.getLength(), statue = new THREE.Vector3(...TOUR_STATUE);
+  // where the final glide up the centre aisle starts (the third-last point), as a fraction of the path length
+  const tAisle = (TOUR_PATH.length - 3) / (TOUR_PATH.length - 1); let uAisle = 1;
+  for (let k = 0; k <= 400; k++) if (path.getUtoTmapping(k / 400) >= tAisle) { uAisle = k / 400; break; }
   const sm = (e0, e1, x) => { const k = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return k * k * (3 - 2 * k); };
+  // steady speed, easing in at the start and slowing right down for the approach to the statue
+  const N = 1000, cum = new Float64Array(N + 1);
   for (let k = 1; k <= N; k++) {
-    const u = (k - 0.5) / N; path.getPointAt(u, tmp);
-    let near = Infinity; for (const s of stops) near = Math.min(near, tmp.distanceTo(s));
-    const s = u * len, f = (0.42 + 0.58 * sm(0, 2.4, near)) * (0.3 + 0.7 * sm(0, 1.6, s)) * (0.3 + 0.7 * sm(0, 1.6, len - s));
+    const s = (k - 0.5) / N * len, f = (0.25 + 0.75 * sm(0, 2.5, s)) * (0.22 + 0.78 * sm(0, 5, len - s));
     cum[k] = cum[k - 1] + (len / N) / f;
   }
-  const duration = Math.max(8, Math.min(cum[N] / 3.0, 9 + 0.65 * n, 18));   // ~9 s for one mosaic, up to 18 s for a full gallery
-  function at(time) {                                  // camera position and look target at `time` seconds
-    const want = Math.max(0, Math.min(1, time / duration)) * cum[N];
+  function at(time) {
+    const want = Math.max(0, Math.min(1, time / TOUR_SECONDS)) * cum[N];
     let lo = 0, hi = N; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (cum[m] < want) lo = m; else hi = m; }
     const u = Math.min(1, (lo + (want - cum[lo]) / ((cum[hi] - cum[lo]) || 1)) / N);
-    return { pos: path.getPointAt(u), target: look.getPoint(path.getUtoTmapping(u)) };
+    const pos = path.getPointAt(u);
+    const ahead = path.getPointAt(Math.min(1, u + 3.5 / len)); ahead.y = 1.75;
+    const w = u >= uAisle ? sm(-1.5, 4.0, pos.z) : 0;                        // on the final glide up the aisle: lift the gaze up to the statue
+    return { pos, target: ahead.lerp(statue, w) };
   }
-  return { at, duration, pts };
+  return { at, duration: TOUR_SECONDS };
 }
 
 function tourSizes() {
@@ -2089,7 +2065,11 @@ async function makeTour() {
     const place = (p, smooth, dt) => {
       camera.position.copy(p.pos);
       want.copy(p.target).sub(p.pos).normalize();
-      if (!smooth) dir.copy(want); else dir.lerp(want, 1 - Math.exp(-dt / 0.38)).normalize();
+      if (!smooth) dir.copy(want);
+      else {                                            // ease towards the new heading, never turning faster than ~45° a second
+        const ang = dir.angleTo(want), k = Math.min(1 - Math.exp(-dt / 0.45), ang > 1e-4 ? THREE.MathUtils.degToRad(45) * dt / ang : 1);
+        dir.lerp(want, k).normalize();
+      }
       camera.lookAt(look.copy(p.pos).add(dir));
       focus.copy(p.pos).addScaledVector(dir, 3.5); focus.y = 0.8;
       sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(sunDir, 30); sun.target.updateMatrixWorld();
