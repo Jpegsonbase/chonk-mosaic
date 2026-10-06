@@ -1417,7 +1417,7 @@ addEventListener("keydown", (e) => {
   keys.add(e.code); if (!keySeen.has(e.code)) keySeen.set(e.code, { t: performance.now(), rep: e.repeat });
   if (camMode === "free") { if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault(); return; }
   if (e.code === "Space") { jumpQueued = true; e.preventDefault(); }
-  if (e.code === "Digit1" && sel) sel.moveAnim = "wave";
+  if (e.code === "Digit1" && sel) { sel.moveAnim = "wave"; if (!e.repeat) playerWaved(); }
   if (e.code === "Digit2" && sel) sel.moveAnim = "bow";
   if (e.code.startsWith("Arrow")) e.preventDefault();
 });
@@ -1453,7 +1453,7 @@ const joy = { x: 0, y: 0, active: false };
   const end = (e) => { if (e.pointerId !== pid) return; pid = null; joy.active = false; joy.x = joy.y = 0; knob.style.transform = ""; };
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
   document.getElementById("tJump").addEventListener("pointerdown", (e) => { jumpQueued = true; e.preventDefault(); });
-  document.getElementById("tWave").addEventListener("pointerdown", (e) => { if (sel) sel.moveAnim = "wave"; e.preventDefault(); });
+  document.getElementById("tWave").addEventListener("pointerdown", (e) => { if (sel) { sel.moveAnim = "wave"; playerWaved(); } e.preventDefault(); });
 })();
 if (matchMedia("(pointer: coarse)").matches) document.body.classList.add("touch");
 
@@ -2342,7 +2342,19 @@ async function spawnVisitors() {
     tryLoad(id, 2);
   });
 }
-const NOTICE_NEAR = 1.8, NOTICE_FAR = 2.6;   // visitors stop for you inside 1.8 m, carry on once you're 2.6 m away
+const NOTICE_NEAR = 1.8, NOTICE_FAR = 2.6;
+const WAVE_BACK = 2.2;                       // seconds a visitor waves back for
+/* The player waved: any visitor who has stopped for them (inside 1.8 m) and is looking their way waves back after a beat. */
+function playerWaved() {
+  if (!sel || mode !== "walk") return;
+  for (const v of visitors) {
+    const g = v.greet; if (!g || !v.holder.visible) continue;
+    let dy = Math.atan2(sel.pos.x - v.pos.x, sel.pos.z - v.pos.z) - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    if (Math.abs(dy) > 0.6) continue;                                          // not facing the player (yet)
+    if (g.backAt != null && g.t < g.backAt + WAVE_BACK) continue;              // already waving back
+    g.backAt = g.t + 0.3 + Math.random() * 0.3;
+  }
+}   // visitors stop for you inside 1.8 m, carry on once you're 2.6 m away
 function updateVisitors(dt) {
   const hide = visitorsHidden();
   for (const v of visitors) {
@@ -2357,7 +2369,8 @@ function updateVisitors(dt) {
     if (v.greet) {
       const g = v.greet; g.t += dt;
       let dy = Math.atan2(sel.pos.x - v.pos.x, sel.pos.z - v.pos.z) - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 5);
-      v.moveAnim = g.wave && g.t > 0.35 && g.t < 2.6 ? "wave" : "idle";
+      const back = g.backAt != null && g.t > g.backAt && g.t < g.backAt + WAVE_BACK;   // you waved at them: wave back
+      v.moveAnim = back || (g.wave && g.t > 0.35 && g.t < 2.6) ? "wave" : "idle";
     } else if (v.state === "look") {
       v.timer -= dt;
       if (v.look) { const want = Math.atan2(v.look[0] - v.pos.x, v.look[1] - v.pos.z); let dy = want - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 4); }
