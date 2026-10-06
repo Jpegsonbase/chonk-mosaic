@@ -1,7 +1,7 @@
 /*
  * Chonkit – your mosaic gallery, kept in this browser (IndexedDB).
  * Shared by the mosaic maker (index.html) and the 3D gallery (gallery.html).
- * Each entry: { id, created, title, tiles, w, h, blob (JPEG) }
+ * Each entry: { id, created, title, tiles, w, h, blob (JPEG, for the 3D walls), full (PNG at the original size, for downloads) }
  */
 (function (root) {
   "use strict";
@@ -36,8 +36,9 @@
     }));
   }
 
-  /** Save a canvas to the gallery as a JPEG (longest side <= maxSide). Returns the new id. */
-  async function addCanvas(canvas, { title = "Untitled", tiles = 0, maxSide = 2048, quality = 0.9 } = {}) {
+  /** Save a canvas to the gallery: a JPEG (longest side <= maxSide) to hang on the walls, plus the
+   *  full-quality PNG at its original size so downloads match the mosaic maker exactly. Returns the new id. */
+  async function addCanvas(canvas, { title = "Untitled", tiles = 0, maxSide = 2048, quality = 0.9, keepFull = true } = {}) {
     const k = Math.min(1, maxSide / Math.max(canvas.width, canvas.height));
     const w = Math.max(1, Math.round(canvas.width * k)), h = Math.max(1, Math.round(canvas.height * k));
     const c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -45,7 +46,12 @@
     x.imageSmoothingEnabled = true; x.imageSmoothingQuality = "high";
     x.drawImage(canvas, 0, 0, w, h);
     const blob = await new Promise((res, rej) => c.toBlob((b) => (b ? res(b) : rej(new Error("Couldn't save the picture."))), "image/jpeg", quality));
-    return tx("readwrite", (s) => s.add({ created: Date.now(), title, tiles, w, h, blob }));
+    let full = null;
+    if (keepFull) full = await new Promise((res) => { try { canvas.toBlob((b) => res(b || null), "image/png"); } catch (_) { res(null); } });
+    const entry = { created: Date.now(), title, tiles, w, h, blob };
+    if (full) { entry.full = full; entry.fullW = canvas.width; entry.fullH = canvas.height; }
+    try { return await tx("readwrite", (s) => s.add(entry)); }
+    catch (e) { if (!full) throw e; delete entry.full; delete entry.fullW; delete entry.fullH; return tx("readwrite", (s) => s.add(entry)); }   // out of space: keep the wall copy
   }
   /** All mosaics, newest first. */
   async function list() {

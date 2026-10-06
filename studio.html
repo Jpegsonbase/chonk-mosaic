@@ -148,7 +148,7 @@ button, a, label, input, select { touch-action: manipulation; }
   visualViewport.addEventListener("resize", function () { var a = document.activeElement; if (!a || !/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)) setTimeout(reset, 200); });
 })();
 </script>
-<script src="gallery-store.js?v=3"></script>
+<script src="gallery-store.js?v=4"></script>
 </head>
 <body>
 <div class="loading" id="loading">Loading Chonks…</div>
@@ -665,7 +665,7 @@ button, a, label, input, select { touch-action: manipulation; }
     if (S.exporting) return; S.exporting = true;
     $("toGallery").disabled = true; status("Hanging it in your gallery…");
     try {
-      const c = await renderFull(Math.max(16, Math.min(60, Math.floor(2048 / S.n))));
+      const c = await renderFull(60);                 // same size as Download PNG, so the gallery copy downloads at full quality
       await ChonkitGallery.addCanvas(c, { title: S.title || "Studio painting", tiles: S.cells.filter((v) => v >= 0).length });
       status("");
       $("finishNote").innerHTML = 'Added to your gallery. <a href="gallery.html">Go and see it hanging →</a>';

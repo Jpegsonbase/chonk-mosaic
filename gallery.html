@@ -22,7 +22,7 @@ button, a, label, input, select { touch-action: manipulation; }
 <title>Chonkit Gallery</title>
 <meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
 <link rel="icon" href="apple-touch-icon.png">
-<script src="gallery-store.js?v=3"></script>
+<script src="gallery-store.js?v=4"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
@@ -2574,10 +2574,11 @@ function updateDlPrompt(clear = false) {
     if (!easel) document.getElementById("dlName").textContent = shortTitle(nearSpot.item.title);
   }
 }
-function fileName(title) { return "chonkit-" + (String(title || "mosaic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "mosaic") + ".jpg"; }
+function fileName(title, ext = "jpg") { return "chonkit-" + (String(title || "mosaic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "mosaic") + "." + ext; }
 async function downloadItem(item) {
-  const name = fileName(item.title), blob = item.blob;
-  const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+  // the full-quality PNG saved with the mosaic (same as the mosaic maker's download); older entries only have the wall copy
+  const blob = item.full || item.blob, name = fileName(item.title, item.full ? "png" : "jpg");
+  const file = new File([blob], name, { type: blob.type || (item.full ? "image/png" : "image/jpeg") });
   if (document.body.classList.contains("touch") && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: shortTitle(item.title) }); return; } catch (e) { if (e?.name === "AbortError") return; }
   }
