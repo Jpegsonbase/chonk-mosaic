@@ -984,7 +984,7 @@ const LOCATIONS = [
       GALLERY.views.push({ x: 0, z: 8.6, nx: 0, nz: -1, w: 2.4, weight: 1.5, dist: 3.0 });
       if (STATUE.vox) placeStatue(STATUE.vox, STATUE.id); else restoreStatue();
       k.solidBox(-1.8, 1.8, 7.4, 9.8, 0, 99);
-      // the studio easel: "Paint me" -> Chonk Studio
+      // the studio easel: "Paint me" -> Chonkit Studio
       buildEasel(k, 10.2, -1.6, -0.55);
       // benches
       const benchTop = mat(0xa87b4f, { r: .7 }), steel = mat(0x8b939e, { m: .7, r: .35 });
@@ -1093,7 +1093,7 @@ const LOCATIONS = [
 for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
 const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
 const GALLERY = { all: [], shown: [], spots: [], views: [] };
-/* an easel with a blank canvas that opens the Chonk Studio */
+/* an easel with a blank canvas that opens the Chonkit Studio */
 function easelCanvasTex() {
   return canvasTex(256, 320, (c, w, h) => {
     c.fillStyle = "#fbfaf6"; c.fillRect(0, 0, w, h);
@@ -1104,7 +1104,7 @@ function easelCanvasTex() {
       c.fillStyle = "rgba(0,0,0,.55)"; c.fillRect(8 + x * s + 6, 8 + y * s + 7, 3, 3); c.fillRect(8 + x * s + 12, 8 + y * s + 7, 3, 3); }
     c.fillStyle = "#1d1d1b"; c.textAlign = "center"; c.textBaseline = "middle";
     c.font = '400 46px Silkscreen, "Courier New", monospace'; c.fillText("PAINT", w / 2, h * 0.42); c.fillText("ME", w / 2, h * 0.56);
-    c.font = '600 16px Sora, sans-serif'; c.fillStyle = "#6b6860"; c.fillText("Chonk Studio", w / 2, h * 0.67); c.font = '500 13px Sora, sans-serif'; c.fillText("every pixel is a Chonk", w / 2, h * 0.73);
+    c.font = '600 16px Sora, sans-serif'; c.fillStyle = "#6b6860"; c.fillText("Chonkit Studio", w / 2, h * 0.67); c.font = '500 13px Sora, sans-serif'; c.fillText("every pixel is a Chonk", w / 2, h * 0.73);
   });
 }
 function buildEasel(k, x, z, ry) {
@@ -2080,7 +2080,7 @@ function updateDlPrompt(clear = false) {
   el.hidden = !show;
   if (show) {
     const easel = nearSpot.kind === "easel";
-    document.querySelector("#dlPrompt .dl-q").innerHTML = easel ? 'Paint in the <b>Chonk Studio</b>?' : 'Download <b id="dlName"></b>?';
+    document.querySelector("#dlPrompt .dl-q").innerHTML = easel ? 'Paint in the <b>Chonkit Studio</b>?' : 'Download <b id="dlName"></b>?';
     if (!easel) document.getElementById("dlName").textContent = shortTitle(nearSpot.item.title);
   }
 }
