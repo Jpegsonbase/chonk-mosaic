@@ -1458,7 +1458,7 @@ const isTyping = () => { const a = document.activeElement; if (!a) return false;
 addEventListener("keydown", (e) => {
   if (isTyping()) { if (e.key === "Escape") document.activeElement.blur(); return; }
   if (e.key === "Escape") { if (!resultEl.hidden) { resultEl.hidden = true; return; } if (!document.getElementById("settingsPanel").hidden) { setSettings(false); return; } if (picked) { setPicked(null); return; } if (mode === "photo") setMode("walk"); return; }
-  if (!resultEl.hidden) return;
+  if (!resultEl.hidden || !tourEl.hidden) return;        // shortcuts are off while a photo or the tour window is open
   if (e.code === "KeyP") { setMode(mode === "photo" ? "walk" : "photo"); return; }
   if (e.code === "KeyF") { toggleFreeCam(); return; }
   if (e.code === "KeyV" && mode === "walk") { if (camMode === "free") setCamMode("follow"); setFirstPerson(!firstPerson); return; }
@@ -1892,7 +1892,8 @@ function layoutFrame() {
   const cx = frameRect.x + w / 2, cy = frameRect.y + h / 2;
   camera.setViewOffset(innerWidth, innerHeight, innerWidth / 2 - cx, innerHeight / 2 - cy, innerWidth, innerHeight);
 }
-function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); layoutFrame(); }
+function resize() { if (touring) return;                 // the tour recorder owns the canvas size while it films
+  renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); layoutFrame(); }
 addEventListener("resize", resize);
 
 /* ===================================================================
@@ -1963,7 +1964,7 @@ const TOUR_PATH = [
   [0, 1.8, -4.6], [0, 1.6, 0.5], [0, 1.35, 4.6],                                 // turn into the centre aisle and glide up to the statue
 ];
 const TOUR_STATUE = [0, 3.3, 8.6];                    // where the camera ends up looking: the statue's head
-const TOUR_SECONDS = 20;
+const TOUR_SECONDS = window.__tourSeconds || 20;      // (the override is only used by automated tests)
 const TOUR_FPS = 30, TOUR_GIF_EVERY = 2;              // video at 30 fps, GIF at 15 fps
 let touring = false, tourJob = 0, tourOut = null;
 
@@ -2056,7 +2057,7 @@ async function makeTour() {
   if (touring) return;
   const job = ++tourJob; touring = true; tourOut = null;
   const st = document.getElementById("tourStatus"); st.textContent = ""; st.className = "status";
-  tourEl.hidden = false; tourUI("work"); tourProgress("Planning the route…", 0);
+  tourEl.hidden = false; tourUI("work"); tourProgress("Getting ready…", 0); document.getElementById("tourClose").focus();
   document.getElementById("tourMeta").textContent = "";
   const prevPR = renderer.getPixelRatio(), prevFov = camera.fov, gizmoWas = gizmoHelper.visible;
   const hiddenChonks = [];
@@ -2175,8 +2176,8 @@ async function makeTour() {
     for (const c of hiddenChonks.splice(0)) c.holder.visible = true;
     syncVisitorVisibility();
     gizmoHelper.visible = gizmoWas;
+    touring = false;                                  // only one tour can run at a time, so the finishing job always releases it
     renderer.setPixelRatio(prevPR); camera.fov = prevFov; resize();
-    if (job === tourJob) touring = false;
   }
 }
 
@@ -2219,7 +2220,7 @@ async function saveBlob(blob, name, st) {
 }
 const tourEl = document.getElementById("tour");
 function closeTour() {
-  if (touring) { tourJob++; touring = false; }     // cancel: the recorder notices on its next frame and tidies up
+  if (touring) tourJob++;                          // cancel: the recorder notices on its next frame, tidies up and releases `touring`
   tourEl.hidden = true;
   const vid = document.getElementById("tourVideo"); vid.pause?.();
 }
