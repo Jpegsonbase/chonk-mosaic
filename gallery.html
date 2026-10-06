@@ -2121,21 +2121,33 @@ try { const v = JSON.parse(localStorage.getItem(VISITOR_KEY) || "null");
   } } catch {}
 const randomChonkId = () => 1 + Math.floor(Math.random() * 83000);
 function saveVisitors() { try { localStorage.setItem(VISITOR_KEY, JSON.stringify({ ids: visitorIds, on: visitorsOn })); } catch {} }
-const SPAWNS = [[-9, 2], [9, 2], [-3, -5], [3, -5], [-10, -3], [10, -4], [-3, 5], [4, 6]];
-function pickView(v) {
-  const views = GALLERY.views; if (!views.length) return null;
-  let total = 0; for (const w of views) total += (w === v.view ? 0 : w.weight);
-  let r = Math.random() * total;
-  for (const w of views) { if (w === v.view) continue; r -= w.weight; if (r <= 0) return w; }
-  return views[0];
+/* Fixed routes so visitors never wander into benches or partitions.
+   A stop has `look` (the point they face) and `t` (how long they look); others are walking waypoints. */
+const L = (x, z, lx, lz, t = [4, 9]) => ({ x, z, look: [lx, lz], t });
+const W = (x, z) => ({ x, z });
+const ROUTE_MIDDLE = [                      // between the partitions: the two inner paintings and the statue
+  L(-3.9, -1.5, -5.8, -1.5), L(3.9, -1.5, 5.8, -1.5), L(0, 5.6, 0, 8.6, [3, 6]),
+];
+const ROUTE_OUTER = [                       // clockwise around the outside, every painting + statue + easel
+  L(0, 5.6, 0, 8.6, [3, 6]), W(-6, 5.4), W(-11.4, 5.2),
+  L(-12.1, 6.5, -14, 6.5), L(-12.1, 1, -14, 1), L(-8.2, -1.5, -6.2, -1.5), L(-12.1, -5, -14, -5),
+  W(-12, -8.3), L(-9.5, -8.3, -9.5, -10), L(-3.2, -8.3, -3.2, -10), L(3.2, -8.3, 3.2, -10), L(9.5, -8.3, 9.5, -10),
+  W(12, -8.3), L(12.1, -5, 14, -5), W(8.3, -3.6), L(8.2, -1.5, 6.2, -1.5), L(9.3, -0.05, 10.2, -1.6, [3, 6]),
+  L(12.1, 1, 14, 1), L(12.1, 6.5, 14, 6.5), W(11.4, 5.2), W(6, 5.4),
+];
+// 2 in the middle, 6 spread around the outer loop (each starts at a different stop)
+const OUTER_STOPS = ROUTE_OUTER.map((p, i) => (p.look ? i : -1)).filter((i) => i >= 0);
+function routeFor(i) {
+  if (i < 2) return { route: ROUTE_MIDDLE, idx: i };
+  const k = i - 2; return { route: ROUTE_OUTER, idx: OUTER_STOPS[Math.floor(k * OUTER_STOPS.length / 6)] };
 }
-function sendTo(v) {
-  const w = pickView(v); if (!w) { v.state = "look"; v.timer = 3; return; }
-  // stand in front of it, a little to one side, so visitors don't stack up
-  const side = (Math.random() - .5) * Math.min(1.6, w.w), d = w.dist + Math.random() * 0.6;
-  v.view = w; v.tx = w.x + w.nx * d + w.nz * side; v.tz = w.z + w.nz * d - w.nx * side;
-  v.state = "walk"; v.stuck = 0; v.lastD = Infinity;
+function aim(v, p) {
+  // stand a little to one side of the stop so neighbours don't stack up
+  let ox = 0, oz = 0;
+  if (p.look) { const dx = p.look[0] - p.x, dz = p.look[1] - p.z, d = Math.hypot(dx, dz) || 1; const side = (Math.random() - .5) * 0.9; ox = -dz / d * side; oz = dx / d * side; }
+  v.tx = p.x + ox; v.tz = p.z + oz; v.state = "walk"; v.stuck = 0; v.lastD = Infinity;
 }
+function sendTo(v) { v.idx = (v.idx + 1) % v.route.length; aim(v, v.route[v.idx]); }
 async function visitorVox(id) {
   if (SAMPLES[id]) return { vox: await unpackSample(id), label: SAMPLE_META[id] };
   const got = await fetchChonk(id); if (!got) throw new Error("missing"); return got;
@@ -2148,9 +2160,11 @@ async function spawnVisitors() {
     const id = want ?? randomChonkId();
     const v = new Chonk(base, { id, label: "visitor" });
     v.holder.userData.chonk = null; v.holder.visible = false;      // shown once its own look has loaded
-    const [x, z] = SPAWNS[i]; v.pos.set(x, groundAt(x, z, 5) ?? 0, z); v.yaw = Math.random() * Math.PI * 2;
+    const r = routeFor(i); v.route = r.route; v.idx = r.idx;
+    const p0 = v.route[v.idx]; v.pos.set(p0.x, groundAt(p0.x, p0.z, 5) ?? 0, p0.z); v.yaw = p0.look ? Math.atan2(p0.look[0] - p0.x, p0.look[1] - p0.z) : 0;
+    v.look = p0.look || null;
     v.speed = 0.9 + Math.random() * 0.35; v.offset = Math.random() * 10;
-    v.state = "look"; v.timer = 0.5 + i * 1.3; visitors.push(v);
+    v.state = "look"; v.timer = 1 + Math.random() * 5; visitors.push(v);
     const tryLoad = (tid, tries) => visitorVox(tid).then((got) => { if (!visitors.includes(v)) return; v.setVoxels(got.vox, { id: tid, label: got.label }); v.holder.visible = true; })
       .catch(async () => {
         if (want == null && tries > 0) return tryLoad(randomChonkId(), tries - 1);       // random pick missed: try another
@@ -2164,13 +2178,15 @@ function updateVisitors(dt) {
   for (const v of visitors) {
     if (v.state === "look") {
       v.timer -= dt;
-      if (v.view) { const want = Math.atan2(-v.view.nx, -v.view.nz); let dy = want - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 4); }
+      if (v.look) { const want = Math.atan2(v.look[0] - v.pos.x, v.look[1] - v.pos.z); let dy = want - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 4); }
       v.moveAnim = v.gesture && v.timer > v.gestureUntil ? v.gesture : "idle";
       if (v.timer <= 0) sendTo(v);
     } else {
       const dx = v.tx - v.pos.x, dz = v.tz - v.pos.z, d = Math.hypot(dx, dz);
       if (d < 0.18) {
-        v.state = "look"; v.timer = 4 + Math.random() * 6; v.moveAnim = "idle";
+        const p = v.route[v.idx];
+        if (!p.look) { sendTo(v); continue; }                       // just a corner: keep walking
+        v.look = p.look; v.state = "look"; v.timer = p.t[0] + Math.random() * (p.t[1] - p.t[0]); v.moveAnim = "idle";
         // now and then, react to the art
         const r = Math.random(); v.gesture = r < 0.15 ? "wave" : r < 0.25 ? "bow" : null; v.gestureUntil = v.timer - 1.6;
         continue;
@@ -2180,8 +2196,8 @@ function updateVisitors(dt) {
       v.pos.x = next.x; v.pos.z = next.z; v.pos.y = groundAt(v.pos.x, v.pos.z, v.pos.y + STEP + 0.05) ?? v.pos.y;
       let dy = Math.atan2(dx, dz) - v.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); v.yaw += dy * Math.min(1, dt * 6);
       v.moveAnim = "walk";
-      // stuck behind a wall or bench: pick somewhere else
-      if (d > v.lastD - 0.004) { v.stuck += dt; if (v.stuck > 1.6) sendTo(v); } else v.stuck = 0;
+      // held up by another Chonk: after a moment, carry on to the next stop
+      if (d > v.lastD - 0.004) { v.stuck += dt; if (v.stuck > 2.2) sendTo(v); } else v.stuck = 0;
       v.lastD = d;
     }
     v.holder.position.copy(v.pos); v.holder.rotation.y = v.yaw;
