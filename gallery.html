@@ -150,6 +150,7 @@ button:disabled { opacity: .4; cursor: default; }
 button.primary { background: var(--skin); color: var(--ink); border-color: var(--skin-deep); font-weight: 600; }
 button.primary:hover { background: #f5c07a; }
 button[aria-pressed="true"] { background: rgba(239,177,94,.16); border-color: var(--skin); color: var(--skin); }
+.hudBtn[aria-pressed="true"]:not(#soundBtn) { background: var(--skin); color: var(--ink); border-color: var(--skin-deep); }   /* first person / free cam on: solid, readable over the bright walls */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chips button { font: 500 12px var(--mono); padding: 6px 9px; }
 .status { font-size: 12px; color: var(--muted); line-height: 1.45; }
@@ -268,6 +269,10 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <button type="button" class="dl-yes" id="dlYes">Yes</button>
     <button type="button" class="dl-no" id="dlNo">No</button>
   </div>
+  <button class="hudBtn" data-fp aria-pressed="false" aria-label="First-person view" title="See through your Chonk's eyes (V)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+    <span class="lbl">First person</span> <kbd>V</kbd>
+  </button>
   <button class="hudBtn" data-freecam aria-pressed="false" aria-label="Free camera">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
     <span class="lbl">Free cam</span> <kbd>F</kbd>
@@ -286,7 +291,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
   </div>
 </div>
 <div class="keys walk-only follow-only">
-  <span><b>WASD</b> / arrows move</span><span><b>Shift</b> run</span><span><b>Space</b> jump</span><span><b>1</b> wave</span><span><b>2</b> bow</span><span><b>Drag</b> look · <b>scroll</b> zoom</span><span><b>F</b> free cam</span><span><b>M</b> mute</span>
+  <span><b>WASD</b> / arrows move</span><span><b>Shift</b> run</span><span><b>Space</b> jump</span><span><b>1</b> wave</span><span><b>2</b> bow</span><span><b>Drag</b> look · <b>scroll</b> zoom</span><span><b>V</b> first person</span><span><b>F</b> free cam</span><span><b>M</b> mute</span>
 </div>
 <div class="keys walk-only free-only">
   <span><b>WASD</b> fly</span><span><b>Q</b> / <b>E</b> down / up</span><span><b>Shift</b> fast</span><span><b>Drag</b> look · <b>scroll</b> forward</span><span><b>F</b> back to your Chonk</span>
@@ -1456,6 +1461,7 @@ addEventListener("keydown", (e) => {
   if (!resultEl.hidden) return;
   if (e.code === "KeyP") { setMode(mode === "photo" ? "walk" : "photo"); return; }
   if (e.code === "KeyF") { toggleFreeCam(); return; }
+  if (e.code === "KeyV" && mode === "walk") { if (camMode === "free") setCamMode("follow"); setFirstPerson(!firstPerson); return; }
   if (mode === "photo" && picked && editKey(e)) return;
   if (mode !== "walk" && camMode !== "free") return;
   keys.add(e.code); if (!keySeen.has(e.code)) keySeen.set(e.code, { t: performance.now(), rep: e.repeat });
@@ -1507,6 +1513,18 @@ if (matchMedia("(pointer: coarse)").matches) document.body.classList.add("touch"
 const cam = { yaw: 0, pitch: 0.3, dist: 4.6, target: new THREE.Vector3(0, 0.6, 0) };
 const WALK_FOV = 50;
 let snapCamera = true;
+// First-person view: see the gallery through your Chonk's eyes (walk mode, follow camera only)
+const FP_EYE = 0.86;                                   // a Chonk's eye height
+let firstPerson = false, fpFov = 62, fpWas = false, fpSel = null;
+const fpOn = () => firstPerson && mode === "walk" && camMode === "follow" && !!sel;
+function setFirstPerson(on) {
+  if (on === firstPerson) return;
+  firstPerson = on;
+  if (on) { cam.pitch = -0.12; }                         // level gaze, tipped slightly up towards the paintings
+  else { cam.pitch = 0.3; cam.dist = Math.max(cam.dist, 4.2); snapCamera = true; }
+  for (const b of document.querySelectorAll("[data-fp]")) b.setAttribute("aria-pressed", on);
+  document.body.classList.toggle("fp", on);
+}
 (function setupCameraInput() {
   const el = renderer.domElement, pts = new Map(); let pinch = 0;
   let down = null;
@@ -1521,11 +1539,12 @@ let snapCamera = true;
     const dx = e.clientX - p.x, dy = e.clientY - p.y;
     if (pts.size === 1) {
       if (camMode === "free") { freeCam.yaw -= dx * 0.0042; freeCam.pitch = Math.max(-1.5, Math.min(1.5, freeCam.pitch - dy * 0.0042)); }
+      else if (fpOn()) { cam.yaw -= dx * 0.0045; cam.pitch = Math.max(-1.3, Math.min(1.3, cam.pitch + dy * 0.004)); }
       else { cam.yaw -= dx * 0.006; cam.pitch = Math.max(-0.25, Math.min(1.35, cam.pitch + dy * 0.005)); }
     }
     p.x = e.clientX; p.y = e.clientY;
     if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
-      if (pinch) { if (camMode === "free") freeCamDolly((d - pinch) * 0.02); else cam.dist = Math.max(0.7, Math.min(14, cam.dist * pinch / d)); } pinch = d; }
+      if (pinch) { if (camMode === "free") freeCamDolly((d - pinch) * 0.02); else if (fpOn()) fpFov = Math.max(22, Math.min(75, fpFov * pinch / d)); else cam.dist = Math.max(0.7, Math.min(14, cam.dist * pinch / d)); } pinch = d; }
   });
   const end = (e) => {
     if (down && down.id === e.pointerId && e.type === "pointerup" && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6 && mode === "photo" && !gizmo.dragging) pickAt(e.clientX, e.clientY);
@@ -1533,12 +1552,28 @@ let snapCamera = true;
   };
   el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
   el.addEventListener("wheel", (e) => { e.preventDefault();
-    if (camMode === "free") freeCamDolly(-e.deltaY * 0.004); else cam.dist = Math.max(0.7, Math.min(14, cam.dist * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+    if (camMode === "free") freeCamDolly(-e.deltaY * 0.004); else if (fpOn()) fpFov = Math.max(22, Math.min(75, fpFov * Math.exp(e.deltaY * 0.0012))); else cam.dist = Math.max(0.7, Math.min(14, cam.dist * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
 })();
 const camRay = new THREE.Raycaster();
 function updateCamera(dt) {
+  const fp = fpOn();
+  if (fp !== fpWas || (fp && fpSel !== sel)) {             // entering / leaving first person: hide your own Chonk, swap the lens
+    if (fpSel && fpSel !== sel) fpSel.holder.visible = true;
+    if (sel) sel.holder.visible = !fp;
+    if (fp) camera.fov = fpFov; else if (mode === "walk") camera.fov = WALK_FOV;
+    camera.updateProjectionMatrix(); fpWas = fp; fpSel = fp ? sel : null;
+  }
   if (camMode === "free") { updateFreeCam(dt); return; }
   if (!sel) return;
+  if (fp) {
+    const eye = tmpV.copy(sel.pos); eye.y += FP_EYE;
+    const look = new THREE.Vector3(-Math.sin(cam.yaw) * Math.cos(cam.pitch), -Math.sin(cam.pitch), -Math.cos(cam.yaw) * Math.cos(cam.pitch));
+    camera.position.copy(eye).addScaledVector(new THREE.Vector3(look.x, 0, look.z).normalize(), 0.1);
+    camera.lookAt(camera.position.clone().add(look));
+    if (Math.abs(camera.fov - fpFov) > 0.01) { camera.fov = fpFov; camera.updateProjectionMatrix(); }
+    cam.target.copy(eye); snapCamera = true;               // shadows follow you; the third-person camera snaps back cleanly later
+    return;
+  }
   const want = tmpV.copy(sel.pos).add(new THREE.Vector3(0, 0.62, 0));
   if (snapCamera) { cam.target.copy(want); snapCamera = false; } else cam.target.lerp(want, 1 - Math.exp(-dt * 10));
   const dir = new THREE.Vector3(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
@@ -1577,9 +1612,10 @@ function stepSelected(dt) {
     const gy = groundAt(next.x, next.z, c.pos.y + STEP + 0.05);
     const blocked = (gy != null && gy > c.pos.y + STEP) || blockedForward(c.pos, new THREE.Vector3(dx, 0, dz), speed * dt);
     if (!blocked) { c.pos.x = next.x; c.pos.z = next.z; }
-    let dy = Math.atan2(dx, dz) - c.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); c.yaw += dy * Math.min(1, dt * 14);
+    if (!fpOn()) { let dy = Math.atan2(dx, dz) - c.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); c.yaw += dy * Math.min(1, dt * 14); }
     if (c.onGround) c.moveAnim = running ? "run" : "walk";
   } else if (c.onGround && (c.moveAnim === "walk" || c.moveAnim === "run" || c.moveAnim === "jump")) c.moveAnim = "idle";
+  if (fpOn()) c.yaw = cam.yaw + Math.PI;                  // first person: your Chonk faces wherever you look
   if (jumpQueued && c.onGround && mode === "walk" && camMode === "follow") { c.vy = JUMP_VEL * (loc.lowGravity ? 1.1 : 1); c.onGround = false; c.moveAnim = "jump"; }
   jumpQueued = false;
   // vertical
@@ -1606,6 +1642,7 @@ function setMode(m) {
   // (a free camera stays exactly where you put it)
   if (m === "photo") { applyLens(); if (sel && camMode === "follow") { cam.yaw = sel.yaw + 0.55; cam.pitch = 0.16; } }
   if (m === "walk") { setPicked(null); camera.fov = WALK_FOV; camera.updateProjectionMatrix(); if (sel && camMode === "follow") { cam.yaw = sel.yaw + Math.PI; cam.pitch = 0.3; cam.dist = Math.max(cam.dist, 4.2); } }
+  if (m === "walk" && firstPerson) cam.pitch = -0.12;
   renderRoster(); syncPoseUI(); layoutFrame();
   // start with about 1.8 m of scene filling the frame height, whatever the screen shape
   if (m === "photo" && camMode === "follow") { const half = THREE.MathUtils.degToRad(camera.fov) / 2; cam.dist = Math.max(1.2, Math.min(14, 0.9 / Math.tan(half) * innerHeight / frameRect.h)); }
@@ -2281,6 +2318,7 @@ function focusPoint() {
   return cam.target;
 }
 for (const b of document.querySelectorAll("[data-freecam]")) b.addEventListener("click", () => { toggleFreeCam(); b.blur(); });
+for (const b of document.querySelectorAll("[data-fp]")) b.addEventListener("click", () => { if (camMode === "free") setCamMode("follow"); setFirstPerson(!firstPerson); b.blur(); });
 
 /* ===================================================================
    3D traits as props (all 270 Chonks traits, CC0, packed from Ztudio)
