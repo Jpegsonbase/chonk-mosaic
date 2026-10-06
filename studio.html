@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chonk Studio: paint with Chonks</title>
+<meta name="description" content="A pixel studio where every pixel you paint is a real Chonk. Free, in your browser.">
+<link rel="icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script>
+  try { var t = localStorage.getItem("chonk-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<style>
+  :root {
+    --paper: #FAFBFF; --surface: #FFFFFF; --ink: #0E1230; --muted: #5B6185; --line: #E3E6F2; --soft: #F1F3FB;
+    --blue: #0052FF; --blue-press: #0041CC; --yellow: #FFC93C; --pink: #FF4FA3; --mint: #22D3A0;
+    --quiet-hover: #E4E8F7; --cell-empty: #F4F5FA; --cell-line: #E6E8F2;
+    --display: "Unbounded", "Arial Black", sans-serif; --body: "Manrope", system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --paper: #0D1024; --surface: #161A33; --ink: #EEF0FF; --muted: #9BA2C8; --line: #262B4D; --soft: #1E2340; --blue: #3D7BFF;
+    --quiet-hover: #262C50; --cell-empty: #1A1F3B; --cell-line: #232948; color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --paper: #0D1024; --surface: #161A33; --ink: #EEF0FF; --muted: #9BA2C8; --line: #262B4D; --soft: #1E2340; --blue: #3D7BFF;
+    --quiet-hover: #262C50; --cell-empty: #1A1F3B; --cell-line: #232948; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.5 var(--body); }
+  a { color: var(--blue); }
+  header.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px clamp(16px, 3vw, 32px); }
+  .logo { display: flex; align-items: center; gap: 10px; font: 800 18px var(--display); color: var(--ink); text-decoration: none; }
+  .logo .sq { width: 22px; height: 22px; border-radius: 6px; background: var(--yellow); box-shadow: inset -4px -4px 0 #E8A91F; }
+  .logo small { font: 500 13px var(--body); color: var(--muted); }
+  .nav { display: flex; gap: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font: 700 14px var(--body); text-decoration: none;
+    color: var(--ink); background: var(--surface); border: 1px solid var(--line); cursor: pointer; }
+  .pill:hover { border-color: var(--blue); color: var(--blue); }
+
+  .studio { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; padding: 0 clamp(16px, 3vw, 32px) 32px; max-width: 1400px; margin: 0 auto; align-items: start; }
+  .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 18px; }
+  .panel h2 { font: 700 12px var(--display); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+  .tools { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .tool, .btn { font: 700 13px var(--body); color: var(--ink); background: var(--soft); border: 1.5px solid transparent; border-radius: 12px; padding: 9px 6px;
+    cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .tool svg { width: 20px; height: 20px; }
+  .tool[aria-pressed="true"] { border-color: var(--blue); color: var(--blue); background: color-mix(in srgb, var(--blue) 10%, var(--soft)); }
+  .tool:hover, .btn:hover:not(:disabled) { background: var(--quiet-hover); }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; background: var(--soft); border-radius: 12px; padding: 4px; }
+  .seg button { font: 700 13px var(--body); color: var(--muted); background: transparent; border: 0; border-radius: 9px; padding: 7px 4px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .swatches { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+  .sw { aspect-ratio: 1; border-radius: 8px; border: 2px solid transparent; cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,.12); }
+  .sw[aria-pressed="true"] { border-color: var(--ink); transform: scale(1.08); }
+  .brush { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; }
+  .brush canvas { width: 64px; height: 64px; border-radius: 12px; background: var(--soft); image-rendering: pixelated; }
+  .brush b { display: block; font-size: 14px; }
+  .brush span { font-size: 12.5px; color: var(--muted); }
+  input[type=number], input[type=text] { flex: 1; min-width: 0; font: 600 14px var(--body); color: var(--ink); background: var(--soft); border: 1.5px solid transparent; border-radius: 11px; padding: 9px 11px; }
+  input:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  #title { width: 100%; }
+  input[type=color] { width: 44px; height: 38px; border: 0; padding: 0; background: none; cursor: pointer; }
+  input[type=range] { width: 100%; accent-color: var(--blue); }
+  .note { font-size: 12.5px; color: var(--muted); margin: 6px 0 0; }
+  .primary { background: var(--blue); color: #fff; }
+  .primary:hover:not(:disabled) { background: var(--blue-press) !important; }
+  .gold { background: var(--yellow); color: #0E1230; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .actions .btn { flex-direction: row; justify-content: center; padding: 11px 8px; font-size: 14px; }
+
+  .board { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: clamp(10px, 2vw, 22px); display: flex; flex-direction: column; gap: 12px; align-items: center; min-width: 0; }
+  .board-top { width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .board-top .title { font: 700 18px var(--display); }
+  .board-top .count { font-size: 13px; color: var(--muted); }
+  #canvas { display: block; touch-action: none; cursor: crosshair; image-rendering: pixelated; border-radius: 6px; box-shadow: 0 10px 30px -14px rgba(14,18,48,.4); max-width: 100%; }
+  .status { min-height: 1.4em; font-size: 13px; color: var(--muted); text-align: center; }
+  .status.ok { color: #12996F; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 12px; font-weight: 700; font-size: 14px; z-index: 20; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+  .toast[hidden] { display: none; }
+  .loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--paper); z-index: 30; font: 700 16px var(--display); }
+  .loading[hidden] { display: none; }
+
+  .quick { display: none; }
+  @media (max-width: 900px) {
+    body { padding-bottom: calc(132px + env(safe-area-inset-bottom, 0px)); }
+    .quick { display: flex; flex-direction: column; gap: 8px; position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
+      background: color-mix(in srgb, var(--surface) 94%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-top: 1px solid var(--line); box-shadow: 0 -8px 24px rgba(14,18,48,.12); }
+    .quick .qsw { display: flex; gap: 8px; overflow-x: auto; padding: 2px; scrollbar-width: none; }
+    .quick .qsw::-webkit-scrollbar { display: none; }
+    .quick .qsw .sw { flex: 0 0 34px; height: 34px; }
+    .quick .qtools { display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; }
+    .quick .tool { padding: 7px 4px; font-size: 11px; justify-content: center; }
+    .quick .tool svg { width: 18px; height: 18px; }
+    .studio { grid-template-columns: 1fr; }
+    .board { order: -1; }
+    .logo small { display: none; }
+  }
+  @media (max-width: 420px) { .tools { grid-template-columns: repeat(4, 1fr); } .tool span { font-size: 11px; } }
+</style>
+<script src="gallery-store.js?v=1"></script>
+</head>
+<body>
+<div class="loading" id="loading">Loading Chonks…</div>
+<header class="top">
+  <a class="logo" href="./"><span class="sq" aria-hidden="true"></span>Chonk Studio <small>· every pixel is a Chonk</small></a>
+  <nav class="nav">
+    <a class="pill" href="./">Chonkit</a>
+    <a class="pill" href="gallery.html">Gallery</a>
+  </nav>
+</header>
+
+<main class="studio">
+  <aside class="panel" aria-label="Studio tools">
+    <section>
+      <h2>Tools</h2>
+      <div class="tools" id="tools">
+        <button class="tool" type="button" data-tool="brush" aria-pressed="true" title="Brush (B)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20c3 0 5-1 5-4a3 3 0 0 0-3-3c-2 0-2 3-2 7z"/><path d="M9 13 20 3l1 1-10 11"/></svg><span>Brush</span></button>
+        <button class="tool" type="button" data-tool="fill" aria-pressed="false" title="Fill (G)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 11 7-7 8 8-7 7z"/><path d="M5 11h15"/><path d="M20 16s2 2.5 2 4a2 2 0 0 1-4 0c0-1.5 2-4 2-4z"/></svg><span>Fill</span></button>
+        <button class="tool" type="button" data-tool="erase" aria-pressed="false" title="Eraser (E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 21-4-4 11-11 7 7-7 7z"/><path d="M7 21h14"/><path d="m9 11 6 6"/></svg><span>Erase</span></button>
+        <button class="tool" type="button" data-tool="pick" aria-pressed="false" title="Pick a Chonk from the canvas (I)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m14 4 6 6"/><path d="m17 3 4 4-3 3-4-4z"/><path d="M14 7 4 17v3h3L17 10"/></svg><span>Pick</span></button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <div class="seg" id="sizes" style="flex:1" aria-label="Brush size"><button type="button" data-size="1" aria-pressed="true">1×1</button><button type="button" data-size="2" aria-pressed="false">2×2</button><button type="button" data-size="3" aria-pressed="false">3×3</button></div>
+        <button class="btn" type="button" id="undo" title="Undo (Ctrl+Z)" style="flex-direction:row;padding:9px 12px" disabled>↶</button>
+        <button class="btn" type="button" id="redo" title="Redo (Ctrl+Y)" style="flex-direction:row;padding:9px 12px" disabled>↷</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Paint with</h2>
+      <div class="seg" id="modes"><button type="button" data-mode="colour" aria-pressed="true">A colour</button><button type="button" data-mode="chonk" aria-pressed="false">One Chonk</button></div>
+      <div id="colourBox" style="margin-top:10px">
+        <div class="swatches" id="swatches"></div>
+        <div class="row" style="margin-top:10px">
+          <input type="color" id="customColour" value="#0052ff" aria-label="Pick any colour">
+          <div style="flex:1">
+            <label for="variety" style="font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between">Variety <output id="varietyOut">mixed</output></label>
+            <input type="range" id="variety" min="1" max="40" value="14">
+          </div>
+        </div>
+        <p class="note">Each pixel becomes a real Chonk whose colours match the one you pick. Higher variety mixes in more different Chonks.</p>
+      </div>
+      <div id="chonkBox" hidden style="margin-top:10px">
+        <form class="row" id="chonkForm"><input type="number" id="chonkId" min="1" placeholder="Chonk ID, e.g. 171" aria-label="Chonk ID"><button class="btn" type="submit" style="flex-direction:row;padding:9px 14px">Use</button></form>
+        <p class="note">Paints that exact Chonk. Tip: use Pick to grab any Chonk already on your canvas.</p>
+      </div>
+      <div class="brush" style="margin-top:12px"><canvas id="brushPreview" width="60" height="60" aria-hidden="true"></canvas><div><b id="brushName">Blue</b><span id="brushSub">Matches Chonks to this colour</span></div></div>
+    </section>
+
+    <section>
+      <h2>Canvas</h2>
+      <div class="seg" id="gridSizes" aria-label="Canvas size"><button type="button" data-n="16">16</button><button type="button" data-n="24">24</button><button type="button" data-n="32">32</button><button type="button" data-n="48">48</button><button type="button" data-n="64">64</button></div>
+      <div class="row" style="margin-top:8px">
+        <button class="btn" type="button" id="toggleGrid" style="flex:1;flex-direction:row" aria-pressed="true">Grid lines</button>
+        <button class="btn" type="button" id="clear" style="flex:1;flex-direction:row">Clear</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Finish</h2>
+      <input type="text" id="title" maxlength="40" placeholder="Name your painting" aria-label="Painting name">
+      <div class="actions" style="margin-top:8px">
+        <button class="btn primary" type="button" id="download">Download PNG</button>
+        <button class="btn gold" type="button" id="toGallery">Add to Gallery</button>
+      </div>
+      <p class="note" id="finishNote">Your painting is saved in this browser as you go.</p>
+    </section>
+  </aside>
+
+  <section class="board" aria-label="Canvas">
+    <div class="board-top"><span class="title" id="boardTitle">Untitled painting</span><span class="count" id="count">0 Chonks placed</span></div>
+    <canvas id="canvas" width="640" height="640" aria-label="Your painting. Click or drag to paint."></canvas>
+    <div class="status" id="status"></div>
+  </section>
+</main>
+<div class="toast" id="toast" hidden></div>
+<div class="quick" id="quick" aria-label="Quick tools">
+  <div class="qsw" id="qSwatches"></div>
+  <div class="qtools" id="qTools"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const PHONE = matchMedia("(max-width: 900px)").matches || /iPhone|iPad|Android/i.test(navigator.userAgent);
+
+  // ------------------------------------------------------------- Chonk data
+  let meta, LAB, count;
+  const sheets = new Map();          // key -> Promise<HTMLImageElement>
+  function sheet(prefix, n, cb) {
+    const key = prefix + n;
+    if (!sheets.has(key)) sheets.set(key, new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img); img.onerror = () => { sheets.delete(key); rej(new Error("sheet")); };
+      img.src = `data/atlas/${prefix}_${String(n).padStart(3, "0")}.${meta.atlasFormat || "webp"}?b=${meta.built || 0}.${prefix === "atlas" ? meta.thumb : meta.smallThumb}`;
+    }));
+    return sheets.get(key);
+  }
+  const loaded = new Map();          // key -> image, once loaded
+  function tileSource(idx, small) {
+    const per = meta.perAtlasSide * meta.perAtlasSide, n = Math.floor(idx / per), slot = idx % per;
+    const prefix = small && meta.smallThumb ? "atlas_s" : "atlas", t = prefix === "atlas" ? meta.thumb : meta.smallThumb;
+    const key = prefix + n, img = loaded.get(key);
+    if (!img) { sheet(prefix, n).then((im) => { loaded.set(key, im); scheduleRedraw(); }).catch(() => {}); return null; }
+    return { img, sx: (slot % meta.perAtlasSide) * t, sy: Math.floor(slot / meta.perAtlasSide) * t, t };
+  }
+  async function loadData() {
+    meta = await (await fetch("data/meta.json")).json();
+    const buf = new Uint8Array(await (await fetch(`data/features.bin?b=${meta.built || 0}`)).arrayBuffer());
+    count = meta.count; LAB = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) { const o = i * meta.recordBytes; LAB[i*3] = buf[o] / 2.55; LAB[i*3+1] = buf[o+1] - 128; LAB[i*3+2] = buf[o+2] - 128; }
+  }
+  function rgbToLab(r, g, b) {
+    const f = (c) => { c /= 255; return c > 0.04045 ? ((c + 0.055) / 1.055) ** 2.4 : c / 12.92; };
+    const R = f(r), G = f(g), B = f(b);
+    const x = (R * 0.4124564 + G * 0.3575761 + B * 0.1804375) / 0.95047, y = R * 0.2126729 + G * 0.7151522 + B * 0.0721750, z = (R * 0.0193339 + G * 0.1191920 + B * 0.9503041) / 1.08883;
+    const h = (t) => t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116;
+    const fx = h(x), fy = h(y), fz = h(z); return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)];
+  }
+  const nearestCache = new Map();
+  function nearest(hex, k = 40) {
+    if (nearestCache.has(hex)) return nearestCache.get(hex);
+    const n = parseInt(hex.slice(1), 16), [L, A, B] = rgbToLab(n >> 16, (n >> 8) & 255, n & 255);
+    const best = [];                           // [dist, idx] sorted, length k
+    for (let i = 0; i < count; i++) {
+      const dl = LAB[i*3] - L, da = LAB[i*3+1] - A, db = LAB[i*3+2] - B, d = dl * dl + da * da + db * db;
+      if (best.length < k || d < best[best.length - 1][0]) {
+        let j = best.length < k ? best.length : k - 1; best[j] = [d, i];
+        while (j > 0 && best[j][0] < best[j-1][0]) { [best[j], best[j-1]] = [best[j-1], best[j]]; j--; }
+      }
+    }
+    const out = best.map((b) => b[1]); nearestCache.set(hex, out); return out;
+  }
+  const idOf = (idx) => meta.ids[idx];
+  const idxOf = new Map();
+
+  // ------------------------------------------------------------- state
+  const PALETTE = ["#0e1230", "#3b3f5c", "#8a8fa8", "#ffffff", "#ffe8c2", "#e8b47a", "#a0663b", "#5a3420",
+                   "#ff4fa3", "#e2324a", "#ff8a3d", "#ffc93c", "#f2f06b", "#22d3a0", "#2e9d4f", "#145c3a",
+                   "#7fd3ff", "#3d7bff", "#0052ff", "#1b2a8f", "#8b5cff", "#c9a6ff", "#f7b5d2", "#b8f2e0"];
+  const NAMES = { "#0e1230": "Ink", "#ffffff": "White", "#ff4fa3": "Pink", "#e2324a": "Red", "#ff8a3d": "Orange", "#ffc93c": "Yellow", "#22d3a0": "Mint",
+                  "#2e9d4f": "Green", "#3d7bff": "Blue", "#0052ff": "Base blue", "#8b5cff": "Violet", "#7fd3ff": "Sky", "#a0663b": "Brown", "#8a8fa8": "Grey" };
+  const S = { n: 32, cells: new Int32Array(32 * 32).fill(-1), tool: "brush", size: 1, mode: "colour", colour: "#3d7bff", chonk: null, variety: 14, grid: true, title: "" };
+  const undo = [], redo = [];
+  const STORE = "chonkit-studio-v1";
+  function save() {
+    try { localStorage.setItem(STORE, JSON.stringify({ n: S.n, cells: Array.from(S.cells, (v) => (v < 0 ? 0 : idOf(v))), colour: S.colour, title: S.title, grid: S.grid })); } catch {}
+  }
+  function restore() {
+    try {
+      const d = JSON.parse(localStorage.getItem(STORE) || "null"); if (!d) return;
+      if ([16, 24, 32, 48, 64].includes(d.n)) { S.n = d.n; S.cells = new Int32Array(S.n * S.n).fill(-1); }
+      if (Array.isArray(d.cells) && d.cells.length === S.n * S.n) d.cells.forEach((id, i) => { if (id && idxOf.has(id)) S.cells[i] = idxOf.get(id); });
+      if (/^#[0-9a-f]{6}$/i.test(d.colour)) S.colour = d.colour.toLowerCase();
+      if (typeof d.title === "string") S.title = d.title;
+      if (typeof d.grid === "boolean") S.grid = d.grid;
+    } catch {}
+  }
+
+  // ------------------------------------------------------------- drawing
+  const cv = $("canvas"), ctx = cv.getContext("2d");
+  let cellPx = 20, redrawQueued = false;
+  function layout() {
+    const board = cv.parentElement, avail = Math.min(board.clientWidth - 2 * parseFloat(getComputedStyle(board).paddingLeft), innerHeight - (PHONE ? 210 : 170));
+    cellPx = Math.max(4, Math.floor(Math.max(200, avail) / S.n));
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    cv.style.width = cv.style.height = cellPx * S.n + "px";
+    cv.width = cv.height = Math.round(cellPx * S.n * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    redrawAll();
+  }
+  function cssVar(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
+  function drawCell(i) {
+    const x = (i % S.n) * cellPx, y = Math.floor(i / S.n) * cellPx, v = S.cells[i];
+    ctx.imageSmoothingEnabled = false;
+    if (v < 0) {
+      ctx.fillStyle = cssVar("--cell-empty"); ctx.fillRect(x, y, cellPx, cellPx);
+      if (S.grid) { ctx.strokeStyle = cssVar("--cell-line"); ctx.lineWidth = 1; ctx.strokeRect(x + .5, y + .5, cellPx - 1, cellPx - 1); }
+      return;
+    }
+    const src = tileSource(v, PHONE && cellPx * (devicePixelRatio || 1) <= 34);
+    if (src) ctx.drawImage(src.img, src.sx, src.sy, src.t, src.t, x, y, cellPx, cellPx);
+    else { const [L] = [LAB[v*3]]; ctx.fillStyle = `hsl(0 0% ${L}%)`; ctx.fillRect(x, y, cellPx, cellPx); }
+  }
+  function redrawAll() { for (let i = 0; i < S.cells.length; i++) drawCell(i); updateCount(); }
+  function scheduleRedraw() { if (redrawQueued) return; redrawQueued = true; requestAnimationFrame(() => { redrawQueued = false; redrawAll(); }); }
+  function updateCount() {
+    let c = 0; for (const v of S.cells) if (v >= 0) c++;
+    $("count").textContent = `${c.toLocaleString()} Chonk${c === 1 ? "" : "s"} placed · ${S.n}×${S.n}`;
+    $("download").disabled = $("toGallery").disabled = c === 0;
+  }
+
+  // ------------------------------------------------------------- painting
+  function pickFor() {
+    if (S.mode === "chonk" && S.chonk != null) return S.chonk;
+    const list = nearest(S.colour), k = Math.max(1, Math.min(list.length, S.variety));
+    return list[Math.floor(Math.random() * k)];
+  }
+  function stamp(cx, cy, changed) {
+    const r0 = -Math.floor((S.size - 1) / 2);
+    for (let dy = 0; dy < S.size; dy++) for (let dx = 0; dx < S.size; dx++) {
+      const x = cx + r0 + dx, y = cy + r0 + dy; if (x < 0 || y < 0 || x >= S.n || y >= S.n) continue;
+      const i = y * S.n + x, v = S.tool === "erase" ? -1 : pickFor();
+      if (S.tool === "erase" ? S.cells[i] === -1 : changed.has(i)) continue;
+      S.cells[i] = v; changed.add(i); drawCell(i);
+    }
+  }
+  function fill(cx, cy) {
+    const start = cy * S.n + cx, target = S.cells[start];
+    const sameAsTarget = (i) => target < 0 ? S.cells[i] < 0 : (S.mode === "colour" ? sameColourFamily(S.cells[i], target) : S.cells[i] === target);
+    const seen = new Uint8Array(S.cells.length), stack = [start], changed = new Set();
+    while (stack.length) {
+      const i = stack.pop(); if (seen[i]) continue; seen[i] = 1;
+      if (!sameAsTarget(i)) continue;
+      changed.add(i);
+      const x = i % S.n, y = (i / S.n) | 0;
+      if (x > 0) stack.push(i - 1); if (x < S.n - 1) stack.push(i + 1); if (y > 0) stack.push(i - S.n); if (y < S.n - 1) stack.push(i + S.n);
+    }
+    for (const i of changed) { S.cells[i] = pickFor(); drawCell(i); }
+    return changed;
+  }
+  // fill treats Chonks of very similar colour as one area
+  function sameColourFamily(a, b) {
+    if (a < 0 || b < 0) return a === b;
+    const dl = LAB[a*3] - LAB[b*3], da = LAB[a*3+1] - LAB[b*3+1], db = LAB[a*3+2] - LAB[b*3+2];
+    return dl * dl + da * da + db * db < 140;
+  }
+  function cellAt(e) {
+    const r = cv.getBoundingClientRect();
+    return [Math.floor((e.clientX - r.left) / (r.width / S.n)), Math.floor((e.clientY - r.top) / (r.height / S.n))];
+  }
+  let stroke = null;
+  function pushUndo(before) { undo.push(before); if (undo.length > 60) undo.shift(); redo.length = 0; syncUndo(); }
+  function syncUndo() { $("undo").disabled = !undo.length; $("redo").disabled = !redo.length; }
+  cv.addEventListener("pointerdown", (e) => {
+    if (e.button > 0) return;
+    const [x, y] = cellAt(e); if (x < 0 || y < 0 || x >= S.n || y >= S.n) return;
+    if (S.tool === "pick") {
+      const v = S.cells[y * S.n + x];
+      if (v >= 0) { S.chonk = v; setMode("chonk"); setTool("brush"); toast(`Picked Chonk #${idOf(v)}`); }
+      return;
+    }
+    const before = S.cells.slice();
+    if (S.tool === "fill") { const ch = fill(x, y); if (ch.size) { pushUndo(before); save(); updateCount(); } return; }
+    cv.setPointerCapture(e.pointerId);
+    stroke = { before, changed: new Set(), last: [x, y] };
+    stamp(x, y, stroke.changed);
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!stroke) return;
+    const [x, y] = cellAt(e), [lx, ly] = stroke.last;
+    if (x === lx && y === ly) return;
+    const steps = Math.max(Math.abs(x - lx), Math.abs(y - ly));       // fill gaps on fast strokes
+    for (let s = 1; s <= steps; s++) stamp(Math.round(lx + (x - lx) * s / steps), Math.round(ly + (y - ly) * s / steps), stroke.changed);
+    stroke.last = [x, y];
+  });
+  const endStroke = () => { if (!stroke) return; if (stroke.changed.size) { pushUndo(stroke.before); save(); } stroke = null; updateCount(); };
+  cv.addEventListener("pointerup", endStroke); cv.addEventListener("pointercancel", endStroke);
+  function doUndo() { if (!undo.length) return; redo.push(S.cells.slice()); S.cells = undo.pop(); redrawAll(); save(); syncUndo(); }
+  function doRedo() { if (!redo.length) return; undo.push(S.cells.slice()); S.cells = redo.pop(); redrawAll(); save(); syncUndo(); }
+  $("undo").onclick = doUndo; $("redo").onclick = doRedo;
+
+  // ------------------------------------------------------------- UI
+  function setTool(t) { S.tool = t; for (const b of document.querySelectorAll("#tools .tool")) b.setAttribute("aria-pressed", b.dataset.tool === t); }
+  $("tools").addEventListener("click", (e) => { const b = e.target.closest(".tool"); if (b) setTool(b.dataset.tool); });
+  $("sizes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; S.size = +b.dataset.size; for (const x of $("sizes").children) x.setAttribute("aria-pressed", x === b); });
+  function setMode(m) {
+    S.mode = m; for (const b of $("modes").children) b.setAttribute("aria-pressed", b.dataset.mode === m);
+    $("colourBox").hidden = m !== "colour"; $("chonkBox").hidden = m !== "chonk";
+    if (S.tool === "erase" || S.tool === "pick") setTool("brush");
+    updateBrush();
+  }
+  $("modes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setMode(b.dataset.mode); });
+  const swEl = $("swatches");
+  for (const c of PALETTE) { const b = document.createElement("button"); b.type = "button"; b.className = "sw"; b.style.background = c; b.dataset.c = c; b.title = NAMES[c] || c; b.setAttribute("aria-label", NAMES[c] || c); swEl.append(b); }
+  function setColour(c) {
+    S.colour = c.toLowerCase(); $("customColour").value = S.colour;
+    for (const b of swEl.children) b.setAttribute("aria-pressed", b.dataset.c === S.colour);
+    if (S.mode !== "colour") setMode("colour"); else updateBrush();
+    if (S.tool === "erase" || S.tool === "pick") setTool("brush");
+    save();
+  }
+  swEl.addEventListener("click", (e) => { const b = e.target.closest(".sw"); if (b) setColour(b.dataset.c); });
+  $("customColour").addEventListener("input", (e) => setColour(e.target.value));
+  $("variety").addEventListener("input", (e) => { S.variety = +e.target.value; $("varietyOut").textContent = S.variety <= 2 ? "closest match" : S.variety < 20 ? "mixed" : "lots of variety"; updateBrush(); });
+  $("chonkForm").addEventListener("submit", (e) => {
+    e.preventDefault(); const id = parseInt($("chonkId").value, 10);
+    if (!idxOf.has(id)) { status(`Chonk #${$("chonkId").value} isn't in the collection.`); return; }
+    S.chonk = idxOf.get(id); setTool("brush"); updateBrush(); status("");
+  });
+  const bp = $("brushPreview").getContext("2d");
+  async function updateBrush() {
+    bp.imageSmoothingEnabled = false; bp.clearRect(0, 0, 60, 60);
+    let idx, name, sub;
+    if (S.mode === "chonk") {
+      if (S.chonk == null) { $("brushName").textContent = "Choose a Chonk"; $("brushSub").textContent = "Type an ID or use Pick"; return; }
+      idx = S.chonk; name = `Chonk #${idOf(idx)}`; sub = "Paints this exact Chonk";
+    } else {
+      const list = nearest(S.colour); idx = list[0];
+      name = NAMES[S.colour] || S.colour.toUpperCase(); sub = S.variety <= 2 ? "Closest matching Chonk" : `Mixes ${Math.min(S.variety, list.length)} matching Chonks`;
+      bp.fillStyle = S.colour; bp.fillRect(0, 0, 60, 60);
+    }
+    $("brushName").textContent = name; $("brushSub").textContent = sub;
+    const per = meta.perAtlasSide * meta.perAtlasSide, n = Math.floor(idx / per), slot = idx % per;
+    try {
+      const img = await sheet("atlas", n);
+      const inset = S.mode === "colour" ? 14 : 0;
+      bp.drawImage(img, (slot % meta.perAtlasSide) * meta.thumb, Math.floor(slot / meta.perAtlasSide) * meta.thumb, meta.thumb, meta.thumb, inset, inset, 60 - inset * 2, 60 - inset * 2);
+    } catch {}
+  }
+  function setGridSize(n, { confirmClear = true } = {}) {
+    if (n === S.n) return;
+    const used = S.cells.some((v) => v >= 0);
+    if (used && confirmClear && !confirm("Changing the canvas size starts a new painting. Your current one will be cleared. Continue?")) { syncGridButtons(); return; }
+    pushUndo(S.cells.slice()); undo.length = 0; redo.length = 0; syncUndo();
+    S.n = n; S.cells = new Int32Array(n * n).fill(-1); syncGridButtons(); layout(); save();
+  }
+  function syncGridButtons() { for (const b of $("gridSizes").children) b.setAttribute("aria-pressed", +b.dataset.n === S.n); }
+  $("gridSizes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) setGridSize(+b.dataset.n); });
+  $("toggleGrid").onclick = () => { S.grid = !S.grid; $("toggleGrid").setAttribute("aria-pressed", S.grid); redrawAll(); save(); };
+  $("clear").onclick = () => { if (!S.cells.some((v) => v >= 0)) return; if (!confirm("Clear the whole canvas?")) return; pushUndo(S.cells.slice()); S.cells.fill(-1); redrawAll(); save(); };
+  $("title").addEventListener("input", (e) => { S.title = e.target.value.trim(); $("boardTitle").textContent = S.title || "Untitled painting"; save(); });
+
+  // ------------------------------------------------------------- export
+  async function renderFull(tile = 60) {
+    const c = document.createElement("canvas"); c.width = c.height = S.n * tile;
+    const x = c.getContext("2d"); x.imageSmoothingEnabled = false;
+    x.fillStyle = "#ffffff"; x.fillRect(0, 0, c.width, c.height);
+    const per = meta.perAtlasSide * meta.perAtlasSide;
+    const need = new Set(); for (const v of S.cells) if (v >= 0) need.add(Math.floor(v / per));
+    const imgs = {}; await Promise.all([...need].map(async (n) => { imgs[n] = await sheet("atlas", n); }));
+    S.cells.forEach((v, i) => {
+      if (v < 0) return; const n = Math.floor(v / per), slot = v % per;
+      x.drawImage(imgs[n], (slot % meta.perAtlasSide) * meta.thumb, Math.floor(slot / meta.perAtlasSide) * meta.thumb, meta.thumb, meta.thumb, (i % S.n) * tile, Math.floor(i / S.n) * tile, tile, tile);
+    });
+    return c;
+  }
+  const slug = () => (S.title || "chonk-studio").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "chonk-studio";
+  $("download").onclick = async () => {
+    status("Making your PNG…");
+    try {
+      const c = await renderFull(60);
+      const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+      const file = new File([blob], `${slug()}.png`, { type: "image/png" });
+      if (PHONE && navigator.canShare?.({ files: [file] })) { try { await navigator.share({ files: [file] }); status(""); return; } catch (e) { if (e?.name === "AbortError") { status(""); return; } } }
+      const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name; document.body.append(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      status(`Saved ${file.name} (${c.width} × ${c.height} px)`, "ok");
+    } catch { status("Couldn't make the PNG. Try again."); }
+  };
+  $("toGallery").onclick = async () => {
+    if (!window.ChonkitGallery?.supported) { status("This browser can't keep a gallery."); return; }
+    $("toGallery").disabled = true; status("Hanging it in your gallery…");
+    try {
+      const c = await renderFull(Math.max(16, Math.min(60, Math.floor(2048 / S.n))));
+      await ChonkitGallery.addCanvas(c, { title: S.title || "Studio painting", tiles: S.cells.filter((v) => v >= 0).length });
+      status("");
+      $("finishNote").innerHTML = 'Added to your gallery. <a href="gallery.html">Go and see it hanging →</a>';
+      toast("Added to your gallery");
+    } catch { status("Couldn't add it to the gallery. Your browser may be out of space."); }
+    $("toGallery").disabled = false;
+  };
+
+  // phones: a quick bar at the bottom mirrors the tools, undo/redo and colours
+  (function quickBar() {
+    const qt = $("qTools"), qs = $("qSwatches");
+    for (const b of document.querySelectorAll("#tools .tool")) {
+      const c = b.cloneNode(true); c.removeAttribute("id"); c.onclick = () => setTool(b.dataset.tool); qt.append(c);
+    }
+    for (const [id, label] of [["undo", "↶ Undo"], ["redo", "↷ Redo"]]) {
+      const c = document.createElement("button"); c.type = "button"; c.className = "tool"; c.dataset.mirror = id; c.textContent = label; c.onclick = () => $(id).click(); qt.append(c);
+    }
+    for (const c of PALETTE) { const b = document.createElement("button"); b.type = "button"; b.className = "sw"; b.style.background = c; b.dataset.c = c; b.setAttribute("aria-label", NAMES[c] || c); b.onclick = () => setColour(c); qs.append(b); }
+  })();
+  function syncQuick() {
+    for (const b of document.querySelectorAll("#qTools .tool[data-tool]")) b.setAttribute("aria-pressed", b.dataset.tool === S.tool);
+    for (const b of document.querySelectorAll("#qTools [data-mirror]")) b.disabled = $(b.dataset.mirror).disabled;
+    for (const b of document.querySelectorAll("#qSwatches .sw")) b.setAttribute("aria-pressed", S.mode === "colour" && b.dataset.c === S.colour);
+  }
+  new MutationObserver(syncQuick).observe(document.querySelector(".panel"), { attributes: true, subtree: true, attributeFilter: ["aria-pressed", "disabled"] });
+
+  function status(msg, kind = "") { const s = $("status"); s.textContent = msg; s.className = "status " + kind; }
+  let toastT = 0;
+  function toast(msg) { const t = $("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (t.hidden = true), 2200); }
+
+  addEventListener("keydown", (e) => {
+    if (/INPUT|TEXTAREA/.test(document.activeElement?.tagName)) return;
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z") { e.preventDefault(); e.shiftKey ? doRedo() : doUndo(); return; }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "y") { e.preventDefault(); doRedo(); return; }
+    const k = { b: "brush", g: "fill", e: "erase", i: "pick" }[e.key.toLowerCase()]; if (k) setTool(k);
+  });
+  let rt = 0; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(layout, 120); });
+  matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", redrawAll);
+
+  // ------------------------------------------------------------- boot
+  (async () => {
+    try { await loadData(); }
+    catch { $("loading").textContent = "Couldn't load the Chonks. Refresh to try again."; return; }
+    meta.ids.forEach((id, i) => idxOf.set(id, i));
+    restore();
+    $("title").value = S.title; $("boardTitle").textContent = S.title || "Untitled painting";
+    $("toggleGrid").setAttribute("aria-pressed", S.grid);
+    syncGridButtons(); setColour(S.colour); setMode("colour"); syncUndo();
+    $("variety").dispatchEvent(new Event("input"));
+    layout(); syncQuick();
+    $("loading").hidden = true;
+  })();
+})();
+</script>
+</body>
+</html>
