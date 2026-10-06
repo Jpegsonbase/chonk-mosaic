@@ -248,12 +248,13 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     </section>
 
     <section>
-      <h2>Gold statue <span id="statueWho" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <h2>Statue <span id="statueWho" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
       <form class="row" id="statueForm">
         <input id="statueId" type="number" min="0" inputmode="numeric" placeholder="Chonk ID for the statue" aria-label="Chonk ID for the gold statue">
-        <button class="primary" type="submit">Gild</button>
+        <button class="primary" type="submit">Use</button>
       </form>
       <button type="button" id="statueMine">Use my Chonk</button>
+      <div class="seg" id="statueStyle" role="group" aria-label="Statue finish"><button type="button" data-style="gold">Gold</button><button type="button" data-style="colour">Full colour</button></div>
       <div class="status" id="statueStatus"></div>
     </section>
 
@@ -934,11 +935,11 @@ const LOCATIONS = [
       ph = plinth(-10, -6.5, 0.8); const cols = [0xe76f51, 0x2a9d8f, 0xe9c46a, 0x264653, 0xf4a261];
       for (let q = 0; q < 9; q++) k.box(mat(cols[q % 5]), 0.18, 0.18, 0.18, -10 + ((q % 3) - 1) * 0.12, ph + Math.floor(q / 3) * 0.18 + (q % 2) * 0.02, -6.5 + ((q % 3) - 1) * 0.1, { ry: q * 0.4 });
       // the gold Chonk statue (centre piece) built from Chonk #1
-      k.box(mat(0x2b2b2b, { r: .5 }), 2.4, 0.5, 2.4, 0, 0, 8.6, { solid: true, walk: true });
+      k.box(mat(0x2b2b2b, { r: .5 }), 3.6, 0.5, 2.4, 0, 0, 8.6, { solid: true, walk: true });
       STATUE.label = plane(k, statueLabelTex(STATUE.id), 1.2, 0.4, 0, 0.25, 7.39, PI, { transparent: true });
       STATUE.parent = g; STATUE.mat = goldM; STATUE.group = null;
       if (STATUE.vox) placeStatue(STATUE.vox, STATUE.id); else restoreStatue();
-      k.solidBox(-1.2, 1.2, 7.4, 9.8, 0, 99);
+      k.solidBox(-1.8, 1.8, 7.4, 9.8, 0, 99);
       // benches
       const benchTop = mat(0xa87b4f, { r: .7 }), steel = mat(0x8b939e, { m: .7, r: .35 });
       for (const [x, z] of [[-3.2, -6.2], [3.2, -6.2], [-9.5, 6.5], [9.5, 6.5]]) { k.box(benchTop, 2.2, 0.08, 0.5, x, 0.4, z, { solid: true, walk: true }); for (const dx of [-0.9, 0.9]) k.box(steel, 0.06, 0.4, 0.45, x + dx, 0, z); k.solidBox(x - 1.1, x + 1.1, z - 0.25, z + 0.25, 0, 0.48); }
@@ -1048,15 +1049,20 @@ const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
 const GALLERY = { all: [], shown: [], spots: [] };
 /* the gold statue: any Chonk you like, remembered in this browser */
 const STATUE_KEY = "chonkit-gallery-statue";
-const STATUE = { id: 1, vox: null, group: null, label: null, parent: null, mat: null };
-try { const s = JSON.parse(localStorage.getItem(STATUE_KEY) || "null"); if (s && Number.isFinite(s.id)) STATUE.id = s.id; } catch {}
-function statueLabelTex(id) { return textTex([{ text: `CHONK #${id}`, size: 90 }, { text: "gilded voxels", size: 40, font: "Sora" }], { w: 768, h: 256, fg: "#d4a843" }); }
+const STATUE = { id: 1, style: "gold", vox: null, group: null, label: null, parent: null, mat: null };
+try { const s = JSON.parse(localStorage.getItem(STATUE_KEY) || "null"); if (s && Number.isFinite(s.id)) STATUE.id = s.id; if (s?.style === "colour") STATUE.style = "colour"; } catch {}
+const colourMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 });
+function saveStatue() { try { localStorage.setItem(STATUE_KEY, JSON.stringify({ id: STATUE.id, style: STATUE.style })); } catch {} }
+function statueLabelTex(id) { const gold = STATUE.style === "gold";
+  return textTex([{ text: `CHONK #${id}`, size: 90 }, { text: gold ? "gilded voxels" : "in full colour", size: 40, font: "Sora" }], { w: 768, h: 256, fg: gold ? "#d4a843" : "#f4f3ef" }); }
+function syncStatueStyleUI() { for (const b of document.querySelectorAll("#statueStyle button")) b.setAttribute("aria-pressed", b.dataset.style === STATUE.style); }
 function placeStatue(vox, id) {
   STATUE.vox = vox; STATUE.id = id;
   if (!STATUE.parent) return;
   if (STATUE.group) { STATUE.parent.remove(STATUE.group); STATUE.group.traverse(o => o.geometry?.dispose()); }
   const statue = new THREE.Group(); statue.scale.setScalar(0.075 * 2.6); statue.position.set(0, 0.5, 8.6); statue.rotation.y = Math.PI;
-  const m = new THREE.Mesh(voxelGeometry(vox.map(v => ({ ...v, y: RIG.FEET_Y - v.y })), [-RIG.MIDDLE_X - .5, 0, -5.5], 0xd4a843), STATUE.mat); m.castShadow = true; m.receiveShadow = true;
+  const gold = STATUE.style === "gold";
+  const m = new THREE.Mesh(voxelGeometry(vox.map(v => ({ ...v, y: RIG.FEET_Y - v.y })), [-RIG.MIDDLE_X - .5, 0, -5.5], gold ? 0xd4a843 : undefined), gold ? STATUE.mat : colourMat); m.castShadow = true; m.receiveShadow = true;
   statue.add(m); STATUE.parent.add(statue); STATUE.group = statue;
   if (STATUE.label) { STATUE.label.material.map?.dispose(); STATUE.label.material.map = statueLabelTex(id); STATUE.label.material.needsUpdate = true; }
   const who = document.getElementById("statueWho"); if (who) who.textContent = `· #${id}`;
@@ -1075,9 +1081,9 @@ async function gildStatue(id, vox) {
   try {
     if (!vox) vox = await voxFor(id);
     placeStatue(vox, id);
-    try { localStorage.setItem(STATUE_KEY, JSON.stringify({ id })); } catch {}
+    saveStatue();
     statueStatus(`The statue is now Chonk #${id}.`, "ok");
-    toast(`The gold statue is now Chonk #${id}`);
+    toast(`The statue is now Chonk #${id}`);
   } catch (e) { statueStatus(e?.message === "missing" ? `Chonk #${id} wasn't found. Check the ID.` : "Couldn't reach the Chonks servers. Try again in a moment.", "err"); }
 }
 const shortTitle = (t) => { t = String(t || "Untitled").replace(/\s+/g, " ").trim(); return t.length > 26 ? t.slice(0, 25) + "…" : t; };
@@ -1999,6 +2005,12 @@ document.getElementById("dlYes").onclick = () => { if (nearSpot) { const it = ne
 document.getElementById("dlNo").onclick = () => { dismissed = nearSpot; updateDlPrompt(); };
 document.getElementById("statueForm").addEventListener("submit", (e) => { e.preventDefault(); const v = document.getElementById("statueId").value.trim(); if (v !== "") gildStatue(parseInt(v, 10)); document.activeElement.blur(); });
 document.getElementById("statueMine").onclick = () => { if (sel) gildStatue(sel.id, sel.vox); };
+document.getElementById("statueStyle").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || b.dataset.style === STATUE.style) return;
+  STATUE.style = b.dataset.style; syncStatueStyleUI(); saveStatue();
+  if (STATUE.vox) placeStatue(STATUE.vox, STATUE.id);
+});
+syncStatueStyleUI();
 
 /* boot */
 resize(); camera.fov = WALK_FOV; camera.updateProjectionMatrix();
