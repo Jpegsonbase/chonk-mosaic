@@ -1926,7 +1926,7 @@ const TOUR_PATH = [
   [0, 1.8, -4.6], [0, 1.6, 0.5], [0, 1.35, 4.6],                                 // turn into the centre aisle and glide up to the statue
 ];
 const TOUR_STATUE = [0, 3.3, 8.6];                    // where the camera ends up looking: the statue's head
-const TOUR_SECONDS = 24;
+const TOUR_SECONDS = 20;
 const TOUR_FPS = 30, TOUR_GIF_EVERY = 2;              // video at 30 fps, GIF at 15 fps
 let touring = false, tourJob = 0, tourOut = null;
 
@@ -2066,8 +2066,8 @@ async function makeTour() {
       camera.position.copy(p.pos);
       want.copy(p.target).sub(p.pos).normalize();
       if (!smooth) dir.copy(want);
-      else {                                            // ease towards the new heading, never turning faster than ~45° a second
-        const ang = dir.angleTo(want), k = Math.min(1 - Math.exp(-dt / 0.45), ang > 1e-4 ? THREE.MathUtils.degToRad(45) * dt / ang : 1);
+      else {                                            // ease towards the new heading, never turning faster than ~50° a second
+        const ang = dir.angleTo(want), k = Math.min(1 - Math.exp(-dt / 0.45), ang > 1e-4 ? THREE.MathUtils.degToRad(50) * dt / ang : 1);
         dir.lerp(want, k).normalize();
       }
       camera.lookAt(look.copy(p.pos).add(dir));
