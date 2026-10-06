@@ -57,6 +57,15 @@ input { -webkit-user-select: text; user-select: text; }
 .empty-note a { color: var(--skin); }
 .mthumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex: none; margin: 6px 0 6px 8px; image-rendering: pixelated; }
 .member.withthumb { grid-template-columns: auto 1fr auto; }
+.dl-prompt { display: flex; align-items: center; gap: 8px; padding: 6px 6px 6px 14px; border-radius: 999px; background: var(--panel-solid); border: 1px solid var(--skin);
+  box-shadow: 0 8px 24px rgba(0,0,0,.3); font-size: 13px; max-width: 46vw; animation: dlIn .2s ease-out; }
+.dl-prompt .dl-q { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.dl-prompt b { color: var(--skin); font-weight: 600; }
+.dl-prompt button { border-radius: 999px; padding: 6px 14px; font: 400 12px var(--display); }
+.dl-prompt .dl-yes { background: var(--skin); color: var(--ink); border-color: var(--skin-deep); }
+@keyframes dlIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 760px) { .dl-prompt { position: fixed; left: 50%; transform: translateX(-50%); top: calc(64px + env(safe-area-inset-top, 0px)); max-width: calc(100% - 32px); animation: none; } }
+.statue-row { display: flex; gap: 8px; }
 /* touch controls */
 #joy { position: fixed; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 124px; height: 124px; border-radius: 50%; z-index: 6;
   background: rgba(10,11,16,.35); border: 1px solid rgba(255,255,255,.22); touch-action: none; }
@@ -176,6 +185,11 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
 <div class="hud-top walk-only">
   <div class="pill"><a class="back" href="./" aria-label="Back to Chonkit">&larr;</a><span class="dot"></span><span class="brand">Chonkit Gallery</span><span class="where" id="where">Your mosaics</span></div>
   <div class="hud-right">
+  <div class="dl-prompt" id="dlPrompt" hidden role="dialog" aria-live="polite">
+    <span class="dl-q">Download <b id="dlName"></b>?</span>
+    <button type="button" class="dl-yes" id="dlYes">Yes</button>
+    <button type="button" class="dl-no" id="dlNo">No</button>
+  </div>
   <button class="hudBtn" data-freecam aria-pressed="false" aria-label="Free camera">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
     <span class="lbl">Free cam</span> <kbd>F</kbd>
@@ -231,6 +245,16 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
       <div class="roster" id="galList"></div>
       <p class="hint" style="margin:0" id="galHint">Make a mosaic on <a href="./" style="color:var(--skin)">Chonkit</a> and press <b>Add to Gallery</b> to hang it here. Your gallery is saved in this browser.</p>
       <div hidden><div class="locs" id="locs"></div><div class="row" id="studioColorRow" hidden><input type="color" id="studioColor" value="#f2c14e"></div><div id="glbRow" hidden><input type="file" id="glbFile"><input type="range" id="glbScale" min="-2" max="2" step="0.01" value="0"><output id="glbScaleOut"></output></div></div>
+    </section>
+
+    <section>
+      <h2>Gold statue <span id="statueWho" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <form class="row" id="statueForm">
+        <input id="statueId" type="number" min="0" inputmode="numeric" placeholder="Chonk ID for the statue" aria-label="Chonk ID for the gold statue">
+        <button class="primary" type="submit">Gild</button>
+      </form>
+      <button type="button" id="statueMine">Use my Chonk</button>
+      <div class="status" id="statueStatus"></div>
     </section>
 
     <section>
@@ -892,6 +916,7 @@ const LOCATIONS = [
           tex = new THREE.Texture(item.img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16; tex.needsUpdate = true; frameCol = 0x1a1a1a;
         } else tex = emptyFrameTex(Math.round(256 * h / w));
         k.picture(tex, w, h, x, item ? Math.max(1.75, h / 2 + 0.55) : 1.75, z, facing, frameCol, item ? 0.07 : 0.06);
+        if (item) { const nrm = { "+z": [0, 1], "-z": [0, -1], "+x": [1, 0], "-x": [-1, 0] }[facing]; GALLERY.spots.push({ item, x, z, nx: nrm[0], nz: nrm[1], w }); }
         const off = w / 2 + 0.35, ax = facing === "+z" || facing === "-z"; const lx = ax ? x + (facing === "+z" ? off : -off) : x, lz = ax ? z : z + (facing === "+x" ? -off : off);
         label(lx, 1.35, lz, facing, item); };
       hang(-3.2, -9.98, "+z", 1.6, 2.0, 2); hang(3.2, -9.98, "+z", 2.6, 1.6, 4); hang(-9.5, -9.98, "+z", 2.2, 1.6, 0); hang(9.5, -9.98, "+z", 1.6, 1.6, 1);
@@ -910,12 +935,9 @@ const LOCATIONS = [
       for (let q = 0; q < 9; q++) k.box(mat(cols[q % 5]), 0.18, 0.18, 0.18, -10 + ((q % 3) - 1) * 0.12, ph + Math.floor(q / 3) * 0.18 + (q % 2) * 0.02, -6.5 + ((q % 3) - 1) * 0.1, { ry: q * 0.4 });
       // the gold Chonk statue (centre piece) built from Chonk #1
       k.box(mat(0x2b2b2b, { r: .5 }), 2.4, 0.5, 2.4, 0, 0, 8.6, { solid: true, walk: true });
-      plane(k, textTex([{ text: "CHONK #1", size: 90 }, { text: "gilded voxels, 2024", size: 40, font: "Sora" }], { w: 768, h: 256, fg: "#d4a843" }), 1.2, 0.4, 0, 0.25, 7.39, PI, { transparent: true });
-      unpackSample(1).then((vox) => {
-        const statue = new THREE.Group(); statue.scale.setScalar(0.075 * 2.6); statue.position.set(0, 0.5, 8.6); statue.rotation.y = PI;
-        const m = new THREE.Mesh(voxelGeometry(vox.map(v => ({ ...v, y: RIG.FEET_Y - v.y })), [-RIG.MIDDLE_X - .5, 0, -5.5], 0xd4a843), goldM); m.castShadow = true; m.receiveShadow = true;
-        statue.add(m); g.add(statue);
-      });
+      STATUE.label = plane(k, statueLabelTex(STATUE.id), 1.2, 0.4, 0, 0.25, 7.39, PI, { transparent: true });
+      STATUE.parent = g; STATUE.mat = goldM; STATUE.group = null;
+      if (STATUE.vox) placeStatue(STATUE.vox, STATUE.id); else restoreStatue();
       k.solidBox(-1.2, 1.2, 7.4, 9.8, 0, 99);
       // benches
       const benchTop = mat(0xa87b4f, { r: .7 }), steel = mat(0x8b939e, { m: .7, r: .35 });
@@ -1023,7 +1045,41 @@ const LOCATIONS = [
 /* Chonkit Gallery: only the Art Gallery scene */
 for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
 const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
-const GALLERY = { all: [], shown: [] };
+const GALLERY = { all: [], shown: [], spots: [] };
+/* the gold statue: any Chonk you like, remembered in this browser */
+const STATUE_KEY = "chonkit-gallery-statue";
+const STATUE = { id: 1, vox: null, group: null, label: null, parent: null, mat: null };
+try { const s = JSON.parse(localStorage.getItem(STATUE_KEY) || "null"); if (s && Number.isFinite(s.id)) STATUE.id = s.id; } catch {}
+function statueLabelTex(id) { return textTex([{ text: `CHONK #${id}`, size: 90 }, { text: "gilded voxels", size: 40, font: "Sora" }], { w: 768, h: 256, fg: "#d4a843" }); }
+function placeStatue(vox, id) {
+  STATUE.vox = vox; STATUE.id = id;
+  if (!STATUE.parent) return;
+  if (STATUE.group) { STATUE.parent.remove(STATUE.group); STATUE.group.traverse(o => o.geometry?.dispose()); }
+  const statue = new THREE.Group(); statue.scale.setScalar(0.075 * 2.6); statue.position.set(0, 0.5, 8.6); statue.rotation.y = Math.PI;
+  const m = new THREE.Mesh(voxelGeometry(vox.map(v => ({ ...v, y: RIG.FEET_Y - v.y })), [-RIG.MIDDLE_X - .5, 0, -5.5], 0xd4a843), STATUE.mat); m.castShadow = true; m.receiveShadow = true;
+  statue.add(m); STATUE.parent.add(statue); STATUE.group = statue;
+  if (STATUE.label) { STATUE.label.material.map?.dispose(); STATUE.label.material.map = statueLabelTex(id); STATUE.label.material.needsUpdate = true; }
+  const who = document.getElementById("statueWho"); if (who) who.textContent = `· #${id}`;
+}
+async function voxFor(id) {
+  if (SAMPLES[id]) return unpackSample(id);
+  const got = await fetchChonk(id); if (!got) throw new Error("missing"); return got.vox;
+}
+async function restoreStatue() {
+  try { placeStatue(await voxFor(STATUE.id), STATUE.id); }
+  catch { placeStatue(await unpackSample(1), 1); }
+}
+function statueStatus(msg, kind = "") { const el = document.getElementById("statueStatus"); el.textContent = msg; el.className = "status " + kind; }
+async function gildStatue(id, vox) {
+  statueStatus(vox ? "" : `Gilding Chonk #${id}…`);
+  try {
+    if (!vox) vox = await voxFor(id);
+    placeStatue(vox, id);
+    try { localStorage.setItem(STATUE_KEY, JSON.stringify({ id })); } catch {}
+    statueStatus(`The statue is now Chonk #${id}.`, "ok");
+    toast(`The gold statue is now Chonk #${id}`);
+  } catch (e) { statueStatus(e?.message === "missing" ? `Chonk #${id} wasn't found. Check the ID.` : "Couldn't reach the Chonks servers. Try again in a moment.", "err"); }
+}
 const shortTitle = (t) => { t = String(t || "Untitled").replace(/\s+/g, " ").trim(); return t.length > 26 ? t.slice(0, 25) + "…" : t; };
 function emptyFrameTex(h) {
   return canvasTex(256, h, (c, w, hh) => {
@@ -1128,6 +1184,7 @@ function applyLocation(id, { keepPositions = false } = {}) {
   if (locGroup) { scene.remove(locGroup); locGroup.traverse(o => { if (o.geometry && o.geometry !== BOX) o.geometry.dispose(); }); }
   locGroup = new THREE.Group(); scene.add(locGroup);
   kit = new Kit(locGroup); loc = L;
+  GALLERY.spots = [];
   const s = L.build(kit); locSettings = s;
   if (L.custom && customScene) { locGroup.add(customScene); customScene.traverse(o => { if (o.isMesh) kit.walk.push(o); }); }
   skyMat.uniforms.top.value.setHex(s.top); skyMat.uniforms.bottom.value.setHex(s.bottom); skyMat.uniforms.power.value = s.power ?? 0.7;
@@ -1593,6 +1650,7 @@ function animate() {
     c.rig.pose(anim, freeze ? c.phase * P.period : t + c.offset);
   }
   updateCamera(dt);
+  checkNearArt();
   for (const fn of kit?.updates ?? []) fn(t, dt, focusPoint());
   // shadows and the soft fill follow the action
   const focus = focusPoint();
@@ -1890,12 +1948,57 @@ document.getElementById("paintReset").onclick = () => { if (picked?.kind === "pa
 
 /* when a location is (re)built */
 function onLocationBuilt() {
+  updateDlPrompt(true);
   setPicked(null); clearProps();
   // in the Chonkit gallery the frames show your mosaics, so they aren't swappable
   for (const p of kit.paintings) delete p.art.userData.painting;
   kit.paintings.length = 0;
   document.getElementById("paintHint").hidden = true;
 }
+
+/* walk up to a mosaic -> "Download …? Yes / No" at the top */
+let nearSpot = null, dismissed = null;
+function spotNear() {
+  if (!sel || mode !== "walk") return null;
+  let best = null, bestD = Infinity;
+  for (const sp of GALLERY.spots) {
+    const dx = sel.pos.x - sp.x, dz = sel.pos.z - sp.z;
+    const along = dx * sp.nx + dz * sp.nz;                      // distance out from the wall
+    const side = Math.abs(dx * sp.nz - dz * sp.nx);             // distance along the wall
+    if (along < 0.2 || along > 3.2 || side > sp.w / 2 + 0.7) continue;
+    if (along < bestD) { bestD = along; best = sp; }
+  }
+  return best;
+}
+function checkNearArt() {
+  const sp = spotNear();
+  if (sp === nearSpot) return;
+  nearSpot = sp;
+  if (dismissed && dismissed !== sp) dismissed = null;            // walking away resets "No"
+  updateDlPrompt();
+}
+function updateDlPrompt(clear = false) {
+  if (clear) { nearSpot = null; dismissed = null; }
+  const el = document.getElementById("dlPrompt");
+  const show = nearSpot && nearSpot !== dismissed;
+  el.hidden = !show;
+  if (show) document.getElementById("dlName").textContent = shortTitle(nearSpot.item.title);
+}
+function fileName(title) { return "chonkit-" + (String(title || "mosaic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "mosaic") + ".jpg"; }
+async function downloadItem(item) {
+  const name = fileName(item.title), blob = item.blob;
+  const file = new File([blob], name, { type: blob.type || "image/jpeg" });
+  if (document.body.classList.contains("touch") && navigator.canShare?.({ files: [file] })) {
+    try { await navigator.share({ files: [file], title: shortTitle(item.title) }); return; } catch (e) { if (e?.name === "AbortError") return; }
+  }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast(`Saved ${name}`);
+}
+document.getElementById("dlYes").onclick = () => { if (nearSpot) { const it = nearSpot.item; dismissed = nearSpot; updateDlPrompt(); downloadItem(it); } };
+document.getElementById("dlNo").onclick = () => { dismissed = nearSpot; updateDlPrompt(); };
+document.getElementById("statueForm").addEventListener("submit", (e) => { e.preventDefault(); const v = document.getElementById("statueId").value.trim(); if (v !== "") gildStatue(parseInt(v, 10)); document.activeElement.blur(); });
+document.getElementById("statueMine").onclick = () => { if (sel) gildStatue(sel.id, sel.vox); };
 
 /* boot */
 resize(); camera.fov = WALK_FOV; camera.updateProjectionMatrix();
