@@ -134,6 +134,9 @@
   .logo i .w { background: #E6E7E8; }
   .logo i .k { background: #31373D; }
   .logo i .o { background: transparent; }
+  .gallery-pill { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font: 700 14px var(--body); text-decoration: none; color: var(--ink); background: var(--surface); border: 1px solid var(--line); }
+  .gallery-pill:hover { border-color: var(--blue); color: var(--blue); }
+  .gallery-pill span { min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px; background: var(--yellow); color: #0E1230; font: 800 11px/20px var(--body); text-align: center; }
   .chain-pill {
     display: inline-flex; align-items: center; gap: 8px; text-decoration: none; color: var(--ink);
     font-size: 14px; font-weight: 500; border: 1px solid var(--line); background: var(--surface);
@@ -485,6 +488,7 @@
   <nav>
     <a class="logo" href="./"><i aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></i>Chonkit</a>
     <div class="nav-right">
+      <a class="gallery-pill" href="gallery.html">Gallery<span id="galBadge" hidden></span></a>
       <a class="chain-pill" id="contractLink" target="_blank" rel="noopener">Chonks on Base</a>
       <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
@@ -647,6 +651,8 @@
           <button class="btn quiet" id="dl" disabled>Download PNG</button>
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
           <button class="btn quiet" id="makeGif" disabled>Make GIF</button>
+          <button class="btn quiet" id="addGallery" disabled>Add to Gallery</button>
+          <a class="btn quiet" id="openGallery" href="gallery.html" hidden>Open Gallery &rarr;</a>
           <a class="btn quiet share" id="share" target="_blank" rel="noopener" role="button" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</a>
         </div>
         <div class="bar"><div id="progress"></div></div>
@@ -757,11 +763,12 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=36"></script>
-<script src="zoom.js?v=36"></script>
-<script src="export.js?v=36"></script>
-<script src="vendor/gifenc.js?v=36"></script>
-<script src="gif.js?v=36"></script>
-<script src="app.js?v=36"></script>
+<script src="chain.js?v=37"></script>
+<script src="zoom.js?v=37"></script>
+<script src="export.js?v=37"></script>
+<script src="vendor/gifenc.js?v=37"></script>
+<script src="gif.js?v=37"></script>
+<script src="gallery-store.js?v=1"></script>
+<script src="app.js?v=37"></script>
 </body>
 </html>

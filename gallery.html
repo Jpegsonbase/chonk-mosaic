@@ -1,0 +1,1929 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>body{margin:0}[hidden]{display:none!important}</style></head><body>
+<title>Chonkit Gallery</title>
+<meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
+<link rel="icon" href="apple-touch-icon.png">
+<script src="gallery-store.js?v=1"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-bleed walkable 3D world; slim HUD while walking; photo mode slides in a control rail (bottom sheet on phones) plus framing guide and shutter */
+:root {
+  --stage: #0f1117;
+  --panel: rgba(20, 22, 30, 0.88);
+  --panel-solid: #161922;
+  --line: rgba(255, 255, 255, 0.10);
+  --fg: #eef0f6;
+  --muted: #9aa0b4;
+  --skin: #efb15e;           /* Chonk skin tone, the accent */
+  --skin-deep: #d69743;
+  --ink: #1b1305;
+  --ok: #7fd6a4;
+  --warn: #ffb4a2;
+  --display: "Silkscreen", "Courier New", monospace;
+  --body: "Sora", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "DM Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--stage); color: var(--fg); font-family: var(--body); font-size: 14px; overflow: hidden; -webkit-user-select: none; user-select: none; }
+input { -webkit-user-select: text; user-select: text; }
+#stage { position: fixed; inset: 0; }
+#stage canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+#stage canvas:active { cursor: grabbing; }
+
+/* ---------- walk HUD ---------- */
+.hud-top { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); left: 16px; right: 16px; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; z-index: 6; pointer-events: none; }
+.hud-top > * { pointer-events: auto; }
+.pill { display: flex; align-items: center; gap: 10px; background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px 8px 10px; min-width: 0; }
+.pill .dot { width: 14px; height: 14px; background: var(--skin); box-shadow: inset -3px -3px 0 var(--skin-deep); flex: none; }
+.pill .brand { font-family: var(--display); font-size: 13px; white-space: nowrap; }
+.pill .back { color: var(--fg); text-decoration: none; font: 400 15px var(--display); padding: 0 4px 0 2px; }
+.pill .back:hover { color: var(--skin); }
+.pill .where { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#photoBtn { display: flex; align-items: center; gap: 9px; font: 400 13px var(--display); letter-spacing: .03em; padding: 9px 16px 9px 10px; border-radius: 999px;
+  background: var(--skin); color: var(--ink); border: 1px solid var(--skin-deep); box-shadow: 0 8px 24px rgba(0,0,0,.3); cursor: pointer; }
+#photoBtn svg { width: 20px; height: 20px; }
+#photoBtn kbd { font: 500 10px var(--mono); background: rgba(0,0,0,.14); border-radius: 4px; padding: 1px 5px; }
+.keys { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 6;
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px; max-width: calc(100% - 32px);
+  font: 11.5px var(--mono); color: rgba(255,255,255,.82); background: rgba(10,11,16,.55); padding: 8px 14px; border-radius: 10px; border: 1px solid var(--line); }
+.keys b { color: var(--skin); font-weight: 500; }
+.toast { position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 40; background: var(--panel-solid); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 14px; font-size: 13px; max-width: calc(100% - 32px); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.empty-note { position: fixed; left: 50%; top: 72px; transform: translateX(-50%); z-index: 6; background: var(--panel-solid); border: 1px solid var(--skin); border-radius: 12px; padding: 10px 16px; font-size: 13.5px; max-width: calc(100% - 32px); text-align: center; }
+.empty-note a { color: var(--skin); }
+.mthumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; flex: none; margin: 6px 0 6px 8px; image-rendering: pixelated; }
+.member.withthumb { grid-template-columns: auto 1fr auto; }
+/* touch controls */
+#joy { position: fixed; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 124px; height: 124px; border-radius: 50%; z-index: 6;
+  background: rgba(10,11,16,.35); border: 1px solid rgba(255,255,255,.22); touch-action: none; }
+#joy i { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px; border-radius: 50%; background: rgba(239,177,94,.85); box-shadow: inset 0 -4px 0 var(--skin-deep); }
+.tbtns { position: fixed; right: 22px; bottom: calc(30px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: grid; gap: 10px; justify-items: end; }
+.tbtns button { width: 64px; height: 64px; border-radius: 50%; font: 400 11px var(--display); color: var(--fg); background: rgba(10,11,16,.5); border: 1px solid rgba(255,255,255,.25); touch-action: none; }
+.tbtns .small { width: 48px; height: 48px; font-size: 9px; }
+body.photo .walk-only, body:not(.photo) .photo-only { display: none !important; }
+body:not(.touch) .touch-only { display: none !important; }
+body.touch .keys { display: none !important; }
+
+/* ---------- photo mode ---------- */
+#frame { position: fixed; pointer-events: none; border: 1px solid rgba(255,255,255,.6); box-shadow: 0 0 0 200vmax rgba(8,9,14,.45); z-index: 2; }
+#frame::before, #frame::after { content: ""; position: absolute; inset: 33.33% 0; border-block: 1px dashed rgba(255,255,255,.14); }
+#frame::after { inset: 0 33.33%; border-block: 0; border-inline: 1px dashed rgba(255,255,255,.14); }
+#frame.noguides::before, #frame.noguides::after { display: none; }
+.rail { position: fixed; top: 16px; left: 16px; bottom: 16px; width: 324px; display: flex; flex-direction: column; z-index: 5;
+  background: var(--panel); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.rail header { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 12px 12px 16px; border-bottom: 1px solid var(--line); }
+.rail header .brand { font-family: var(--display); font-size: 15px; }
+.rail header .brand b { color: var(--skin); font-weight: 400; }
+.rail-body { overflow-y: auto; padding: 2px 16px 20px; display: flex; flex-direction: column; gap: 16px; overscroll-behavior: contain; }
+.rail-body section { display: flex; flex-direction: column; gap: 9px; }
+h2 { font-family: var(--display); font-weight: 400; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin: 14px 0 0; }
+.row { display: flex; gap: 8px; align-items: center; }
+input[type=text], input[type=number] { flex: 1; min-width: 0; background: rgba(255,255,255,.06); color: var(--fg);
+  border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; font: 500 13.5px var(--mono); font-variant-numeric: tabular-nums; }
+input:focus-visible, button:focus-visible { outline: 2px solid var(--skin); outline-offset: 2px; }
+button { font: 500 13px var(--body); color: var(--fg); background: rgba(255,255,255,.07); border: 1px solid var(--line);
+  border-radius: 9px; padding: 8px 11px; cursor: pointer; transition: background .15s, border-color .15s; }
+button:hover { background: rgba(255,255,255,.12); }
+button:disabled { opacity: .4; cursor: default; }
+button.primary { background: var(--skin); color: var(--ink); border-color: var(--skin-deep); font-weight: 600; }
+button.primary:hover { background: #f5c07a; }
+button[aria-pressed="true"] { background: rgba(239,177,94,.16); border-color: var(--skin); color: var(--skin); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chips button { font: 500 12px var(--mono); padding: 6px 9px; }
+.status { font-size: 12px; color: var(--muted); line-height: 1.45; }
+.status:empty { display: none; }
+.status.err { color: var(--warn); }
+.status.ok { color: var(--ok); }
+.hint { font-size: 11.5px; color: var(--muted); line-height: 1.5; }
+
+/* roster */
+.roster { display: flex; flex-direction: column; gap: 6px; }
+.member { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px; padding: 0; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.04); }
+.member.sel { border-color: var(--skin); background: rgba(239,177,94,.10); }
+.member .pick { text-align: left; background: none; border: 0; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; min-width: 0; border-radius: 10px; }
+.member .pick strong { font: 400 13px var(--display); }
+.member .pick span { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.member.sel .pick strong::after { content: " · you"; font: 500 11px var(--mono); color: var(--skin); }
+.member .rm { background: none; border: 0; color: var(--muted); font-size: 18px; line-height: 1; padding: 6px 10px; }
+.member .rm:hover { color: var(--warn); }
+
+.locs { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+.loc { text-align: left; padding: 0; overflow: hidden; display: flex; flex-direction: column; }
+.loc i { display: block; height: 34px; }
+.loc span { padding: 6px 9px 7px; font-size: 12.5px; }
+.loc[aria-pressed="true"] { box-shadow: 0 0 0 1px var(--skin); }
+.poses { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; }
+.seg button { font-family: var(--mono); }
+label.slider { display: grid; grid-template-columns: 70px 1fr 44px; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); }
+label.slider output { font: 12px var(--mono); text-align: right; color: var(--fg); font-variant-numeric: tabular-nums; }
+input[type=range] { width: 100%; accent-color: var(--skin); }
+label.check { display: flex; gap: 8px; align-items: center; font-size: 12.5px; color: var(--muted); cursor: pointer; }
+input[type=checkbox] { accent-color: var(--skin); width: 15px; height: 15px; }
+input[type=color] { width: 38px; height: 30px; border: 1px solid var(--line); border-radius: 8px; background: none; padding: 2px; }
+
+.dock { position: fixed; left: calc(324px + 32px); right: 16px; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; justify-content: center; pointer-events: none; z-index: 4; }
+#snap { pointer-events: auto; display: flex; align-items: center; gap: 12px; padding: 8px 20px 8px 8px; border-radius: 999px;
+  background: var(--panel-solid); border: 1px solid var(--line); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+#snap .lens { width: 46px; height: 46px; border-radius: 50%; background: var(--skin); border: 4px solid #2a2d38; box-shadow: inset 0 0 0 3px var(--skin-deep); }
+#snap strong { font-family: var(--display); font-weight: 400; font-size: 15px; letter-spacing: .04em; }
+#snap small { display: block; font: 11px var(--mono); color: var(--muted); }
+#snap:hover .lens { background: #f5c07a; }
+#snap.busy { opacity: .6; pointer-events: none; }
+#flash { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 20; }
+#flash.go { animation: flash .45s ease-out; }
+@keyframes flash { 0% { opacity: .85 } 100% { opacity: 0 } }
+#result { position: fixed; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(6,7,11,.8); padding: 16px; }
+#result .card { background: var(--panel-solid); border: 1px solid var(--line); border-radius: 16px; padding: 14px; width: min(560px, 100%); max-height: 100%; display: flex; flex-direction: column; gap: 12px; }
+#result img { width: 100%; max-height: 62vh; object-fit: contain; border-radius: 10px; background: #000; -webkit-user-select: auto; user-select: auto; }
+#result .meta { font: 12px var(--mono); color: var(--muted); }
+#result .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+
+kbd { font: 500 10px var(--mono); background: rgba(255,255,255,.1); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; margin-left: 4px; color: inherit; }
+.hud-right { display: flex; gap: 8px; align-items: center; }
+.hudBtn { display: flex; align-items: center; gap: 8px; border-radius: 999px; padding: 9px 14px; background: var(--panel); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); font: 400 12px var(--display); }
+.hudBtn svg { width: 18px; height: 18px; }
+body.freecam .follow-only, body:not(.freecam) .free-only { display: none !important; }
+#pickedSec .card2 { display: flex; flex-direction: column; gap: 9px; padding: 11px 12px; border-radius: 12px; border: 1px dashed var(--line); background: rgba(255,255,255,.03); }
+#pickedSec.active .card2 { border: 1px solid var(--skin); background: rgba(239,177,94,.08); }
+#pickedTitle { font: 400 13px var(--display); }
+.filebtn { position: relative; display: inline-flex; align-items: center; justify-content: center; font: 600 13px var(--body); color: var(--ink); background: var(--skin); border: 1px solid var(--skin-deep); border-radius: 9px; padding: 8px 11px; cursor: pointer; }
+.filebtn input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.filebtn:focus-within { outline: 2px solid var(--skin); outline-offset: 2px; }
+.traitlist { display: flex; flex-wrap: wrap; gap: 5px; max-height: 172px; overflow-y: auto; padding: 2px; overscroll-behavior: contain; }
+.traitlist button { font-size: 12px; padding: 5px 8px; }
+.wrap-row { display: flex; flex-wrap: wrap; gap: 6px; }
+@media (max-width: 760px) {
+  .hudBtn .lbl { display: none; }
+  .rail { top: auto; left: 0; right: 0; bottom: 0; width: auto; max-height: 52%; border-radius: 16px 16px 0 0; border-bottom: 0; padding-bottom: env(safe-area-inset-bottom, 0px); }
+  .dock { left: 16px; right: auto; bottom: auto; top: calc(14px + env(safe-area-inset-top, 0px)); }
+  #snap { padding: 6px 14px 6px 6px; }
+  #snap .lens { width: 36px; height: 36px; }
+  .pill .brand { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { #flash.go { animation: none; } }
+</style>
+
+<div id="stage"></div>
+<div id="frame" class="photo-only"></div>
+<div id="flash"></div>
+
+<!-- walking HUD -->
+<div class="hud-top walk-only">
+  <div class="pill"><a class="back" href="./" aria-label="Back to Chonkit">&larr;</a><span class="dot"></span><span class="brand">Chonkit Gallery</span><span class="where" id="where">Your mosaics</span></div>
+  <div class="hud-right">
+  <button class="hudBtn" data-freecam aria-pressed="false" aria-label="Free camera">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
+    <span class="lbl">Free cam</span> <kbd>F</kbd>
+  </button>
+  <button id="photoBtn" aria-label="Open photo mode">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    Photo mode <kbd>P</kbd>
+  </button>
+  </div>
+</div>
+<div class="keys walk-only follow-only">
+  <span><b>WASD</b> / arrows move</span><span><b>Shift</b> run</span><span><b>Space</b> jump</span><span><b>1</b> wave</span><span><b>2</b> bow</span><span><b>Drag</b> look · <b>scroll</b> zoom</span><span><b>F</b> free cam</span>
+</div>
+<div class="keys walk-only free-only">
+  <span><b>WASD</b> fly</span><span><b>Q</b> / <b>E</b> down / up</span><span><b>Shift</b> fast</span><span><b>Drag</b> look · <b>scroll</b> forward</span><span><b>F</b> back to your Chonk</span>
+</div>
+<div id="joy" class="walk-only touch-only" aria-hidden="true"><i></i></div>
+<div class="tbtns walk-only touch-only follow-only">
+  <button class="small" id="tWave">Wave</button>
+  <button id="tJump">Jump</button>
+</div>
+<div class="toast" id="toast" hidden></div>
+<div class="empty-note walk-only" id="emptyNote" hidden>Your gallery is empty. <a href="./">Make a mosaic on Chonkit</a> and press <b>Add to Gallery</b>.</div>
+
+<!-- photo mode -->
+<aside class="rail photo-only" id="rail">
+  <header>
+    <div class="brand">Photo <b>mode</b></div>
+    <button id="closePhoto">Back to walking</button>
+  </header>
+  <div class="rail-body">
+    <section id="pickedSec">
+      <h2>Selected</h2>
+      <div class="card2">
+        <div class="row" style="justify-content:space-between"><strong id="pickedTitle">Nothing selected</strong><button id="deselect" hidden>Done <kbd>Esc</kbd></button></div>
+        <p class="hint" id="pickHint" style="margin:0">Click a Chonk or prop in the scene to move or turn it. <span id="paintHint">Click a framed picture to hang your own image in it.</span></p>
+        <div id="gizmoRow" hidden>
+          <div class="seg" id="gizmoModes"><button type="button" data-mode="translate">Move<kbd>G</kbd></button><button type="button" data-mode="rotate">Turn<kbd>R</kbd></button><button type="button" data-mode="scale">Size<kbd>S</kbd></button></div>
+          <p class="hint" style="margin:8px 0 0">Drag the coloured handles in the scene.</p>
+        </div>
+        <div class="wrap-row" id="propActions" hidden><button id="propDrop" type="button">Drop to floor</button><button id="propDup" type="button">Duplicate</button><button id="propDelete" type="button">Delete <kbd>Del</kbd></button></div>
+        <div id="paintingTools" hidden style="display:flex;flex-direction:column;gap:8px">
+          <label class="filebtn">Upload an image<input type="file" id="paintFile" accept="image/*" aria-label="Upload an image for this frame"></label>
+          <form class="row" id="paintLinkForm"><input id="paintLink" type="text" placeholder="…or paste an image link" aria-label="Image link" spellcheck="false" autocomplete="off"><button type="submit">Use</button></form>
+          <button id="paintReset" type="button">Restore the original</button>
+          <div class="status" id="paintStatus"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Your mosaics <span id="galCount" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <div class="roster" id="galList"></div>
+      <p class="hint" style="margin:0" id="galHint">Make a mosaic on <a href="./" style="color:var(--skin)">Chonkit</a> and press <b>Add to Gallery</b> to hang it here. Your gallery is saved in this browser.</p>
+      <div hidden><div class="locs" id="locs"></div><div class="row" id="studioColorRow" hidden><input type="color" id="studioColor" value="#f2c14e"></div><div id="glbRow" hidden><input type="file" id="glbFile"><input type="range" id="glbScale" min="-2" max="2" step="0.01" value="0"><output id="glbScaleOut"></output></div></div>
+    </section>
+
+    <section>
+      <h2>Chonks in the scene</h2>
+      <div class="roster" id="roster"></div>
+      <div class="row">
+        <button id="cloneBtn" style="flex:1">Clone selected</button>
+      </div>
+      <div class="hint">Cloning leaves a copy standing where your Chonk is. Then load a different Chonk into the selected slot to group your Chonks together.</div>
+    </section>
+
+    <section>
+      <h2>Load a Chonk</h2>
+      <form class="row" id="idForm">
+        <input id="tokenId" type="number" min="0" inputmode="numeric" placeholder="Token ID, e.g. 13" aria-label="Chonk token ID">
+        <button class="primary" type="submit">Load</button>
+      </form>
+      <form class="row" id="walletForm">
+        <input id="wallet" type="text" placeholder="Wallet 0x…" aria-label="Wallet address" spellcheck="false" autocomplete="off">
+        <button type="submit">Find</button>
+      </form>
+      <div class="chips" id="walletChonks"></div>
+      <div class="status" id="status"></div>
+      <div class="hint">Samples</div>
+      <div class="chips" id="samples"></div>
+    </section>
+
+    <section>
+      <h2>Props <span id="propCount" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <p class="hint" style="margin:0">Every Chonks 3D trait, ready to drop into the scene.</p>
+      <div class="chips" id="traitCats"></div>
+      <input type="text" id="traitSearch" placeholder="Search all 270 traits" aria-label="Search traits" spellcheck="false" autocomplete="off">
+      <div class="traitlist" id="traitList"></div>
+      <div class="roster" id="propList"></div>
+    </section>
+
+
+    <section>
+      <h2>Pose <span id="poseWho" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <div class="poses" id="poses"></div>
+      <label class="check"><input type="checkbox" id="freeze"> Freeze the pose</label>
+      <label class="slider" for="phase">Moment <input type="range" id="phase" min="0" max="1" step="0.001" value="0.18"><output id="phaseOut">18%</output></label>
+      <label class="slider" for="turn">Turn <input type="range" id="turn" min="-180" max="180" step="1" value="0"><output id="turnOut">0°</output></label>
+    </section>
+
+    <section>
+      <h2>Shot</h2>
+      <div class="seg" id="aspects"></div>
+      <label class="slider" for="lens">Lens <input type="range" id="lens" min="18" max="85" step="1" value="35"><output id="lensOut">35mm</output></label>
+      <label class="check"><input type="checkbox" id="tag" checked> Add Chonk tag to photo</label>
+      <label class="check"><input type="checkbox" id="guides" checked> Show thirds grid</label>
+      <div class="row"><button data-freecam aria-pressed="false" style="flex:1">Free camera <kbd>F</kbd></button><button id="resetCam" style="flex:1">Reset camera</button></div>
+    </section>
+  </div>
+</aside>
+<div class="dock photo-only"><button id="snap" aria-label="Take photo"><span class="lens"></span><span><strong>Snap</strong><small id="snapSize">2048 × 2048 px</small></span></button></div>
+
+<div id="result" hidden>
+  <div class="card">
+    <img id="shot" alt="Your Chonk photo">
+    <div class="meta" id="shotMeta"></div>
+    <div class="status" id="saveStatus"></div>
+    <div class="actions">
+      <button id="closeShot">Back to the booth</button>
+      <button class="primary" id="saveShot">Save PNG</button>
+    </div>
+  </div>
+</div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { TransformControls } from "three/addons/controls/TransformControls.js";
+
+/* ===================================================================
+   Sample Chonks (real onchain zMaps, packed: bbox grid + palette, deflate)
+   =================================================================== */
+const SAMPLES = {"1": {"b64": "xZJLCsIwFEVvPy95LwiCYweCGyidWhwobsNtOXMPbsZtuIRK/gq2FkQ9lHASCM1pI6qaLcgA6Lqubdvb5Xg97c9z9H2/bJr17rDabDGMeB7UTjgB1Ilpjmw/xuQWE45vJyz+QLYrHvODLhdGHvda5ZnspWe8JX1+gONSVucPLSzyqosGfFKXUlqHQ6vkCloH1xo1BSe7uSpL+8RGxMaiiMPI/xKxufYeQ4SNY+we6qJ2g3ciCj7Q9Q0Gu57JPxKhi/My87vt/+QO"}, "3": {"b64": "zZKxDcIwEEUvuZwdJxYNJRJVlqACRmAB1mAHJmAfajoqKnqgYgAjx46xk0ACAimvON2TE1n/y4JwNCZ5hMnteonmZ5gdtutis5oWO7jvk1O2UEoBgIIl/AhhCcQoOboM/H3Q+GkhSCuqQKF1Zm9vwlbBDPZy5BqszNDD4kQTf5u2R/b2JqhhjF7bB01w2wQvhadl2JTz0mz20ohZY2SbwARdEzEiIFYWRdWwSI3bvSakO5US5PNzPfo2AYKynEgPEzbLGWPO3jTxfxpNhNTfRHDQ74V4PwH4e90GxAM="}, "23": {"b64": "xZGxDsIgEIZP4QpYJp3dXFyZNOni6DMY39TdlzB9Bh2cMRyIV0OTNqbxJ718NLTclzOVsEu0m925bVvnXNM0AHC9nI5utV3Xz8f9BnvvvYcDjM4ihWHY9LHKgbwZf+lE6bik5kL/qsCq61LyIjEdQ/83MYNZxvzuwmfBXLIMaNY/50FexiAtQ91jeiJjZKXTex0+RokVSqQ+hZQgpSCezd8lx1LJ4QiWz+Xj8jWjGhWVyFrrxD1eU6TgNWxgAfkJxlDmP+UF"}, "42": {"b64": "rZIxDsIwDEUNaW2Kw8BF2ChjRxZmBiSOwAmYWDgER+EAHIOBE4CEULcix0kTJBBU4leKXt3UfpFSkOFxPgKAqqqW29l8Xa720+OuPGwmt0e9ODV1XV/OcL9C0zTwPewTibkTJh1A3tyjrX8Y3znpXNQwKHFA9tWwI2x4QcvApBHlwhULkR5qZFqhEUyqeWZyk+VdhB1ZF1FvdVpKEVOMHH+Trl4dAL06AuJAg4jk1QmRfJVQ1TNjRMeYDPwpev2wgDraV9+I/E5deNRDlMUhEQnaD+r/vA+JOnBoHS6JjRfV2vYr2EShG7b81zM8AQ=="}, "123": {"b64": "xZJBDoIwEEUHmIF26MqjsGZn3HMCT6QLN3oOV56AeAOXbDyAJzCYgUJLAjYkJr40k5emi//b6jTJN2R2p2dZlkVRvK77x2XbNA0A1HV9qw7F8d227b06wyq0xZnWYYVR/oiXBi16VtFXdArOIO2BlRr3fItpZBmRATDuJj2djc44p8stiIgkmbIhFSjRTFSpcVch2V1CgCSOZdlCYAtF0TACD+B/numHGaNrzDNEGSBKRKKu0qTFTwm2CMLM3A1mTrN+AHTT6nDgh7GX+AA="}, "404": {"b64": "tZIxTgQxDEUN6zDOn7HQ1pyAYinhFlyCmoYTQA8VVNRbI9FSsAUlHIALII4xKHayyexCgQRfI42f4mTyNJZupnPWeHkW7y72H6+fro7vz48O3pYnnyt9vl3cvB6+P4zjSESnHy9ERICqkgcgAMi1AIUgECkkZcWg1LA9FdZNE7CjJb//Pjs17pDkNPt4dCKnRY6ZOcux1S7HBRS8DmluMkAFOyx47DNUF4iIuy49Dp3HYc/jMPNYvVsycTO7n+TQyqGVQ5FLEKW5NiI3IN/CllzTlTxdLhGHLBcMslzgX8htjGWdne2x3Pxzdh+RfmDmfkgQuR9CCA6tHLVyJP80lNOx/AI="}};
+const SAMPLE_META = {
+  1: "Cap Forward · Top Red · Sash White",
+  3: "Side Spikey Red · Bro Green · Racer Pants",
+  23: "Short Red · Tuxedo White · Wings Light",
+  42: "Long Blonde · Beach City Tank · Wings Midnight",
+  123: "Nouns Glasses · Chef's Coat",
+  404: "Asymmetric Green · Ball Gown · Wings Dark",
+};
+const sampleCache = {};
+async function unpackSample(id) {
+  if (sampleCache[id]) return sampleCache[id];
+  const bin = Uint8Array.from(atob(SAMPLES[id].b64), c => c.charCodeAt(0));
+  const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const b = new Uint8Array(await new Response(ds).arrayBuffer());
+  const mn = [b[0], b[1], b[2]], d = [b[3], b[4], b[5]], np = b[6];
+  const pal = []; for (let i = 0; i < np; i++) pal.push((b[7+i*3] << 16) | (b[8+i*3] << 8) | b[9+i*3]);
+  const g = b.subarray(7 + np * 3), vox = [];
+  for (let i = 0; i < g.length; i++) if (g[i]) {
+    vox.push({ x: (i % d[0]) + mn[0], y: (Math.floor(i / d[0]) % d[1]) + mn[1], z: Math.floor(i / (d[0] * d[1])) + mn[2], color: pal[g[i] - 1] });
+  }
+  return (sampleCache[id] = vox);
+}
+
+/* ===================================================================
+   The playground's Chonk rig and animator, ported 1:1
+   =================================================================== */
+const RIG = { MIDDLE_X: 14, FEET_Y: 23, LEG_ROWS: [21, 22], ARM_ROWS: [17, 20], ARM_Z: [5, 6],
+  LEFT_LEG_X: [11, 13], RIGHT_LEG_X: [15, 17], LEFT_ARM_X: [8, 10], RIGHT_ARM_X: [18, 20] };
+const PIVOT = { leftLeg: [0, 2.5, 0], rightLeg: [0, 2.5, 0], leftFoot: [0, 0, 0], rightFoot: [0, 0, 0],
+  leftArm: [-4, 6.5, 0], rightArm: [4, 6.5, 0], body: [0, 0, 0] };
+const PART_BONE = { body: "bodyBone", leftLeg: "leftLegBone", rightLeg: "rightLegBone", leftFoot: "leftFootBone",
+  rightFoot: "rightFootBone", leftArm: "leftArmBone", rightArm: "rightArmBone" };
+const BONES = ["torsoBone", "bodyBone", "leftLegBone", "rightLegBone", "leftFootBone", "rightFootBone", "leftArmBone", "rightArmBone"];
+const RIGHT_HAND_ACCESSORIES = ["Torch", "Lightblade Red", "Lightblade Green", "Fishiing Rod", "Scythe", "Baguette", "A Marfa Burrito", "Sword", "Staff", "Red Balloon", "Rubber Ducky"];
+const LEFT_HAND_ACCESSORIES = ["Rubber Ducky"];
+
+function parseZMap(hex) {
+  const t = hex.startsWith("0x") ? hex.slice(2) : hex, m = new Map();
+  for (let i = 0; i + 12 <= t.length; i += 12) {
+    const x = parseInt(t.slice(i, i+2), 16), y = parseInt(t.slice(i+2, i+4), 16), z = parseInt(t.slice(i+4, i+6), 16);
+    m.set(x << 16 | y << 8 | z, { x, y, z, color: parseInt(t.slice(i+6, i+12), 16) });
+  }
+  return [...m.values()];
+}
+function partOf(x, y, z) {
+  const l = x >= RIG.LEFT_LEG_X[0] && x <= RIG.LEFT_LEG_X[1], r = x >= RIG.RIGHT_LEG_X[0] && x <= RIG.RIGHT_LEG_X[1];
+  if (y === RIG.FEET_Y) { if (l) return "leftFoot"; if (r) return "rightFoot"; }
+  else if (y >= RIG.LEG_ROWS[0] && y <= RIG.LEG_ROWS[1]) { if (l) return "leftLeg"; if (r) return "rightLeg"; }
+  if (y >= RIG.ARM_ROWS[0] && y <= RIG.ARM_ROWS[1] && z >= RIG.ARM_Z[0] && z <= RIG.ARM_Z[1]) {
+    if (x === 10 || (x === 9 && y >= 18) || (x === 8 && y >= 19 && z === 5)) return "leftArm";
+    if (x === 18 || (x === 19 && y >= 18) || (x === 20 && y >= 19 && z === 5)) return "rightArm";
+  }
+  return "body";
+}
+const FACES = [
+  [[1,0,0], [[1,0,0],[1,1,0],[1,1,1],[1,0,1]]], [[-1,0,0], [[0,0,0],[0,0,1],[0,1,1],[0,1,0]]],
+  [[0,1,0], [[0,1,0],[0,1,1],[1,1,1],[1,1,0]]], [[0,-1,0], [[0,0,0],[1,0,0],[1,0,1],[0,0,1]]],
+  [[0,0,1], [[0,0,1],[1,0,1],[1,1,1],[0,1,1]]], [[0,0,-1], [[0,0,0],[0,1,0],[1,1,0],[1,0,0]]],
+];
+function voxelGeometry(vox, off, colorOverride) {
+  const key = (x, y, z) => `${x},${y},${z}`, has = new Set(vox.map(v => key(v.x, v.y, v.z)));
+  const pos = [], nor = [], col = [], idx = [], c = new THREE.Color();
+  for (const v of vox) {
+    c.setHex(colorOverride ?? v.color);
+    for (const [n, q] of FACES) {
+      if (has.has(key(v.x + n[0], v.y + n[1], v.z + n[2]))) continue;
+      const b = pos.length / 3;
+      for (const p of q) { pos.push(v.x + p[0] + off[0], v.y + p[1] + off[1], v.z + p[2] + off[2]); nor.push(...n); col.push(c.r, c.g, c.b); }
+      idx.push(b, b+1, b+2, b, b+2, b+3);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeBoundingSphere();
+  return g;
+}
+class ChonkRig {
+  constructor() {
+    this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
+    this.object = new THREE.Group(); this.object.scale.setScalar(0.075);
+    this.bones = {}; for (const b of BONES) { const o = new THREE.Bone(); o.name = b; this.bones[b] = o; }
+    const s = this.bones;
+    s.torsoBone.add(s.bodyBone, s.leftLegBone, s.rightLegBone, s.leftArmBone, s.rightArmBone);
+    s.leftLegBone.add(s.leftFootBone); s.rightLegBone.add(s.rightFootBone);
+    this.object.add(s.torsoBone);
+    s.leftLegBone.position.fromArray(PIVOT.leftLeg); s.rightLegBone.position.fromArray(PIVOT.rightLeg);
+    s.leftFootBone.position.fromArray(PIVOT.leftFoot).sub(s.leftLegBone.position);
+    s.rightFootBone.position.fromArray(PIVOT.rightFoot).sub(s.rightLegBone.position);
+    s.leftArmBone.position.fromArray(PIVOT.leftArm); s.rightArmBone.position.fromArray(PIVOT.rightArm);
+    this.rest = {}; for (const b of BONES) this.rest[b] = { p: s[b].position.clone(), q: s[b].quaternion.clone() };
+    this.parts = {}; for (const [p, b] of Object.entries(PART_BONE)) { const g = new THREE.Group(); this.parts[p] = g; s[b].add(g); }
+    this.locks = { l: false, r: false };
+  }
+  setVoxels(vox, accessory = null) {
+    for (const g of Object.values(this.parts)) for (const m of [...g.children]) { g.remove(m); m.geometry.dispose(); }
+    let al = false, ar = false;
+    for (const { x, y } of vox) if (y >= 18 && y <= 20) { if (x < RIG.LEFT_ARM_X[0]) al = true; if (x > RIG.RIGHT_ARM_X[1]) ar = true; }
+    this.locks = { l: al || LEFT_HAND_ACCESSORIES.includes(accessory), r: ar || RIGHT_HAND_ACCESSORIES.includes(accessory) };
+    const by = {};
+    for (const { x, y, z, color } of vox) (by[partOf(x, y, z)] ??= []).push({ x, y: RIG.FEET_Y - y, z, color });
+    for (const [p, list] of Object.entries(by)) {
+      const n = PIVOT[p];
+      const mesh = new THREE.Mesh(voxelGeometry(list, [-RIG.MIDDLE_X - .5 - n[0], -n[1], -5.5 - n[2]]), this.material);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      this.parts[p].add(mesh);
+    }
+  }
+  dispose() { for (const g of Object.values(this.parts)) for (const m of g.children) m.geometry.dispose(); this.material.dispose(); }
+  pose(anim, t) {
+    const s = this.bones;
+    for (const b of BONES) { s[b].position.copy(this.rest[b].p); s[b].quaternion.copy(this.rest[b].q); }
+    const r = s.torsoBone, body = s.bodyBone, a = s.leftLegBone, o = s.rightLegBone, lf = s.leftFootBone, rf = s.rightFootBone, la = s.leftArmBone, ra = s.rightArmBone;
+    const freeL = !this.locks.l, freeR = !this.locks.r;
+    const p = .5, m = .5, h = .3, g = .4, _ = .01;
+    switch (anim) {
+      case "idle": r.position.y += Math.sin(t * .5) * .05; r.rotation.z = Math.sin(t * .6) * .02; break;
+      case "walk": case "run": {
+        const run = anim === "run", n = t * (run ? 16 : 8), i = Math.sin(n);
+        r.position.y += Math.abs(i) * g; r.position.x += i * .03; r.rotation.z = i * .05; r.rotation.x = i * .1;
+        a.rotation.x = i * p; o.rotation.x = -i * p; a.position.x += _; o.position.x += _;
+        if (!run) { lf.rotation.x = Math.sin(n - .3) * h; rf.rotation.x = Math.sin(n + Math.PI - .3) * h; }
+        if (freeL) la.rotation.x = -i * m; if (freeR) ra.rotation.x = i * m; break;
+      }
+      case "jump": {
+        const jt = t * 10, n = -Math.PI / 2 * .4 + Math.sin(jt) * .25;
+        a.rotation.x = n; o.rotation.x = n; if (freeL) la.rotation.x = n; if (freeR) ra.rotation.x = n;
+        r.position.y += Math.abs(Math.sin(jt)) * g; r.rotation.z = Math.sin(jt) * .025; break;
+      }
+      case "wave": {
+        const e = t * 3, n = Math.sin(e) * .5 - Math.PI * .4;
+        if (freeL || !freeR) la.rotation.z = n; else ra.rotation.z = -n;
+        r.rotation.z = Math.sin(e) * .025; break;
+      }
+      case "bow": {
+        const e = .5 + .5 * Math.sin(t * 2); body.rotation.x = .2 * e;
+        if (freeL) { la.rotation.x = .2 * e; la.position.z += .9 * e; }
+        if (freeR) { ra.rotation.x = .2 * e; ra.position.z += .9 * e; } break;
+      }
+    }
+  }
+}
+const POSES = [
+  { id: "idle", label: "Idle", period: 4 * Math.PI },
+  { id: "walk", label: "Walk", period: 2 * Math.PI / 8 },
+  { id: "run", label: "Run", period: 2 * Math.PI / 16 },
+  { id: "jump", label: "Jump", period: Math.PI / 10 },
+  { id: "wave", label: "Wave", period: 2 * Math.PI / 3 },
+  { id: "bow", label: "Bow", period: Math.PI },
+];
+
+/* ===================================================================
+   Location kit: builds meshes and registers what is solid, what can be
+   walked on, and what should stop the camera
+   =================================================================== */
+const BOX = new THREE.BoxGeometry(1, 1, 1);
+const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: o.r ?? 0.95, metalness: o.m ?? 0,
+  emissive: o.e ?? 0x000000, emissiveIntensity: o.ei ?? 1, flatShading: o.flat ?? false, transparent: o.op != null, opacity: o.op ?? 1, side: o.side ?? THREE.FrontSide, map: o.map ?? null });
+function rng(seed) { return () => (seed = (seed * 16807) % 2147483647) / 2147483647; }
+function canvasTex(w, h, draw, repeat) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  if (repeat) { t.wrapS = t.wrapT = THREE.RepeatWrapping; if (Array.isArray(repeat)) t.repeat.set(...repeat); else t.repeat.set(repeat, repeat); }
+  return t;
+}
+class Kit {
+  constructor(group) { this.g = group; this.colliders = []; this.walk = []; this.occ = []; this.lights = []; this.updates = []; this.paintings = []; }
+  // axis-aligned box sitting on y (bottom), centred on x/z
+  box(m, w, h, d, x, y, z, o = {}) {
+    const b = new THREE.Mesh(BOX, m); b.scale.set(w, h, d); b.position.set(x, y + h / 2, z); if (o.ry) b.rotation.y = o.ry;
+    b.castShadow = o.cast ?? true; b.receiveShadow = o.recv ?? true; (o.parent ?? this.g).add(b);
+    if (o.solid) {
+      const c = Math.abs(Math.cos(o.ry || 0)), s = Math.abs(Math.sin(o.ry || 0)), hw = (w * c + d * s) / 2, hd = (w * s + d * c) / 2;
+      this.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd, minY: y, maxY: y + h });
+    }
+    if (o.walk) this.walk.push(b);
+    if (o.occ) this.occ.push(b);
+    return b;
+  }
+  solidBox(minX, maxX, minZ, maxZ, minY = 0, maxY = 99) { this.colliders.push({ minX, maxX, minZ, maxZ, minY, maxY }); }
+  solidCircle(x, z, r, minY = 0, maxY = 99) { this.colliders.push({ x, z, r, minY, maxY }); }
+  ground(m, size = 400, y = 0) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(size, size), m); p.rotation.x = -Math.PI / 2; p.position.y = y; p.receiveShadow = true; this.g.add(p); this.walk.push(p); return p;
+  }
+  // a framed picture on a wall; facing = direction the picture faces (+z, -z, +x, -x)
+  picture(tex, w, h, x, y, z, facing, frameColor = 0x1a1a1a, frameW = 0.08) {
+    const g = new THREE.Group(); g.position.set(x, y, z);
+    g.rotation.y = { "+z": 0, "-z": Math.PI, "+x": Math.PI / 2, "-x": -Math.PI / 2 }[facing];
+    const fm = mat(frameColor, { r: 0.6 });
+    const add = (bw, bh, bx, by) => { const b = new THREE.Mesh(BOX, fm); b.scale.set(bw, bh, 0.06); b.position.set(bx, by, 0.03); g.add(b); };
+    add(w + frameW * 2, frameW, 0, h / 2 + frameW / 2); add(w + frameW * 2, frameW, 0, -h / 2 - frameW / 2);
+    add(frameW, h, -w / 2 - frameW / 2, 0); add(frameW, h, w / 2 + frameW / 2, 0);
+    const art = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 })); art.position.z = 0.02; g.add(art);
+    // every framed picture can be swapped for the player's own image
+    const p = { group: g, art, w, h, idx: this.paintings.length, origMat: art.material }; art.userData.painting = p; this.paintings.push(p);
+    this.g.add(g); return g;
+  }
+  light(l) { this.g.add(l); this.lights.push(l); return l; }
+  every(fn) { this.updates.push(fn); }
+}
+function ringPositions(n, rMin, rMax, rand, keepOut = null) {
+  const out = []; let guard = 0;
+  while (out.length < n && guard++ < n * 50) { const a = rand() * Math.PI * 2, r = rMin + rand() * (rMax - rMin);
+    const x = Math.cos(a) * r, z = Math.sin(a) * r; if (keepOut && keepOut(x, z)) continue; out.push([x, z]); }
+  return out;
+}
+// generative artworks for walls
+function artTexture(seed, kind, w = 256, h = 320) {
+  const rand = rng(seed * 7919 + 13);
+  const pals = [["#f2e8cf", "#e76f51", "#2a9d8f", "#264653", "#e9c46a"], ["#0d1b2a", "#e0e1dd", "#778da9", "#ef476f", "#ffd166"],
+    ["#fefae0", "#283618", "#606c38", "#dda15e", "#bc6c25"], ["#f8f9fa", "#ff006e", "#3a86ff", "#8338ec", "#fb5607"], ["#1d1d1b", "#f4d35e", "#ee964b", "#f95738", "#0d3b66"]];
+  const P = pals[Math.floor(rand() * pals.length)];
+  return canvasTex(w, h, (c) => {
+    c.fillStyle = P[0]; c.fillRect(0, 0, w, h);
+    if (kind === 0) { // colour field
+      for (let i = 0; i < 3; i++) { c.fillStyle = P[1 + i]; c.globalAlpha = 0.9; c.fillRect(w * .1, h * (.08 + i * .3), w * .8, h * .25); }
+    } else if (kind === 1) { // grid
+      const n = 6 + Math.floor(rand() * 5), s = w / n; for (let y = 0; y < h / s; y++) for (let x = 0; x < n; x++) { c.fillStyle = P[Math.floor(rand() * 5)]; c.fillRect(x * s + 2, y * s + 2, s - 4, s - 4); }
+    } else if (kind === 2) { // circles
+      for (let i = 9; i > 0; i--) { c.fillStyle = P[i % 5]; c.beginPath(); c.arc(w / 2, h / 2, i * w / 18, 0, 7); c.fill(); }
+    } else if (kind === 3) { // stripes
+      for (let i = 0; i < 18; i++) { c.fillStyle = P[1 + (i % 4)]; c.fillRect(0, i * h / 18, w, h / 36 + rand() * h / 30); }
+    } else if (kind === 4) { // landscape
+      const sky = c.createLinearGradient(0, 0, 0, h * .6); sky.addColorStop(0, P[3]); sky.addColorStop(1, P[4]); c.fillStyle = sky; c.fillRect(0, 0, w, h * .6);
+      c.fillStyle = P[1]; c.beginPath(); c.arc(w * .7, h * .3, w * .1, 0, 7); c.fill();
+      for (let l = 0; l < 3; l++) { c.fillStyle = P[(2 + l) % 5]; c.beginPath(); c.moveTo(0, h); for (let x = 0; x <= w; x += 8) c.lineTo(x, h * (.5 + l * .14) + Math.sin(x * .03 + l * 2 + seed) * h * .06); c.lineTo(w, h); c.fill(); }
+    } else { // pixel portrait of a little voxel buddy
+      const s = w / 16; c.fillStyle = P[4]; c.fillRect(0, 0, w, h);
+      const face = P[1], px = (x, y, col) => { c.fillStyle = col; c.fillRect(x * s, y * s + h * .1, s, s); };
+      for (let y = 3; y < 11; y++) for (let x = 4; x < 12; x++) px(x, y, face);
+      for (let y = 11; y < 16; y++) for (let x = 5; x < 11; x++) px(x, y, P[2]);
+      px(6, 6, "#fff"); px(7, 6, "#000"); px(9, 6, "#fff"); px(10, 6, "#000");
+      for (let x = 3; x < 13; x++) { px(x, 2, P[3]); px(x, 3, P[3]); }
+    }
+  });
+}
+
+/* ===================================================================
+   Locations. Each build(k) adds meshes through the kit and returns the
+   lighting/sky settings. spawn.yaw = which way the Chonk faces (π = into the scene).
+   =================================================================== */
+const PI = Math.PI;
+function stoneTex(seed, base = "#8d8a83", repeat = [6, 2]) {
+  const rand = rng(seed);
+  return canvasTex(256, 128, (c, w, h) => {
+    c.fillStyle = "#6f6c66"; c.fillRect(0, 0, w, h);
+    const bh = 16; for (let row = 0; row < h / bh; row++) { const off = row % 2 ? 16 : 0;
+      for (let x = -off; x < w; x += 32) { const v = Math.floor(rand() * 18) - 9; c.fillStyle = shade(base, v); c.fillRect(x + 1, row * bh + 1, 30, bh - 2); } }
+  }, repeat);
+}
+function shade(hex, d) { const n = parseInt(hex.slice(1), 16); const f = (v) => Math.max(0, Math.min(255, v + d)); return `rgb(${f(n >> 16)},${f((n >> 8) & 255)},${f(n & 255)})`; }
+function textTex(lines, { w = 1024, h = 256, bg = null, fg = "#111", font = "Silkscreen", size = 110, align = "center" } = {}) {
+  return canvasTex(w, h, (c) => {
+    if (bg) { c.fillStyle = bg; c.fillRect(0, 0, w, h); } else c.clearRect(0, 0, w, h);
+    c.fillStyle = fg; c.textAlign = align; c.textBaseline = "middle";
+    lines.forEach((ln, i) => { const s = ln.size ?? size; c.font = `${ln.weight ?? 400} ${s}px ${ln.font ?? font}, "Courier New", monospace`; c.fillText(ln.text ?? ln, align === "center" ? w / 2 : 24, h / 2 + (i - (lines.length - 1) / 2) * s * 1.15); });
+  });
+}
+function plane(k, tex, w, h, x, y, z, ry = 0, o = {}) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshStandardMaterial({ map: tex, transparent: !!o.transparent, roughness: o.r ?? 0.9,
+    emissive: o.emissive ? 0xffffff : 0x000000, emissiveMap: o.emissive ? tex : null, emissiveIntensity: o.ei ?? 1, side: o.side ?? THREE.FrontSide, fog: o.fog ?? true }));
+  m.position.set(x, y, z); m.rotation.y = ry; k.g.add(m); return m;
+}
+function flicker(k, light, base) { const ph = Math.random() * 10; k.every((t) => { light.intensity = base * (0.82 + 0.12 * Math.sin(t * 11 + ph) + 0.08 * Math.sin(t * 23.7 + ph * 2)); }); }
+
+const LOCATIONS = [
+  /* ---------------- The Playground ---------------- */
+  { id: "playground", name: "The Playground", swatch: "linear-gradient(#8fa3ff,#dfe8f6 62%,#cfdde0 62%)",
+    spawn: { x: 0, z: 2, yaw: PI }, bounds: [-60, 60, -60, 60],
+    build(k) {
+      const tex = canvasTex(256, 256, (c, w, h) => { c.fillStyle = "#e6eef0"; c.fillRect(0, 0, w, h); c.strokeStyle = "#b9c9cc"; c.lineWidth = 3; c.strokeRect(0, 0, w, h); }, 200);
+      k.ground(new THREE.MeshStandardMaterial({ map: tex, roughness: 1 }));
+      const pink = mat(0xf2c9cf), dark = mat(0x22252b);
+      k.box(pink, 2.2, 0.35, 1.4, -3.4, 0, -1.2, { solid: true, walk: true }); k.box(pink, 1.4, 0.7, 1.4, -3.8, 0.35, -1.2, { solid: true, walk: true });
+      for (let i = 0; i < 16; i++) k.box(dark, 0.14, 0.2 + Math.max(0, i - 8) ** 1.6 * 0.18, 0.14, -6 + i * 0.55, 0, -9, { solid: true });
+      k.box(mat(0xf3f3f3), 5, 1.4, 4, 7.5, 0, -6, { solid: true, occ: true });
+      return { top: 0x6f84ff, bottom: 0xd9e2ff, hemi: [0xffffff, 0xa9b6c9, 1.15], sun: [0xffffff, 2.3, [0.4, 0.8, 0.45]], fog: [0xd9e2ff, 25, 90] };
+    } },
+
+  /* ---------------- Sunset Beach ---------------- */
+  { id: "beach", name: "Sunset Beach", swatch: "linear-gradient(#3b2a6b,#ff8a5b 55%,#e8c38b 55%)",
+    spawn: { x: 0, z: 2, yaw: PI }, bounds: [-40, 40, -3.7, 40],
+    build(k) {
+      const rand = rng(7), g = k.g;
+      const sandTex = canvasTex(256, 256, (c, w, h) => { c.fillStyle = "#e6c690"; c.fillRect(0, 0, w, h); for (let i = 0; i < 1400; i++) { c.fillStyle = rand() > .5 ? "#d9b47a" : "#f0d6a6"; c.fillRect(rand() * w, rand() * h, 2, 2); } }, 60);
+      const sand = new THREE.Mesh(new THREE.PlaneGeometry(400, 200), new THREE.MeshStandardMaterial({ map: sandTex, roughness: 1 }));
+      sand.rotation.x = -PI / 2; sand.position.z = 95.6; sand.receiveShadow = true; g.add(sand); k.walk.push(sand);
+      const seaGeo = new THREE.PlaneGeometry(400, 200, 120, 60); seaGeo.rotateX(-PI / 2); seaGeo.translate(0, -0.12, -104);
+      const sea = new THREE.Mesh(seaGeo, new THREE.MeshStandardMaterial({ color: 0x2b6f97, roughness: 0.25, metalness: 0.1, flatShading: true })); g.add(sea);
+      const base = seaGeo.attributes.position.array.slice();
+      k.box(mat(0xf7efe2), 400, 0.03, 0.35, 0, 0, -4.1, { cast: false });
+      const sunDisc = new THREE.Mesh(new THREE.CircleGeometry(28, 48), new THREE.MeshBasicMaterial({ color: 0xffc27a, fog: false })); sunDisc.position.set(-60, 14, -380); g.add(sunDisc);
+      const trunk = mat(0x8a5a32), leaf = mat(0x3f8f4a), leaf2 = mat(0x2f7a3e);
+      const palm = (x, z, lean, rot) => { const p = new THREE.Group(); p.position.set(x, 0, z); p.rotation.y = rot; g.add(p); k.solidCircle(x, z, 0.3);
+        let px = 0; for (let i = 0; i < 11; i++) { k.box(trunk, 0.32, 0.36, 0.32, px, i * 0.36, 0, { parent: p }); px += lean; }
+        const top = 11 * 0.36; for (let q = 0; q < 6; q++) { const f = new THREE.Group(); f.position.set(px, top, 0); f.rotation.y = q / 6 * PI * 2; p.add(f);
+          for (let s = 0; s < 6; s++) k.box(s % 2 ? leaf : leaf2, 0.42, 0.12, 0.5, 0, -s * s * 0.03, 0.35 + s * 0.42, { parent: f }); } };
+      palm(-2.6, -1.8, 0.05, 0.3); palm(3.2, -2.6, -0.06, -0.8); palm(-6, -3, 0.07, 1.2); palm(9, 1, 0.05, 2.2); palm(-11, 3, -0.05, 0.6);
+      k.box(mat(0xe25d5d), 1.0, 0.03, 1.9, 1.6, 0, 0.6, { ry: 0.3 }); k.box(mat(0xfaf3e8), 1.0, 0.035, 0.18, 1.6, 0, 0.6, { ry: 0.3 });
+      k.box(mat(0xf2f2f2), 0.06, 2.0, 0.06, 2.4, 0, 0.0, { solid: true });
+      const um = new THREE.Mesh(new THREE.ConeGeometry(1.2, 0.5, 8, 1, true), new THREE.MeshStandardMaterial({ color: 0xf6b93b, side: THREE.DoubleSide, flatShading: true }));
+      um.position.set(2.4, 2.0, 0); um.castShadow = true; g.add(um);
+      for (let i = 0; i < 18; i++) { const s = 0.2 + rand() * 0.35; k.box(mat([0xf2e6d0, 0xd9a6a0, 0xb5c7d3][i % 3]), s, s * 0.5, s, (rand() - .5) * 50, 0, -2 + rand() * 30, { ry: rand() * 3 }); }
+      k.every((t) => { const a = seaGeo.attributes.position; for (let i = 0; i < a.count; i++) { const x = base[i*3], z = base[i*3+2]; a.array[i*3+1] = base[i*3+1] + Math.sin(x * .6 + t * 1.3) * .04 + Math.cos(z * .5 + t) * .04; } a.needsUpdate = true; });
+      return { top: 0x2a2266, bottom: 0xff9a62, power: 0.45, hemi: [0xffd9b0, 0x6a5a8a, 0.9], sun: [0xffb070, 2.6, [-0.45, 0.35, -0.8]], fog: [0xf59a6e, 30, 160], exposure: 1.05, fill: [0xffd2a8, 1.5] };
+    } },
+
+  /* ---------------- Neon Rooftop ---------------- */
+  { id: "neon", name: "Neon Rooftop", swatch: "linear-gradient(#0a0c22,#5a1a6e 60%,#22252e 60%)",
+    spawn: { x: 0, z: 4, yaw: PI }, bounds: [-7.8, 7.8, -4.8, 7.8],
+    build(k) {
+      const rand = rng(21), g = k.g;
+      const tiles = canvasTex(128, 128, (c, w, h) => { c.fillStyle = "#2a2d36"; c.fillRect(0, 0, w, h); c.strokeStyle = "#1c1e25"; c.lineWidth = 4; c.strokeRect(0, 0, w, h); }, 120);
+      k.ground(new THREE.MeshStandardMaterial({ map: tiles, roughness: 0.55, metalness: 0.2 }));
+      const ledge = mat(0x3a3e4a);
+      k.box(ledge, 16.8, 0.55, 0.4, 0, 0, -5.2, { solid: true }); k.box(ledge, 16.8, 0.55, 0.4, 0, 0, 8.2, { solid: true });
+      k.box(ledge, 0.4, 0.55, 13.8, -8.2, 0, 1.5, { solid: true }); k.box(ledge, 0.4, 0.55, 13.8, 8.2, 0, 1.5, { solid: true });
+      const unit = mat(0x4a4f5c); k.box(unit, 1.6, 1.1, 1.1, -5.6, 0, -3.6, { solid: true, occ: true }); k.box(unit, 0.9, 0.9, 0.9, 6.2, 0, -3.2, { solid: true });
+      k.box(mat(0x5b6070), 2.4, 2.2, 2.0, 6.4, 0, 6.2, { solid: true, occ: true });  // stair hut
+      k.box(mat(0x1a1c22), 1.0, 1.9, 0.05, 6.4, 0, 5.17, { cast: false });
+      // water tank
+      const tank = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 1.8, 12), mat(0x7a5a3a, { flat: true })); tank.position.set(-6, 2.2, 5.5); tank.castShadow = true; g.add(tank);
+      for (const [dx, dz] of [[-.8, -.8], [.8, -.8], [-.8, .8], [.8, .8]]) k.box(unit, 0.1, 1.3, 0.1, -6 + dx, 0, 5.5 + dz);
+      k.solidCircle(-6, 5.5, 1.2, 0, 3.2);
+      const win = canvasTex(64, 128, (c, w, h) => { c.fillStyle = "#07070d"; c.fillRect(0, 0, w, h);
+        for (let y = 4; y < h; y += 8) for (let x = 4; x < w; x += 8) if (rand() > .45) { c.fillStyle = ["#ffd38a", "#8ae9ff", "#ff8ad8", "#fff1c9"][Math.floor(rand() * 4)]; c.fillRect(x, y, 4, 5); } });
+      const bmat = new THREE.MeshStandardMaterial({ color: 0x15161f, emissive: 0xffffff, emissiveMap: win, emissiveIntensity: 1.3, roughness: 0.9 });
+      for (const [x, z] of ringPositions(70, 24, 120, rand)) k.box(bmat, 6 + rand() * 8, 10 + rand() * 60, 6 + rand() * 8, x, -20, z, { cast: false, recv: false });
+      const neon = (color, w, h, x, y, z, ry = 0) => { const m = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 3 }); k.box(m, w, h, 0.08, x, y, z, { cast: false, ry });
+        const l = k.light(new THREE.PointLight(color, 6, 7, 1.6)); l.position.set(x + (ry ? 0.6 : 0), y + h / 2, z + (ry ? 0 : 0.6)); };
+      neon(0xff3fb4, 2.6, 0.16, -1.2, 1.7, -5.0); neon(0xff3fb4, 0.16, 1.0, -2.4, 0.8, -5.0); neon(0x3fe7ff, 1.6, 0.16, 1.8, 2.2, -5.0); neon(0x3fe7ff, 0.16, 0.9, 2.5, 1.3, -5.0);
+      neon(0xffd23f, 0.16, 1.6, 7.95, 0.6, 1.0, PI / 2);
+      // sign frame on back ledge
+      k.box(mat(0x22242c), 0.12, 2.6, 0.12, -2.6, 0, -5.25); k.box(mat(0x22242c), 0.12, 2.6, 0.12, 3.0, 0, -5.25);
+      plane(k, textTex(["CHONK", { text: "24/7 · ONCHAIN", size: 54 }], { fg: "#ff5fc4" }), 3.6, 0.9, 0.2, 2.95, -5.1, 0, { transparent: true, emissive: true, ei: 2.2 });
+      return { top: 0x070918, bottom: 0x4a1660, power: 0.55, hemi: [0x6a6aff, 0x201028, 0.55], sun: [0xc9b8ff, 0.9, [-0.3, 0.8, 0.5]], fog: [0x22103a, 30, 150], exposure: 1.15, fill: [0xffb8e8, 0.7] };
+    } },
+
+  /* ---------------- Castle ---------------- */
+  { id: "castle", name: "Castle", swatch: "linear-gradient(#24325e,#f0a35e 58%,#8d8a83 58%)",
+    spawn: { x: 0, z: 9, yaw: PI }, bounds: [-16.6, 16.6, -16.6, 16.6],
+    build(k) {
+      const g = k.g, rand = rng(41);
+      k.box(mat(0x5d7a3a), 400, 0.01, 400, 0, -0.02, 0, { cast: false });
+      const cob = canvasTex(256, 256, (c, w, h) => { c.fillStyle = "#5b5650"; c.fillRect(0, 0, w, h);
+        for (let y = 0; y < h; y += 21) for (let x = (y / 21 % 2) * 12; x < w; x += 25) { c.fillStyle = shade("#8a847a", Math.floor(rand() * 30) - 15); c.beginPath(); c.roundRect(x + 2, y + 2, 21, 17, 6); c.fill(); } }, 16);
+      k.box(new THREE.MeshStandardMaterial({ map: cob, roughness: 1 }), 34, 0.02, 34, 0, -0.02, 0, { cast: false, walk: true });
+      const wallM = new THREE.MeshStandardMaterial({ map: stoneTex(3, "#9a968e", [10, 1.4]), roughness: 1 });
+      const W = (w, d, x, z) => k.box(wallM, w, 4, d, x, 0, z, { solid: true, walk: true, occ: true });
+      W(34, 2, 0, -16); W(2, 30, -16, 0); W(2, 30, 16, 0);
+      W(14.8, 2, -9.6, 16); W(14.8, 2, 9.6, 16);              // front wall with gate gap
+      k.box(wallM, 4.4, 1.0, 2, 0, 3.0, 16, { solid: true, walk: true, occ: true }); // over the gate
+      const bars = mat(0x2a2522, { m: .5, r: .6 });
+      for (let x = -2; x <= 2.01; x += 0.4) k.box(bars, 0.07, 3, 0.07, x, 0, 15.6);
+      for (let y = 0.4; y < 3; y += 0.5) k.box(bars, 4.4, 0.07, 0.07, 0, y, 15.6);
+      k.solidBox(-2.2, 2.2, 15, 17, 0, 3);
+      // crenellations on the outer edges
+      const mer = wallM; const merlon = (x, z, alongX) => k.box(mer, alongX ? 0.7 : 0.5, 0.8, alongX ? 0.5 : 0.7, x, 4, z, { solid: true });
+      for (let x = -15; x <= 15; x += 1.4) { merlon(x, -16.75, true); if (Math.abs(x) > 2.4) merlon(x, 16.75, true); }
+      for (let z = -15; z <= 15; z += 1.4) { merlon(-16.75, z, false); merlon(16.75, z, false); }
+      // corner towers
+      const slate = mat(0x3d4f6e, { flat: true });
+      for (const [x, z] of [[-16, -16], [16, -16], [-16, 16], [16, 16]]) {
+        const t = new THREE.Mesh(new THREE.CylinderGeometry(2.6, 2.8, 7.5, 8), wallM); t.position.set(x, 3.75, z); t.castShadow = t.receiveShadow = true; g.add(t); k.occ.push(t);
+        const r = new THREE.Mesh(new THREE.ConeGeometry(3.2, 3.4, 8), slate); r.position.set(x, 7.5 + 1.7, z); r.castShadow = true; g.add(r);
+        k.solidBox(x - 2.6, x + 2.6, z - 2.6, z + 2.6, 0, 12);
+        const flag = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.6), mat(0xb3262e, { side: THREE.DoubleSide })); flag.position.set(x + 0.55, 11.6, z); g.add(flag);
+        k.box(mat(0x2a2522), 0.06, 1.6, 0.06, x, 10.5, z, { cast: false });
+        k.every((tt) => { flag.rotation.y = Math.sin(tt * 2 + x) * 0.25; });
+      }
+      // the keep
+      k.box(wallM, 12, 8, 7, 0, 0, -11.5, { solid: true, occ: true });
+      for (let x = -5.6; x <= 5.6; x += 1.4) k.box(wallM, 0.7, 0.9, 0.5, x, 8, -8.25);
+      k.box(mat(0x4a3424, { r: .8 }), 2.4, 3.2, 0.2, 0, 0, -7.95);
+      const arch = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.2, 16, 1, false, 0, PI), mat(0x4a3424)); arch.rotation.set(PI / 2, 0, -PI / 2); arch.rotation.order = "ZXY"; arch.position.set(0, 3.2, -7.95); g.add(arch);
+      const glow = mat(0xffb35a, { e: 0xffa040, ei: 1.6 });
+      for (const x of [-4, 4]) { k.box(glow, 0.7, 1.2, 0.1, x, 4.4, -7.98, { cast: false }); k.box(mat(0x2a2522), 0.8, 0.1, 0.15, x, 5.6, -7.95); }
+      for (const x of [-2.2, 2.2]) { const b = k.box(mat(0xb3262e), 0.9, 2.6, 0.04, x, 3.6, -7.96, { cast: false }); k.box(mat(0xe0b43c), 0.12, 2.6, 0.05, x, 3.6, -7.95, { cast: false }); }
+      // torches
+      const torch = (x, y, z) => { k.box(mat(0x3a2a1e), 0.1, 0.5, 0.1, x, y, z); k.box(mat(0xffc060, { e: 0xff8a20, ei: 3 }), 0.16, 0.2, 0.16, x, y + 0.5, z, { cast: false });
+        const l = k.light(new THREE.PointLight(0xff9a3c, 7, 9, 1.6)); l.position.set(x, y + 0.8, z + (z < 0 ? 0.4 : -0.4)); flicker(k, l, 7); };
+      torch(-1.8, 2.2, -7.85); torch(1.8, 2.2, -7.85); torch(-14.8, 2.2, 6); torch(14.8, 2.2, 6);
+      // stairs up to the wall walk
+      const stepM = new THREE.MeshStandardMaterial({ map: stoneTex(9, "#8b877f", [1, 1]), roughness: 1 });
+      for (let j = 1; j <= 20; j++) k.box(stepM, 1.4, j * 0.2, 0.4, -14.3, 0, 6 - (j - 0.5) * 0.4, { walk: true, occ: true });
+      // the well
+      const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.95, 0.8, 12, 1, true), wallM); ring.position.set(6, 0.4, 3); ring.material.side = THREE.DoubleSide; ring.castShadow = true; g.add(ring);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(0.85, 12), mat(0x1d3a4a, { r: .2 })); water.rotation.x = -PI / 2; water.position.set(6, 0.5, 3); g.add(water);
+      for (const dx of [-0.8, 0.8]) k.box(mat(0x5a3d26), 0.12, 1.9, 0.12, 6 + dx, 0, 3);
+      const roof = new THREE.Mesh(new THREE.ConeGeometry(1.4, 0.8, 4), mat(0x6b3a22, { flat: true })); roof.position.set(6, 2.3, 3); roof.rotation.y = PI / 4; roof.castShadow = true; g.add(roof);
+      k.solidCircle(6, 3, 1.0);
+      // props
+      const hay = mat(0xd8b85a); k.box(hay, 1.2, 0.7, 0.8, 10, 0, -3, { solid: true, walk: true }); k.box(hay, 1.2, 0.7, 0.8, 10.4, 0, -2.1, { solid: true, walk: true }); k.box(hay, 1.2, 0.7, 0.8, 10.2, 0.7, -2.6, { solid: true, walk: true });
+      const barrelG = new THREE.CylinderGeometry(0.38, 0.38, 0.9, 10), barrelM = mat(0x7a4f2c, { flat: true });
+      for (const [x, z] of [[-9, -4], [-8.2, -4.3], [-8.7, -3.3], [11, 10]]) { const b = new THREE.Mesh(barrelG, barrelM); b.position.set(x, 0.45, z); b.castShadow = b.receiveShadow = true; g.add(b); k.solidCircle(x, z, 0.42, 0, 0.9); }
+      const crate = mat(0x9a6b3c); k.box(crate, 0.9, 0.9, 0.9, -10, 0, 9, { solid: true, walk: true }); k.box(crate, 0.9, 0.9, 0.9, -10.8, 0, 9.4, { solid: true, walk: true, ry: 0.3 });
+      // training dummy
+      k.box(mat(0x5a3d26), 0.12, 1.5, 0.12, -6, 0, 2, { solid: true }); k.box(mat(0xc9a35a), 0.5, 0.6, 0.35, -6, 0.9, 2); k.box(mat(0xc9a35a), 0.9, 0.12, 0.12, -6, 1.15, 2); k.box(mat(0xe0c27a), 0.3, 0.3, 0.3, -6, 1.5, 2);
+      return { top: 0x24325e, bottom: 0xf0a35e, power: 0.55, hemi: [0xbfc8ff, 0x5a4a3a, 0.85], sun: [0xffc48a, 2.1, [-0.55, 0.45, 0.7]], fog: [0xd99a6a, 35, 140], exposure: 1.05, fill: [0xffd8b0, 1.0] };
+    } },
+
+  /* ---------------- Office ---------------- */
+  { id: "office", name: "Office", swatch: "linear-gradient(#e9eef3,#e9eef3 30%,#9fb7c9 30% 62%,#4a5568 62%)",
+    spawn: { x: 2.6, z: 5.0, yaw: PI }, bounds: [-11.7, 11.7, -8.7, 8.7],
+    build(k) {
+      const g = k.g, rand = rng(77), H = 3.0;
+      const carpet = canvasTex(128, 128, (c, w, h) => { c.fillStyle = "#4b5566"; c.fillRect(0, 0, w, h); c.fillStyle = "#535e70"; c.fillRect(0, 0, w / 2, h / 2); c.fillRect(w / 2, h / 2, w / 2, h / 2);
+        for (let i = 0; i < 500; i++) { c.fillStyle = rand() > .5 ? "#465061" : "#5a6578"; c.fillRect(rand() * w, rand() * h, 1, 1); } }, [24, 18]);
+      k.box(new THREE.MeshStandardMaterial({ map: carpet, roughness: 1 }), 24, 0.02, 18, 0, -0.02, 0, { cast: false, walk: true });
+      k.box(mat(0x4b5566), 400, 0.01, 400, 0, -0.05, 0, { cast: false });
+      const wall = mat(0xe9ecef), trim = mat(0x2f3540);
+      k.box(mat(0xf3f4f6), 24.4, 0.12, 18.4, 0, H, 0, { cast: false, occ: true });            // ceiling
+      for (let x = -9; x <= 9; x += 3) for (let z = -6; z <= 6; z += 3) k.box(mat(0xffffff, { e: 0xffffff, ei: 1.2 }), 1.2, 0.03, 0.6, x, H - 0.03, z, { cast: false });
+      const Wl = (w, d, x, z) => k.box(wall, w, H, d, x, 0, z, { solid: true, occ: true, cast: false });
+      Wl(0.25, 18, -12.1, 0); Wl(0.25, 18, 12.1, 0); Wl(11.2, 0.25, -6.4, 9.1); Wl(11.2, 0.25, 6.4, 9.1); k.box(wall, 1.6, H - 2.2, 0.25, 0, 2.2, 9.1, { cast: false, occ: true });
+      k.box(mat(0x7a5a3e), 1.6, 2.2, 0.08, 0, 0, 9.0, { cast: false, occ: true });
+      // window wall + skyline
+      const sky = canvasTex(1024, 320, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#7fb3e6"); gr.addColorStop(1, "#dfeefb"); c.fillStyle = gr; c.fillRect(0, 0, w, h);
+        for (let i = 0; i < 70; i++) { const bw = 20 + rand() * 50, bh = 60 + rand() * 210, x = rand() * w; c.fillStyle = shade("#8fa3b8", -Math.floor(rand() * 50)); c.fillRect(x, h - bh, bw, bh);
+          c.fillStyle = "rgba(255,255,255,.25)"; for (let y = h - bh + 6; y < h; y += 10) for (let xx = x + 4; xx < x + bw - 4; xx += 8) c.fillRect(xx, y, 4, 5); } });
+      plane(k, sky, 44, 14, 0, 4, -14, 0, { emissive: true, ei: 1.0, fog: false });
+      k.box(trim, 24, 0.5, 0.3, 0, 0, -9.1, { solid: true, cast: false }); k.box(trim, 24, 0.3, 0.3, 0, H - 0.3, -9.1, { cast: false });
+      for (let x = -12; x <= 12; x += 2) k.box(trim, 0.1, H, 0.3, x, 0, -9.1, { cast: false });
+      const glass = new THREE.Mesh(new THREE.PlaneGeometry(24, H), new THREE.MeshStandardMaterial({ color: 0xbfd9ee, transparent: true, opacity: 0.12, roughness: 0.05 })); glass.position.set(0, H / 2, -9.05); g.add(glass);
+      k.solidBox(-12, 12, -9.4, -8.9);
+      // desks
+      const deskTop = mat(0xf5f3ee, { r: .7 }), metal = mat(0x8b939e, { m: .6, r: .4 });
+      const chairCols = [0xe4572e, 0x2e86ab, 0xf3a712, 0x4c956c];
+      const screens = [0, 1, 2, 3].map(s => canvasTex(192, 112, (c, w, h) => { c.fillStyle = "#14171f"; c.fillRect(0, 0, w, h);
+        if (s % 2 === 0) { for (let y = 8; y < h; y += 9) { c.fillStyle = ["#7fd6a4", "#efb15e", "#8ab4ff", "#cfd4dd"][Math.floor(rand() * 4)]; c.fillRect(8 + Math.floor(rand() * 3) * 10, y, 30 + rand() * 110, 4); } }
+        else { c.strokeStyle = "#efb15e"; c.lineWidth = 3; c.beginPath(); let v = h * .7; c.moveTo(8, v); for (let x = 8; x < w - 8; x += 12) { v = Math.max(15, Math.min(h - 12, v + (rand() - .55) * 26)); c.lineTo(x, v); } c.stroke();
+          c.fillStyle = "#2e86ab"; for (let x = 12; x < w - 12; x += 18) { const bh = 8 + rand() * 30; c.fillRect(x, h - 6 - bh, 10, bh); } } }));
+      const desk = (x, z, i) => {
+        k.box(deskTop, 1.6, 0.04, 0.8, x, 0.62, z, { solid: true });
+        for (const dx of [-0.75, 0.75]) k.box(metal, 0.05, 0.62, 0.7, x + dx, 0, z);
+        k.solidBox(x - 0.8, x + 0.8, z - 0.4, z + 0.4, 0, 0.66);
+        k.box(trim, 0.08, 0.22, 0.08, x, 0.66, z - 0.2); k.box(trim, 0.66, 0.4, 0.04, x, 0.84, z - 0.22);
+        plane(k, screens[i % 4], 0.6, 0.35, x, 1.04, z - 0.195, 0, { emissive: true, ei: 1.1 });
+        k.box(mat(0xd8dbe0), 0.45, 0.02, 0.14, x, 0.66, z + 0.1); k.box(mat(0xffffff), 0.08, 0.1, 0.08, x + 0.55, 0.66, z + 0.15);
+        const cm = mat(chairCols[i % 4]); k.box(cm, 0.48, 0.08, 0.46, x, 0.42, z + 0.75); k.box(cm, 0.48, 0.5, 0.07, x, 0.5, z + 0.98); k.box(trim, 0.06, 0.42, 0.06, x, 0, z + 0.75);
+        k.solidCircle(x, z + 0.8, 0.3, 0, 1.0);
+      };
+      let i = 0; for (const z of [-5.5, -1.5, 2.5]) for (const x of [-9, -6.8, -2.6, -0.4]) desk(x, z, i++);
+      // meeting room
+      const glassM = new THREE.MeshStandardMaterial({ color: 0xcfe3f2, transparent: true, opacity: 0.18, roughness: 0.05, side: THREE.DoubleSide });
+      const gw = (w, d, x, z) => { k.box(glassM, w, H, d, x, 0, z, { cast: false, solid: true, occ: true }); };
+      gw(0.06, 4.6, 5.5, -6.5); gw(0.06, 1.0, 5.5, -2.95); gw(6.6, 0.06, 8.8, -2.45);
+      k.box(trim, 0.08, H, 0.08, 5.5, 0, -2.45, { cast: false });
+      k.box(mat(0xe8e2d6, { r: .6 }), 3.2, 0.05, 1.3, 9, 0.62, -5.8, { solid: true }); k.box(trim, 0.2, 0.62, 0.2, 9, 0, -5.8); k.solidBox(7.4, 10.6, -6.45, -5.15, 0, 0.68);
+      for (const dx of [-1, 0, 1]) for (const dz of [-1, 1]) { const cm = mat(0x2e86ab); k.box(cm, 0.42, 0.08, 0.42, 9 + dx, 0.42, -5.8 + dz * 1.0); k.box(cm, 0.42, 0.42, 0.06, 9 + dx, 0.5, -5.8 + dz * 1.22); }
+      plane(k, screens[1], 2.6, 1.5, 11.95, 1.6, -5.8, -PI / 2, { emissive: true, ei: 1.0 });
+      // lounge
+      const sofa = mat(0xd9a43c); k.box(sofa, 3.2, 0.45, 0.9, 9, 0, 6.8, { solid: true }); k.box(sofa, 3.2, 0.5, 0.25, 9, 0.45, 7.2); k.box(sofa, 0.9, 0.45, 2.4, 7.0, 0, 5.4, { solid: true }); k.box(sofa, 0.25, 0.5, 2.4, 6.65, 0.45, 5.4);
+      k.box(mat(0x3d6b7a), 3.6, 0.01, 3, 9.4, 0, 4.9, { cast: false }); k.box(mat(0x8a5a3a), 1.4, 0.38, 0.8, 9.4, 0, 4.6, { solid: true, walk: true });
+      // kitchen
+      k.box(mat(0xf0f0f0), 0.7, 0.9, 6, -11.6, 0, 5, { solid: true }); k.box(mat(0x2f3540), 0.72, 0.04, 6, -11.6, 0.9, 5);
+      k.box(mat(0xc8ccd2, { m: .5, r: .35 }), 0.75, 2.0, 0.8, -11.6, 0, 1.4, { solid: true }); k.box(mat(0x1f2329), 0.35, 0.4, 0.3, -11.6, 0.94, 6.2);
+      k.box(mat(0xe4572e), 0.12, 0.12, 0.12, -11.5, 0.94, 3.8);
+      // whiteboard + sign + plants + cooler
+      plane(k, canvasTex(512, 256, (c, w, h) => { c.fillStyle = "#fbfbfb"; c.fillRect(0, 0, w, h); c.strokeStyle = "#2e86ab"; c.lineWidth = 5; c.strokeRect(40, 60, 120, 70); c.strokeRect(330, 60, 120, 70);
+        c.beginPath(); c.moveTo(160, 95); c.lineTo(330, 95); c.stroke(); c.fillStyle = "#e4572e"; c.font = "40px Silkscreen, monospace"; c.fillText("SHIP IT", 175, 200); c.fillStyle = "#2f3540"; c.font = "22px monospace"; c.fillText("mint → equip → flex", 40, 40); }), 3, 1.5, 11.95, 1.6, 0.6, -PI / 2);
+      plane(k, textTex(["CHONK HQ"], { fg: "#2f3540" }), 4, 1, 0, 2.55, 8.95, PI, { transparent: true });
+      const pot = mat(0xe9e2d6), leaf = mat(0x3f7f4a);
+      for (const [x, z, s] of [[-11.2, -8.3, 1], [11.2, -1.5, 1.2], [-4.6, 8.4, 1], [4.6, 8.4, 0.9], [5.2, 4.2, 0.8]]) {
+        k.box(pot, 0.4 * s, 0.45 * s, 0.4 * s, x, 0, z, { solid: true }); for (let q = 0; q < 5; q++) k.box(leaf, 0.35 * s, 0.35 * s, 0.35 * s, x + (rand() - .5) * 0.3 * s, 0.45 * s + q * 0.2 * s, z + (rand() - .5) * 0.3 * s, { ry: rand() * 3 }); }
+      k.box(mat(0xe8ecef), 0.36, 1.0, 0.36, -2.6, 0, 8.6, { solid: true }); k.box(mat(0x9fd3f0, { op: 0.7 }), 0.3, 0.4, 0.3, -2.6, 1.0, 8.6);
+      return { top: 0x9cc3ea, bottom: 0xe7f0f8, hemi: [0xffffff, 0xb6bcc8, 1.3], sun: [0xfff6e8, 1.6, [0.25, 0.7, -0.65]], fog: null, exposure: 1.0, fill: [0xffffff, 0.6] };
+    } },
+
+  /* ---------------- Mansion ---------------- */
+  { id: "mansion", name: "Mansion", swatch: "linear-gradient(#1f3b2f,#1f3b2f 45%,#b3262e 45% 55%,#e8e4da 55%)",
+    spawn: { x: 0, z: 5.2, yaw: PI }, bounds: [-12.6, 12.6, -9.6, 9.6],
+    build(k) {
+      const g = k.g, rand = rng(55), H = 7;
+      const marble = canvasTex(256, 256, (c, w, h) => { for (let y = 0; y < 4; y++) for (let x = 0; x < 4; x++) { c.fillStyle = (x + y) % 2 ? "#1d1d22" : "#ece8df"; c.fillRect(x * 64, y * 64, 64, 64); }
+        c.globalAlpha = .18; c.strokeStyle = "#888"; for (let i = 0; i < 30; i++) { c.beginPath(); let x = rand() * w, y = rand() * h; c.moveTo(x, y); for (let s = 0; s < 6; s++) { x += (rand() - .4) * 30; y += (rand() - .5) * 30; c.lineTo(x, y); } c.stroke(); } }, [6.5, 5]);
+      k.box(new THREE.MeshStandardMaterial({ map: marble, roughness: 0.22, metalness: 0.05 }), 26, 0.02, 20, 0, -0.02, 0, { cast: false, walk: true });
+      k.box(mat(0x1d1d22), 400, 0.01, 400, 0, -0.05, 0, { cast: false });
+      const paper = canvasTex(128, 128, (c, w, h) => { c.fillStyle = "#1f3b2f"; c.fillRect(0, 0, w, h); c.fillStyle = "#2b4d3d";
+        for (let y = 0; y < 2; y++) for (let x = 0; x < 2; x++) { const cx = x * 64 + 32, cy = y * 64 + 32; c.beginPath(); c.moveTo(cx, cy - 22); c.quadraticCurveTo(cx + 18, cy, cx, cy + 22); c.quadraticCurveTo(cx - 18, cy, cx, cy - 22); c.fill(); } }, [8, 2.5]);
+      const wallM = new THREE.MeshStandardMaterial({ map: paper, roughness: 0.9 }), wood = mat(0x4a2e1e, { r: .6 }), gold = mat(0xc9a24a, { m: .8, r: .3 });
+      const Wl = (w, d, x, z) => k.box(wallM, w, H, d, x, 0, z, { solid: true, occ: true, cast: false });
+      Wl(0.3, 20, -13.15, 0); Wl(0.3, 20, 13.15, 0); Wl(26.6, 0.3, 0, -10.15); Wl(26.6, 0.3, 0, 10.15);
+      // wainscot
+      k.box(wood, 0.06, 1.2, 20, -12.98, 0, 0, { cast: false }); k.box(wood, 0.06, 1.2, 20, 12.98, 0, 0, { cast: false }); k.box(wood, 26, 1.2, 0.06, 0, 0, 9.98, { cast: false }); k.box(wood, 26, 1.2, 0.06, 0, 0, -9.98, { cast: false });
+      // coffered ceiling
+      k.box(mat(0xefe8da), 26.4, 0.2, 20.4, 0, H, 0, { cast: false, occ: true });
+      for (let x = -12; x <= 12; x += 3) k.box(mat(0xd9cfbb), 0.25, 0.3, 20, x, H - 0.3, 0, { cast: false });
+      for (let z = -9; z <= 9; z += 3) k.box(mat(0xd9cfbb), 26, 0.3, 0.25, 0, H - 0.3, z, { cast: false });
+      // front doors
+      k.box(wood, 1.4, 3.6, 0.1, -0.72, 0, 9.95, { cast: false }); k.box(wood, 1.4, 3.6, 0.1, 0.72, 0, 9.95, { cast: false }); k.box(gold, 0.08, 0.3, 0.06, -0.15, 1.6, 9.88); k.box(gold, 0.08, 0.3, 0.06, 0.15, 1.6, 9.88);
+      // carpet runner
+      const red = mat(0x9e1b25, { r: 1 }); k.box(red, 2.4, 0.02, 12, 0, 0, 3.6, { cast: false, walk: true }); k.box(gold, 0.08, 0.025, 12, -1.2, 0, 3.6, { cast: false }); k.box(gold, 0.08, 0.025, 12, 1.2, 0, 3.6, { cast: false });
+      // grand staircase (walkable) up to the balcony
+      const stepM = mat(0xe8e2d4, { r: .4 });
+      for (let j = 1; j <= 12; j++) { const z = -7 + (12.5 - j) * 0.38; k.box(stepM, 4.4, j * 0.2, 0.38, 0, 0, z, { walk: true, occ: true }); k.box(red, 2.4, 0.015, 0.38, 0, j * 0.2, z, { cast: false }); }
+      for (const sx of [-2.25, 2.25]) for (let j = 1; j <= 12; j += 1) { const z = -7 + (12.5 - j) * 0.38; k.box(gold, 0.05, 0.85, 0.05, sx, j * 0.2, z, { cast: false }); }
+      for (const sx of [-2.25, 2.25]) { const rail = k.box(wood, 0.1, 0.08, 4.7, sx, 0, -4.7, { cast: false }); rail.position.y = 2.25; rail.rotation.x = Math.atan2(2.4, 4.56); }
+      // balcony
+      k.box(mat(0xe8e2d4, { r: .4 }), 26, 0.3, 3, 0, 2.1, -8.5, { walk: true, occ: true });
+      k.box(red, 26, 0.015, 3, 0, 2.4, -8.5, { cast: false });
+      for (const side of [-1, 1]) { const x0 = side * 2.2, x1 = side * 13;
+        for (let x = Math.min(x0, x1); x <= Math.max(x0, x1); x += 0.32) k.box(gold, 0.05, 0.85, 0.05, x, 2.4, -7.1, { cast: false });
+        k.box(wood, Math.abs(x1 - x0), 0.08, 0.12, (x0 + x1) / 2, 3.25, -7.1, { cast: false });
+        k.solidBox(Math.min(x0, x1), Math.max(x0, x1), -7.2, -6.95, 2.3, 3.5); }
+      for (const x of [-10, -5, 5, 10]) { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.32, 0.36, 2.1, 16), mat(0xefe8da, { r: .4 })); c.position.set(x, 1.05, -7.3); c.castShadow = c.receiveShadow = true; g.add(c); k.solidCircle(x, -7.3, 0.4, 0, 2.1); }
+      for (const x of [-6, 6]) { k.box(wood, 1.2, 2.6, 0.08, x, 2.4, -9.95, { cast: false }); k.box(gold, 0.06, 0.2, 0.05, x + (x < 0 ? 0.4 : -0.4), 3.6, -9.9); }
+      k.picture(artTexture(3, 4), 2.2, 1.5, 0, 4.4, -9.98, "+z", 0xc9a24a, 0.14);
+      // portraits on side walls
+      for (const [z, s] of [[-3, 11], [3, 12]]) { k.picture(artTexture(s, 5), 1.3, 1.7, -12.97, 3.3, z, "+x", 0xc9a24a, 0.12); }
+      k.picture(artTexture(19, 4), 2.4, 1.5, 12.97, 3.4, 5.5, "-x", 0xc9a24a, 0.12);
+      // tall windows + curtains on the right wall
+      for (const z of [-4, 1]) { k.box(mat(0x1b2a4a, { e: 0x22345e, ei: 0.8 }), 0.05, 3.2, 1.6, 12.98, 1.2, z, { cast: false }); for (const dz of [-1.05, 1.05]) k.box(mat(0x8e1a22), 0.12, 4, 0.5, 12.9, 0.9, z + dz, { cast: false }); k.box(gold, 0.1, 0.1, 2.8, 12.9, 4.9, z, { cast: false }); }
+      // chandelier
+      const ch = new THREE.Group(); ch.position.set(0, 5.4, 2); g.add(ch);
+      const torus = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.05, 8, 32), gold); torus.rotation.x = PI / 2; ch.add(torus);
+      const torus2 = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.04, 8, 24), gold); torus2.rotation.x = PI / 2; torus2.position.y = 0.4; ch.add(torus2);
+      k.box(gold, 0.04, 1.6, 0.04, 0, 0, 0, { parent: ch, cast: false });
+      const flame = mat(0xfff0c8, { e: 0xffd27a, ei: 3 });
+      for (let q = 0; q < 12; q++) { const a = q / 12 * PI * 2; k.box(mat(0xf5efe0), 0.05, 0.18, 0.05, Math.cos(a), 0, Math.sin(a), { parent: ch, cast: false }); k.box(flame, 0.04, 0.07, 0.04, Math.cos(a), 0.18, Math.sin(a), { parent: ch, cast: false }); }
+      for (let q = 0; q < 24; q++) { const a = q / 24 * PI * 2; const cr = new THREE.Mesh(new THREE.OctahedronGeometry(0.05), mat(0xffffff, { r: .1, m: .2, op: 0.8 })); cr.position.set(Math.cos(a) * 0.8, -0.25 - (q % 3) * 0.08, Math.sin(a) * 0.8); ch.add(cr); }
+      const chl = k.light(new THREE.PointLight(0xffd9a0, 16, 22, 1.4)); chl.position.set(0, 5.1, 2); flicker(k, chl, 16);
+      // fireplace
+      const stone = mat(0xd8d0c0, { r: .7 });
+      k.box(stone, 0.8, 2.0, 3.2, -12.6, 0, 1, { solid: true, occ: true }); k.box(stone, 1.0, 0.18, 3.6, -12.55, 2.0, 1);
+      k.box(mat(0x111111), 0.3, 1.1, 1.6, -12.25, 0, 1, { cast: false });
+      const fire = mat(0xffa040, { e: 0xff6a10, ei: 3 }); const flames = [];
+      for (let q = 0; q < 6; q++) flames.push(k.box(fire, 0.12, 0.3, 0.12, -12.1, 0.05, 0.5 + q * 0.2, { cast: false }));
+      const fl = k.light(new THREE.PointLight(0xff8a3c, 8, 9, 1.5)); fl.position.set(-11.4, 0.8, 1); flicker(k, fl, 8);
+      k.every((t) => flames.forEach((f, q) => { f.scale.y = 0.25 + 0.15 * Math.abs(Math.sin(t * 7 + q * 1.7)); f.position.y = 0.05 + f.scale.y / 2; }));
+      k.picture(artTexture(23, 4), 1.6, 1.0, -12.97, 3.2, 1, "+x", 0xc9a24a, 0.1);
+      // sofas around the fire
+      const velvet = mat(0x8e1a22, { r: 1 });
+      for (const z of [-1.4, 3.4]) { const f = z < 1 ? 1 : -1; k.box(velvet, 0.9, 0.45, 2.6, -8.6, 0, z, { solid: true, ry: PI / 2 }); k.box(velvet, 0.25, 0.55, 2.6, -8.6, 0.45, z - f * 0.35, { ry: PI / 2 }); }
+      k.box(mat(0x6b1520), 4.2, 0.01, 3.4, -9.4, 0, 1, { cast: false }); k.box(wood, 1.4, 0.4, 0.7, -9.2, 0, 1, { solid: true, walk: true });
+      // grand piano
+      const black = mat(0x0c0c0e, { r: .25 }); k.box(black, 1.5, 0.35, 2.0, 8.4, 0.7, 2.6, { solid: true }); k.box(black, 1.2, 0.35, 0.8, 8.25, 0.7, 4.0);
+      const lid = k.box(black, 1.5, 0.03, 2.0, 8.4, 1.05, 2.6); lid.rotation.z = -0.5; lid.position.x += 0.35; lid.position.y += 0.35;
+      k.box(mat(0xf6f3ea), 1.4, 0.04, 0.18, 8.4, 0.88, 3.65); for (const [dx, dz] of [[-.6, -.8], [.6, -.8], [0, .8]]) k.box(black, 0.12, 0.7, 0.12, 8.4 + dx, 0, 2.6 + dz);
+      k.box(black, 0.9, 0.5, 0.4, 8.4, 0, 4.6, { solid: true }); k.solidBox(7.6, 9.2, 1.5, 4.4, 0, 1.1);
+      // potted palms by the stairs
+      for (const x of [-3.3, 3.3]) { k.box(gold, 0.6, 0.6, 0.6, x, 0, -2.2, { solid: true }); const lf = mat(0x2f6b3c);
+        for (let q = 0; q < 7; q++) { const a = q / 7 * PI * 2; const b = k.box(lf, 0.18, 0.08, 0.9, x + Math.cos(a) * 0.35, 0.9, -2.2 + Math.sin(a) * 0.35, { ry: -a + PI / 2 }); b.rotation.x = 0.4; } }
+      return { top: 0x0b1020, bottom: 0x1b2440, hemi: [0xffe8c8, 0x3a2a20, 0.6], sun: [0xffe2b8, 1.2, [0.3, 0.9, 0.35]], fog: null, exposure: 1.05, fill: [0xffe0b8, 0.8] };
+    } },
+
+  /* ---------------- Art Gallery ---------------- */
+  { id: "gallery", name: "Art Gallery", swatch: "linear-gradient(90deg,#f4f3ef 0 30%,#e76f51 30% 42%,#f4f3ef 42% 58%,#264653 58% 70%,#f4f3ef 70%)",
+    spawn: { x: 0, z: 1.6, yaw: PI }, bounds: [-13.7, 13.7, -9.7, 9.7],
+    build(k) {
+      const g = k.g, rand = rng(88), H = 5;
+      const conc = canvasTex(256, 256, (c, w, h) => { c.fillStyle = "#cfcdc8"; c.fillRect(0, 0, w, h); for (let i = 0; i < 3000; i++) { c.fillStyle = rand() > .5 ? "#c6c4be" : "#d8d6d1"; c.fillRect(rand() * w, rand() * h, 2, 2); }
+        c.strokeStyle = "#bdbab4"; c.lineWidth = 2; c.strokeRect(0, 0, w, h); }, [7, 5]);
+      k.box(new THREE.MeshStandardMaterial({ map: conc, roughness: 0.35, metalness: 0.05 }), 28, 0.02, 20, 0, -0.02, 0, { cast: false, walk: true });
+      k.box(mat(0xbdbab4), 400, 0.01, 400, 0, -0.05, 0, { cast: false });
+      const white = mat(0xf4f3ef, { r: .95 }), skirt = mat(0x3a3a3a);
+      const Wl = (w, d, x, z) => k.box(white, w, H, d, x, 0, z, { solid: true, occ: true, cast: false });
+      Wl(0.3, 20, -14.15, 0); Wl(0.3, 20, 14.15, 0); Wl(28.6, 0.3, 0, -10.15); Wl(28.6, 0.3, 0, 10.15);
+      k.box(mat(0xffffff), 28.4, 0.15, 20.4, 0, H, 0, { cast: false, occ: true });
+      for (const x of [-9, -3, 3, 9]) k.box(mat(0xffffff, { e: 0xffffff, ei: 1.3 }), 2.2, 0.04, 18, x, H - 0.04, 0, { cast: false });
+      k.box(skirt, 28, 0.08, 0.04, 0, 0, -9.98, { cast: false }); k.box(skirt, 28, 0.08, 0.04, 0, 0, 9.98, { cast: false }); k.box(skirt, 0.04, 0.08, 20, -13.98, 0, 0, { cast: false }); k.box(skirt, 0.04, 0.08, 20, 13.98, 0, 0, { cast: false });
+      // partitions
+      for (const x of [-6, 6]) k.box(white, 0.35, 3.6, 6, x, 0, -1.5, { solid: true, occ: true });
+      // artworks + labels
+      let seed = 1;
+      const label = (x, y, z, facing, item) => { const t = textTex(item
+          ? [{ text: shortTitle(item.title), size: 34, font: "Sora" }, { text: `${item.tiles.toLocaleString()} Chonks · ${new Date(item.created).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`, size: 22, font: "Sora" }]
+          : [{ text: "Your next mosaic", size: 34, font: "Sora" }, { text: "chonkit.xyz", size: 22, font: "Sora" }], { w: 384, h: 128, bg: "#ffffff", fg: "#222", align: "left" });
+        const ry = { "+z": 0, "-z": PI, "+x": PI / 2, "-x": -PI / 2 }[facing]; plane(k, t, 0.3, 0.1, x, y, z, ry); };
+      // each frame shows one of your mosaics (newest first); spare frames invite you to add more
+      const hang = (x, z, facing, w0, h0, kind) => { const n = seed++, item = GALLERY.shown[n - 1];
+        let w = w0, h = h0, tex, frameCol = rand() > .5 ? 0x1a1a1a : 0xfafafa;
+        if (item) {
+          const asp = item.w / item.h; w = Math.min(MOSAIC_MAX_W, MOSAIC_MAX_H * asp); h = w / asp;
+          tex = new THREE.Texture(item.img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16; tex.needsUpdate = true; frameCol = 0x1a1a1a;
+        } else tex = emptyFrameTex(Math.round(256 * h / w));
+        k.picture(tex, w, h, x, item ? Math.max(1.75, h / 2 + 0.55) : 1.75, z, facing, frameCol, item ? 0.07 : 0.06);
+        const off = w / 2 + 0.35, ax = facing === "+z" || facing === "-z"; const lx = ax ? x + (facing === "+z" ? off : -off) : x, lz = ax ? z : z + (facing === "+x" ? -off : off);
+        label(lx, 1.35, lz, facing, item); };
+      hang(-3.2, -9.98, "+z", 1.6, 2.0, 2); hang(3.2, -9.98, "+z", 2.6, 1.6, 4); hang(-9.5, -9.98, "+z", 2.2, 1.6, 0); hang(9.5, -9.98, "+z", 1.6, 1.6, 1);
+      hang(-5.82, -1.5, "+x", 1.4, 1.8, 0); hang(5.82, -1.5, "-x", 1.4, 1.8, 2); hang(-6.18, -1.5, "-x", 2.0, 1.5, 3); hang(6.18, -1.5, "+x", 2.0, 1.5, 4);
+      hang(-13.98, -5, "+x", 1.6, 2.0, 5); hang(13.98, -5, "-x", 1.4, 1.8, 1); hang(-13.98, 1, "+x", 2.4, 1.6, 3); hang(13.98, 1, "-x", 2.4, 1.6, 4);
+      hang(-13.98, 6.5, "+x", 1.4, 1.4, 2); hang(13.98, 6.5, "-x", 1.4, 1.4, 5);
+      plane(k, textTex([{ text: "CHONKIT GALLERY", size: 80 }, { text: "pictures rebuilt from Chonks", size: 40, font: "Sora" }], { w: 1024, h: 256, fg: "#1d1d1b" }), 5, 1.25, 0, 3.6, -9.97, 0, { transparent: true });
+      // spotlights on the back wall
+      for (const x of [-9.5, -3.2, 3.2, 9.5]) { const s = new THREE.SpotLight(0xfff2dc, 18, 9, 0.45, 0.6, 1.2); s.position.set(x, H - 0.2, -6.5); s.target.position.set(x, 1.7, -10); k.g.add(s.target); k.light(s); }
+      // plinths + sculptures
+      const plinth = (x, z, h = 1.0) => { k.box(white, 0.8, h, 0.8, x, 0, z, { solid: true }); return h; };
+      const goldM = new THREE.MeshStandardMaterial({ color: 0xe0ac3c, metalness: 0.35, roughness: 0.38, emissive: 0x3a2400, emissiveIntensity: 0.6 });
+      let ph = plinth(-10, 4); const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.22, 0.07, 96, 12), goldM); knot.position.set(-10, ph + 0.35, 4); knot.castShadow = true; g.add(knot); k.every((t) => { knot.rotation.y = t * 0.4; });
+      ph = plinth(10, 4); const sph = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16), new THREE.MeshStandardMaterial({ color: 0xdfe3ea, metalness: 1, roughness: 0.08 })); sph.position.set(10, ph + 0.3, 4); sph.castShadow = true; g.add(sph);
+      ph = plinth(-10, -6.5, 0.8); const cols = [0xe76f51, 0x2a9d8f, 0xe9c46a, 0x264653, 0xf4a261];
+      for (let q = 0; q < 9; q++) k.box(mat(cols[q % 5]), 0.18, 0.18, 0.18, -10 + ((q % 3) - 1) * 0.12, ph + Math.floor(q / 3) * 0.18 + (q % 2) * 0.02, -6.5 + ((q % 3) - 1) * 0.1, { ry: q * 0.4 });
+      // the gold Chonk statue (centre piece) built from Chonk #1
+      k.box(mat(0x2b2b2b, { r: .5 }), 2.4, 0.5, 2.4, 0, 0, 8.6, { solid: true, walk: true });
+      plane(k, textTex([{ text: "CHONK #1", size: 90 }, { text: "gilded voxels, 2024", size: 40, font: "Sora" }], { w: 768, h: 256, fg: "#d4a843" }), 1.2, 0.4, 0, 0.25, 7.39, PI, { transparent: true });
+      unpackSample(1).then((vox) => {
+        const statue = new THREE.Group(); statue.scale.setScalar(0.075 * 2.6); statue.position.set(0, 0.5, 8.6); statue.rotation.y = PI;
+        const m = new THREE.Mesh(voxelGeometry(vox.map(v => ({ ...v, y: RIG.FEET_Y - v.y })), [-RIG.MIDDLE_X - .5, 0, -5.5], 0xd4a843), goldM); m.castShadow = true; m.receiveShadow = true;
+        statue.add(m); g.add(statue);
+      });
+      k.solidBox(-1.2, 1.2, 7.4, 9.8, 0, 99);
+      // benches
+      const benchTop = mat(0xa87b4f, { r: .7 }), steel = mat(0x8b939e, { m: .7, r: .35 });
+      for (const [x, z] of [[-3.2, -6.2], [3.2, -6.2], [-9.5, 6.5], [9.5, 6.5]]) { k.box(benchTop, 2.2, 0.08, 0.5, x, 0.4, z, { solid: true, walk: true }); for (const dx of [-0.9, 0.9]) k.box(steel, 0.06, 0.4, 0.45, x + dx, 0, z); k.solidBox(x - 1.1, x + 1.1, z - 0.25, z + 0.25, 0, 0.48); }
+      return { top: 0xdfe6ee, bottom: 0xf6f6f4, hemi: [0xffffff, 0xd9d6cf, 1.2], sun: [0xffffff, 1.3, [0.2, 0.95, 0.3]], fog: null, exposure: 1.0, fill: [0xffffff, 0.55] };
+    } },
+
+  /* ---------------- Snowy Pines ---------------- */
+  { id: "snow", name: "Snowy Pines", swatch: "linear-gradient(#a9bdd6,#eef3f8 60%,#fbfdff 60%)",
+    spawn: { x: 0, z: 4, yaw: PI }, bounds: [-35, 35, -35, 35],
+    build(k) {
+      const rand = rng(99), g = k.g;
+      k.ground(mat(0xf4f8fc, { r: 0.9 }));
+      const pine = mat(0x2d5a45), pine2 = mat(0x24503c), snowM = mat(0xffffff), trunk = mat(0x6b4a33);
+      const tree = (x, z, s) => { const t = new THREE.Group(); t.position.set(x, 0, z); t.scale.setScalar(s); g.add(t); k.solidCircle(x, z, 0.85 * s);
+        k.box(trunk, 0.3, 0.6, 0.3, 0, 0, 0, { parent: t }); for (let i = 0; i < 5; i++) { const w = 1.9 - i * 0.36; k.box(i % 2 ? pine : pine2, w, 0.55, w, 0, 0.6 + i * 0.5, 0, { parent: t }); k.box(snowM, w * 0.8, 0.08, w * 0.8, 0, 1.15 + i * 0.5, 0, { parent: t }); } };
+      for (const [x, z] of ringPositions(70, 3.2, 40, rand, (x, z) => Math.abs(x) < 2.5 && z > -4)) tree(x, z, 0.7 + rand() * 0.9);
+      tree(-2.6, -1.6, 1.1); tree(3.0, -2.6, 1.3);
+      for (let i = 0; i < 40; i++) k.box(snowM, 0.3 + rand() * 0.8, 0.12 + rand() * 0.2, 0.3 + rand() * 0.8, (rand() - .5) * 30, 0, (rand() - .5) * 30);
+      // snowman
+      const sm = (r, y) => { const s = new THREE.Mesh(new THREE.SphereGeometry(r, 16, 12), snowM); s.position.set(-1.6, y, 1.2); s.castShadow = true; g.add(s); };
+      sm(0.45, 0.4); sm(0.33, 1.05); sm(0.24, 1.55); k.box(mat(0xff7a1a), 0.06, 0.06, 0.25, -1.6, 1.53, 1.48, { cast: false }); k.solidCircle(-1.6, 1.2, 0.45);
+      const N = 2500, pos = new Float32Array(N * 3); for (let i = 0; i < N; i++) { pos[i*3] = (rand() - .5) * 30; pos[i*3+1] = rand() * 12; pos[i*3+2] = (rand() - .5) * 30; }
+      const pg = new THREE.BufferGeometry(); pg.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+      const flakes = new THREE.Points(pg, new THREE.PointsMaterial({ color: 0xffffff, size: 0.05, transparent: true, opacity: 0.9, depthWrite: false })); g.add(flakes);
+      k.every((t, dt, focus) => { flakes.position.set(focus.x, 0, focus.z); for (let i = 0; i < N; i++) { pos[i*3+1] -= dt * (0.5 + (i % 7) * 0.08); pos[i*3] += Math.sin(t + i) * dt * 0.1; if (pos[i*3+1] < 0) pos[i*3+1] += 12; } pg.attributes.position.needsUpdate = true; });
+      return { top: 0x9db3cf, bottom: 0xeef3f8, hemi: [0xdfeaff, 0xbfc9d8, 1.1], sun: [0xfff4e6, 1.6, [0.5, 0.75, 0.4]], fog: [0xe4ebf3, 6, 45] };
+    } },
+
+  /* ---------------- Moon Base ---------------- */
+  { id: "moon", name: "Moon Base", swatch: "radial-gradient(circle at 75% 25%,#4c8fd6 0 9%,transparent 10%),linear-gradient(#000,#05060c 60%,#8b8d93 60%)",
+    spawn: { x: 0, z: 3, yaw: PI }, bounds: [-50, 50, -50, 50], lowGravity: true,
+    build(k) {
+      const rand = rng(5), g = k.g;
+      const geo = new THREE.PlaneGeometry(140, 140, 140, 140); geo.rotateX(-PI / 2);
+      const craters = Array.from({ length: 50 }, () => [(rand() - .5) * 110, (rand() - .5) * 110, 1 + rand() * 6]); craters.push([4.5, -5, 2.2]);
+      const pa = geo.attributes.position;
+      for (let i = 0; i < pa.count; i++) { const x = pa.getX(i), z = pa.getZ(i); let y = 0;
+        for (const [cx, cz, r] of craters) { const d = Math.hypot(x - cx, z - cz) / r; if (d < 1.4) y += d < 1 ? -(1 - d * d) * r * 0.18 : (1.4 - d) * r * 0.12; }
+        if (Math.hypot(x, z) < 3) y *= Math.hypot(x, z) / 3; pa.setY(i, y + (rand() - .5) * 0.03); }
+      geo.computeVertexNormals();
+      const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x9a9ca2, roughness: 1, flatShading: true })); m.receiveShadow = true; g.add(m); k.walk.push(m);
+      k.box(mat(0x8d8f95), 600, 0.01, 600, 0, -1.2, 0, { cast: false });
+      const N = 3000, sp = new Float32Array(N * 3); for (let i = 0; i < N; i++) { const v = new THREE.Vector3().randomDirection(); if (v.y < -0.05) v.y *= -1; v.multiplyScalar(800); sp.set([v.x, v.y, v.z], i * 3); }
+      const sg = new THREE.BufferGeometry(); sg.setAttribute("position", new THREE.BufferAttribute(sp, 3));
+      g.add(new THREE.Points(sg, new THREE.PointsMaterial({ color: 0xffffff, size: 1.6, sizeAttenuation: false, fog: false })));
+      const earthTex = canvasTex(256, 128, (c, w, h) => { c.fillStyle = "#2a63b8"; c.fillRect(0, 0, w, h); c.fillStyle = "#3f9a4f";
+        for (let i = 0; i < 26; i++) { c.beginPath(); c.ellipse(rand() * w, h * .2 + rand() * h * .6, 8 + rand() * 26, 6 + rand() * 14, rand() * 3, 0, 7); c.fill(); }
+        c.fillStyle = "rgba(255,255,255,.75)"; for (let i = 0; i < 30; i++) { c.beginPath(); c.ellipse(rand() * w, rand() * h, 10 + rand() * 20, 2 + rand() * 3, 0, 0, 7); c.fill(); } });
+      const earth = new THREE.Mesh(new THREE.SphereGeometry(40, 48, 32), new THREE.MeshStandardMaterial({ map: earthTex, roughness: 0.8, fog: false })); earth.position.set(140, 160, -520); g.add(earth);
+      k.box(mat(0xdddddd, { m: .6, r: .4 }), 0.05, 1.8, 0.05, -1.8, 0, -1.4, { solid: true }); k.box(mat(0xefb15e), 0.8, 0.5, 0.03, -1.4, 1.25, -1.4);
+      const lander = mat(0xc9ccd4, { m: .5, r: .45 }), goldf = mat(0xd9a441, { m: .7, r: .35 });
+      k.box(goldf, 1.6, 0.9, 1.6, 3.4, 0.5, -3.0, { solid: true, walk: true }); k.box(lander, 1.2, 0.7, 1.2, 3.4, 1.4, -3.0, { solid: true });
+      for (const [dx, dz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) k.box(lander, 0.08, 0.9, 0.08, 3.4 + dx * 0.95, 0, -3.0 + dz * 0.95);
+      k.solidBox(2.4, 4.4, -4, -2, 0, 0.5);
+      k.every((t) => { earth.rotation.y = t * 0.03; });
+      return { top: 0x000000, bottom: 0x07080e, hemi: [0x9fb4ff, 0x111111, 0.25], sun: [0xffffff, 3.2, [-0.7, 0.55, 0.45]], fog: null, fill: [0xb8c8ff, 0.35] };
+    } },
+
+  /* ---------------- Red Canyon ---------------- */
+  { id: "canyon", name: "Red Canyon", swatch: "linear-gradient(#f2b37a,#f7dcb6 58%,#c66a3a 58%)",
+    spawn: { x: 0, z: 4, yaw: PI }, bounds: [-60, 60, -60, 60],
+    build(k) {
+      const rand = rng(33), g = k.g;
+      const dust = canvasTex(256, 256, (c, w, h) => { c.fillStyle = "#c8703f"; c.fillRect(0, 0, w, h); for (let i = 0; i < 900; i++) { c.fillStyle = rand() > .5 ? "#b9613a" : "#d98552"; c.fillRect(rand() * w, rand() * h, 3, 3); } }, 70);
+      k.ground(new THREE.MeshStandardMaterial({ map: dust, roughness: 1 }));
+      const bands = [0xa9502b, 0xc76a3a, 0xd98a52, 0xb85c32, 0xe0a26a].map(c => mat(c));
+      const mesa = (x, z, w, d, h) => { let y = 0, ww = w, dd = d; const layers = Math.ceil(h / 1.6);
+        for (let i = 0; i < layers; i++) { const lh = Math.min(1.6, h - y); k.box(bands[i % bands.length], ww, lh, dd, x, y, z, { occ: true }); y += lh; ww *= 0.97; dd *= 0.97; }
+        k.solidBox(x - w / 2, x + w / 2, z - d / 2, z + d / 2); };
+      for (const [x, z] of ringPositions(26, 18, 120, rand)) mesa(x, z, 6 + rand() * 14, 6 + rand() * 14, 6 + rand() * 24);
+      mesa(-7, -9, 6, 4, 9); mesa(9, -14, 7, 6, 14);
+      const rock = mat(0x9b4a2a, { flat: true });
+      for (let i = 0; i < 26; i++) { const r = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2 + rand() * 0.5, 0), rock); r.position.set((rand() - .5) * 16, 0.1, (rand() - .5) * 16); if (Math.hypot(r.position.x, r.position.z - 2) < 2) continue; r.castShadow = r.receiveShadow = true; g.add(r); }
+      const cactus = mat(0x5f8a3e);
+      k.box(cactus, 0.32, 1.9, 0.32, 2.6, 0, -1.8, { solid: true }); k.box(cactus, 0.5, 0.26, 0.26, 2.95, 0.8, -1.8); k.box(cactus, 0.26, 0.6, 0.26, 3.16, 0.8, -1.8);
+      k.box(cactus, 0.5, 0.26, 0.26, 2.25, 1.1, -1.8); k.box(cactus, 0.26, 0.5, 0.26, 2.04, 1.1, -1.8);
+      return { top: 0xe58f57, bottom: 0xf8e0bc, power: 0.6, hemi: [0xffe2c0, 0x8a4a2a, 0.95], sun: [0xffe1b0, 2.8, [0.7, 0.6, 0.3]], fog: [0xf3c99c, 25, 170] };
+    } },
+
+  /* ---------------- Colour Studio ---------------- */
+  { id: "studio", name: "Colour Studio", swatch: "linear-gradient(#f2c14e,#e9b23c)",
+    spawn: { x: 0, z: 3, yaw: PI }, bounds: [-14, 14, -1.8, 5.8],
+    build(k) {
+      const color = new THREE.Color(document.getElementById("studioColor").value);
+      const m = new THREE.MeshStandardMaterial({ color, roughness: 1, side: THREE.DoubleSide });
+      const R = 3, geo = new THREE.PlaneGeometry(40, 20, 1, 60), p = geo.attributes.position;
+      for (let i = 0; i < p.count; i++) { const s = (p.getY(i) + 10); let y, z;
+        if (s < 8) { y = 0; z = 6 - s; } else if (s < 8 + R * PI / 2) { const a = (s - 8) / R; y = R - Math.cos(a) * R; z = -2 - Math.sin(a) * R; } else { y = R + (s - 8 - R * PI / 2); z = -2 - R; }
+        p.setXYZ(i, p.getX(i), y, z); }
+      geo.computeVertexNormals();
+      const cyc = new THREE.Mesh(geo, m); cyc.receiveShadow = true; k.g.add(cyc); k.walk.push(cyc);
+      return { top: color.getHex(), bottom: color.getHex(), hemi: [0xffffff, 0x9a9a9a, 1.25], sun: [0xffffff, 2.0, [0.45, 0.75, 0.5]], fog: null, studio: m };
+    } },
+
+  /* ---------------- Your own .glb ---------------- */
+  { id: "custom", name: "Your Scene", swatch: "repeating-linear-gradient(45deg,#2a2d38 0 8px,#353946 8px 16px)",
+    spawn: { x: 0, z: 0, yaw: PI }, bounds: [-200, 200, -200, 200], custom: true,
+    build(k) {
+      k.ground(new THREE.ShadowMaterial({ opacity: 0.25 }));
+      return { top: 0x8aa0c8, bottom: 0xe7ecf4, hemi: [0xffffff, 0x8a8a8a, 1.2], sun: [0xffffff, 2.2, [0.4, 0.8, 0.45]], fog: null };
+    } },
+];
+
+/* Chonkit Gallery: only the Art Gallery scene */
+for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
+const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
+const GALLERY = { all: [], shown: [] };
+const shortTitle = (t) => { t = String(t || "Untitled").replace(/\s+/g, " ").trim(); return t.length > 26 ? t.slice(0, 25) + "…" : t; };
+function emptyFrameTex(h) {
+  return canvasTex(256, h, (c, w, hh) => {
+    c.fillStyle = "#ecebe7"; c.fillRect(0, 0, w, hh);
+    c.strokeStyle = "#c9c6bf"; c.setLineDash([10, 8]); c.lineWidth = 4; c.strokeRect(14, 14, w - 28, hh - 28);
+    c.fillStyle = "#9a968e"; c.textAlign = "center"; c.textBaseline = "middle";
+    c.font = '400 26px Silkscreen, "Courier New", monospace'; c.fillText("+", w / 2, hh / 2 - 22);
+    c.font = '500 17px Sora, sans-serif'; c.fillText("Add a mosaic", w / 2, hh / 2 + 10); c.fillText("from Chonkit", w / 2, hh / 2 + 32);
+  });
+}
+async function loadGallery() {
+  for (const it of GALLERY.all) if (it.url) URL.revokeObjectURL(it.url);
+  let items = [];
+  try { items = window.ChonkitGallery ? await ChonkitGallery.list() : []; } catch {}
+  await Promise.all(items.map((it) => new Promise((res) => {
+    it.url = URL.createObjectURL(it.blob); const img = new Image();
+    img.onload = () => { it.img = img; res(); }; img.onerror = () => res(); img.src = it.url;
+  })));
+  GALLERY.all = items.filter((it) => it.img);
+  GALLERY.shown = GALLERY.all.slice(0, FRAMES);
+  renderGalleryList();
+}
+function renderGalleryList() {
+  const list = document.getElementById("galList"); list.textContent = "";
+  const n = GALLERY.all.length;
+  document.getElementById("galCount").textContent = n ? `· ${n}` : "";
+  document.getElementById("emptyNote").hidden = n > 0;
+  document.getElementById("where").textContent = n ? `${n} mosaic${n > 1 ? "s" : ""}${n > FRAMES ? ` · showing the ${FRAMES} newest` : ""}` : "No mosaics yet";
+  GALLERY.all.forEach((it, i) => {
+    const row = document.createElement("div"); row.className = "member withthumb";
+    const th = document.createElement("img"); th.className = "mthumb"; th.src = it.url; th.alt = "";
+    const pick = document.createElement("div"); pick.className = "pick";
+    const st = document.createElement("strong"); st.textContent = shortTitle(it.title);
+    const sp = document.createElement("span"); sp.textContent = `${it.tiles.toLocaleString()} Chonks${i >= FRAMES ? " · not hung (gallery full)" : ""}`;
+    pick.append(st, sp);
+    const rm = document.createElement("button"); rm.className = "rm"; rm.type = "button"; rm.textContent = "×"; rm.title = "Remove from gallery"; rm.setAttribute("aria-label", `Remove ${it.title} from the gallery`);
+    rm.onclick = async () => { if (!confirm(`Remove "${shortTitle(it.title)}" from your gallery?`)) return; try { await ChonkitGallery.remove(it.id); } catch {} await loadGallery(); applyLocation("gallery", { keepPositions: true }); };
+    row.append(th, pick, rm); list.append(row);
+  });
+}
+
+/* ===================================================================
+   Renderer, sky, shared lights
+   =================================================================== */
+const stageEl = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+stageEl.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 2000);
+scene.add(camera);
+const gizmo = new TransformControls(camera, renderer.domElement);
+gizmo.setSize(0.85);
+const gizmoHelper = gizmo.getHelper(); scene.add(gizmoHelper);
+
+const hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 1.0); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.02;
+Object.assign(sun.shadow.camera, { left: -11, right: 11, top: 11, bottom: -11, near: 0.5, far: 80 });
+scene.add(sun, sun.target);
+const fill = new THREE.DirectionalLight(0xffffff, 0.9); scene.add(fill, fill.target);
+const skyMat = new THREE.ShaderMaterial({
+  side: THREE.BackSide, depthWrite: false, fog: false,
+  uniforms: { top: { value: new THREE.Color() }, bottom: { value: new THREE.Color() }, power: { value: 0.7 } },
+  vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.); }`,
+  fragmentShader: `uniform vec3 top; uniform vec3 bottom; uniform float power; varying vec3 vP;
+    void main(){ float h = clamp(vP.y, 0., 1.); gl_FragColor = vec4(mix(bottom, top, pow(h, power)), 1.);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    }`,
+});
+const sky = new THREE.Mesh(new THREE.SphereGeometry(900, 32, 16), skyMat); sky.renderOrder = -1; scene.add(sky);
+
+/* ===================================================================
+   Chonks in the scene
+   =================================================================== */
+const MAX_CHONKS = 10;
+const RADIUS = 0.3, STEP = 0.38, WALK_SPEED = 2.5, RUN_SPEED = 5, JUMP_VEL = 4.2;
+class Chonk {
+  constructor(vox, { id, label, accessory = null }) {
+    this.rig = new ChonkRig(); this.rig.setVoxels(vox, accessory);
+    this.vox = vox; this.accessory = accessory; this.id = id; this.label = label;
+    this.holder = new THREE.Group(); this.holder.add(this.rig.object); this.holder.userData.chonk = this; scene.add(this.holder);
+    this.pos = new THREE.Vector3(); this.yaw = 0; this.vy = 0; this.onGround = true;
+    this.pose = "idle"; this.freeze = false; this.phase = 0.18; this.moveAnim = "idle"; this.offset = Math.random() * 10;
+  }
+  setVoxels(vox, meta) { this.rig.setVoxels(vox, meta.accessory ?? null); this.vox = vox; this.accessory = meta.accessory ?? null; this.id = meta.id; this.label = meta.label; }
+  remove() { scene.remove(this.holder); this.rig.dispose(); }
+}
+const chonks = [];
+let sel = null; // the selected Chonk = the one you walk with
+
+/* ===================================================================
+   Locations
+   =================================================================== */
+let loc = null, kit = null, locGroup = null, locSettings = null;
+let customScene = null, customBase = 1;
+function applyLocation(id, { keepPositions = false } = {}) {
+  const L = LOCATIONS.find(l => l.id === id);
+  if (locGroup) { scene.remove(locGroup); locGroup.traverse(o => { if (o.geometry && o.geometry !== BOX) o.geometry.dispose(); }); }
+  locGroup = new THREE.Group(); scene.add(locGroup);
+  kit = new Kit(locGroup); loc = L;
+  const s = L.build(kit); locSettings = s;
+  if (L.custom && customScene) { locGroup.add(customScene); customScene.traverse(o => { if (o.isMesh) kit.walk.push(o); }); }
+  skyMat.uniforms.top.value.setHex(s.top); skyMat.uniforms.bottom.value.setHex(s.bottom); skyMat.uniforms.power.value = s.power ?? 0.7;
+  hemi.color.setHex(s.hemi[0]); hemi.groundColor.setHex(s.hemi[1]); hemi.intensity = s.hemi[2];
+  sun.color.setHex(s.sun[0]); sun.intensity = s.sun[1]; sunDir.set(...s.sun[2]).normalize();
+  const f = s.fill ?? [0xffffff, 0.9]; fill.color.setHex(f[0]); fill.intensity = f[1];
+  scene.fog = s.fog ? new THREE.Fog(s.fog[0], s.fog[1], s.fog[2]) : null;
+  renderer.toneMappingExposure = s.exposure ?? 1;
+  document.getElementById("studioColorRow").hidden = id !== "studio";
+  document.getElementById("glbRow").hidden = id !== "custom";
+  for (const b of document.querySelectorAll(".loc")) b.setAttribute("aria-pressed", b.dataset.id === id);
+  if (!keepPositions) placeAtSpawn();
+  onLocationBuilt();
+  saveSoon();
+}
+const sunDir = new THREE.Vector3(0.4, 0.8, 0.45);
+function placeAtSpawn() {
+  const sp = loc.spawn, others = chonks.filter(c => c !== sel);
+  const right = new THREE.Vector3(Math.cos(sp.yaw), 0, -Math.sin(sp.yaw));
+  const put = (c, k) => { c.pos.set(sp.x, 0, sp.z).addScaledVector(right, k); c.yaw = sp.yaw; c.vy = 0; c.pos.y = groundAt(c.pos.x, c.pos.z, 50) ?? 0; };
+  if (sel) put(sel, 0);
+  others.forEach((c, i) => put(c, (i % 2 ? -1 : 1) * (0.9 + Math.floor(i / 2) * 0.9)));
+  cam.yaw = sp.yaw + Math.PI; cam.pitch = 0.3; cam.dist = 4.6; snapCamera = true;
+}
+
+/* ===================================================================
+   Physics helpers
+   =================================================================== */
+const ray = new THREE.Raycaster(), DOWN = new THREE.Vector3(0, -1, 0), tmpV = new THREE.Vector3();
+function groundAt(x, z, fromY) {
+  if (!kit?.walk.length) return 0;
+  ray.set(tmpV.set(x, fromY, z), DOWN); ray.far = fromY + 60;
+  const hit = ray.intersectObjects(kit.walk, false)[0];
+  return hit ? hit.point.y : null;
+}
+function collide(p, y, self) {
+  for (const c of kit.colliders) {
+    if (y + 1.0 <= c.minY || y + 0.05 >= c.maxY) continue;
+    if (c.r != null) {
+      const dx = p.x - c.x, dz = p.z - c.z, d = Math.hypot(dx, dz), m = c.r + RADIUS;
+      if (d < m) { const k = d > 1e-4 ? (m - d) / d : 0; p.x += dx * k; p.z += dz * k + (d <= 1e-4 ? m : 0); }
+    } else {
+      const nx = Math.max(c.minX, Math.min(p.x, c.maxX)), nz = Math.max(c.minZ, Math.min(p.z, c.maxZ));
+      const dx = p.x - nx, dz = p.z - nz, d = Math.hypot(dx, dz);
+      if (d < RADIUS) {
+        if (d > 1e-4) { p.x += dx / d * (RADIUS - d); p.z += dz / d * (RADIUS - d); }
+        else { // centre is inside the box: push out along the shortest axis
+          const opts = [[c.minX - RADIUS - p.x, 0], [c.maxX + RADIUS - p.x, 0], [0, c.minZ - RADIUS - p.z], [0, c.maxZ + RADIUS - p.z]];
+          opts.sort((a, b) => Math.abs(a[0] + a[1]) - Math.abs(b[0] + b[1])); p.x += opts[0][0]; p.z += opts[0][1]; }
+      }
+    }
+  }
+  for (const o of chonks) { if (o === self || Math.abs(o.pos.y - y) > 0.9) continue;
+    const dx = p.x - o.pos.x, dz = p.z - o.pos.z, d = Math.hypot(dx, dz), m = RADIUS * 1.6;
+    if (d < m && d > 1e-4) { p.x += dx / d * (m - d); p.z += dz / d * (m - d); } }
+  const b = loc.bounds; p.x = Math.max(b[0], Math.min(b[1], p.x)); p.z = Math.max(b[2], Math.min(b[3], p.z));
+}
+// custom scenes have no hand-made colliders: block on walls by casting forward
+const fwdRay = new THREE.Raycaster();
+function blockedForward(from, dir, dist) {
+  if (!loc.custom || !customScene) return false;
+  fwdRay.set(tmpV.set(from.x, from.y + 0.5, from.z), dir); fwdRay.far = dist + RADIUS;
+  return fwdRay.intersectObject(customScene, true).length > 0;
+}
+
+/* ===================================================================
+   Input
+   =================================================================== */
+const keys = new Set();
+let jumpQueued = false;
+const isTyping = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
+addEventListener("keydown", (e) => {
+  if (isTyping()) return;
+  if (e.key === "Escape") { if (!resultEl.hidden) { resultEl.hidden = true; return; } if (picked) { setPicked(null); return; } if (mode === "photo") setMode("walk"); return; }
+  if (!resultEl.hidden) return;
+  if (e.code === "KeyP") { setMode(mode === "photo" ? "walk" : "photo"); return; }
+  if (e.code === "KeyF") { toggleFreeCam(); return; }
+  if (mode === "photo" && picked && editKey(e)) return;
+  if (mode !== "walk" && camMode !== "free") return;
+  keys.add(e.code);
+  if (camMode === "free") { if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault(); return; }
+  if (e.code === "Space") { jumpQueued = true; e.preventDefault(); }
+  if (e.code === "Digit1" && sel) sel.moveAnim = "wave";
+  if (e.code === "Digit2" && sel) sel.moveAnim = "bow";
+  if (e.code.startsWith("Arrow")) e.preventDefault();
+});
+addEventListener("keyup", (e) => keys.delete(e.code));
+addEventListener("blur", () => keys.clear());
+const joy = { x: 0, y: 0, active: false };
+(function setupJoystick() {
+  const el = document.getElementById("joy"), knob = el.querySelector("i"); let pid = null;
+  const move = (e) => { const r = el.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2, max = r.width / 2 - 18;
+    let dx = e.clientX - cx, dy = e.clientY - cy; const d = Math.hypot(dx, dy); if (d > max) { dx *= max / d; dy *= max / d; }
+    knob.style.transform = `translate(${dx}px,${dy}px)`; joy.x = dx / max; joy.y = dy / max; };
+  el.addEventListener("pointerdown", (e) => { pid = e.pointerId; el.setPointerCapture(pid); joy.active = true; move(e); e.stopPropagation(); });
+  el.addEventListener("pointermove", (e) => { if (e.pointerId === pid) move(e); });
+  const end = (e) => { if (e.pointerId !== pid) return; pid = null; joy.active = false; joy.x = joy.y = 0; knob.style.transform = ""; };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  document.getElementById("tJump").addEventListener("pointerdown", (e) => { jumpQueued = true; e.preventDefault(); });
+  document.getElementById("tWave").addEventListener("pointerdown", (e) => { if (sel) sel.moveAnim = "wave"; e.preventDefault(); });
+})();
+if (matchMedia("(pointer: coarse)").matches) document.body.classList.add("touch");
+
+/* ===================================================================
+   Follow camera (orbit around the selected Chonk, pulled in by walls)
+   =================================================================== */
+const cam = { yaw: 0, pitch: 0.3, dist: 4.6, target: new THREE.Vector3(0, 0.6, 0) };
+const WALK_FOV = 50;
+let snapCamera = true;
+(function setupCameraInput() {
+  const el = renderer.domElement, pts = new Map(); let pinch = 0;
+  let down = null;
+  el.addEventListener("pointerdown", (e) => {
+    if (gizmo.dragging) return;                       // the move/rotate handles took this press
+    el.setPointerCapture(e.pointerId); pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    down = pts.size === 1 ? { x: e.clientX, y: e.clientY, id: e.pointerId } : null;
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+  });
+  el.addEventListener("pointermove", (e) => {
+    const p = pts.get(e.pointerId); if (!p || gizmo.dragging) return;
+    const dx = e.clientX - p.x, dy = e.clientY - p.y;
+    if (pts.size === 1) {
+      if (camMode === "free") { freeCam.yaw -= dx * 0.0042; freeCam.pitch = Math.max(-1.5, Math.min(1.5, freeCam.pitch - dy * 0.0042)); }
+      else { cam.yaw -= dx * 0.006; cam.pitch = Math.max(-0.25, Math.min(1.35, cam.pitch + dy * 0.005)); }
+    }
+    p.x = e.clientX; p.y = e.clientY;
+    if (pts.size === 2) { const [a, b] = [...pts.values()]; const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch) { if (camMode === "free") freeCamDolly((d - pinch) * 0.02); else cam.dist = Math.max(0.7, Math.min(14, cam.dist * pinch / d)); } pinch = d; }
+  });
+  const end = (e) => {
+    if (down && down.id === e.pointerId && e.type === "pointerup" && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 6 && mode === "photo" && !gizmo.dragging) pickAt(e.clientX, e.clientY);
+    down = null; pts.delete(e.pointerId); pinch = 0;
+  };
+  el.addEventListener("pointerup", end); el.addEventListener("pointercancel", end);
+  el.addEventListener("wheel", (e) => { e.preventDefault();
+    if (camMode === "free") freeCamDolly(-e.deltaY * 0.004); else cam.dist = Math.max(0.7, Math.min(14, cam.dist * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+})();
+const camRay = new THREE.Raycaster();
+function updateCamera(dt) {
+  if (camMode === "free") { updateFreeCam(dt); return; }
+  if (!sel) return;
+  const want = tmpV.copy(sel.pos).add(new THREE.Vector3(0, 0.62, 0));
+  if (snapCamera) { cam.target.copy(want); snapCamera = false; } else cam.target.lerp(want, 1 - Math.exp(-dt * 10));
+  const dir = new THREE.Vector3(Math.sin(cam.yaw) * Math.cos(cam.pitch), Math.sin(cam.pitch), Math.cos(cam.yaw) * Math.cos(cam.pitch));
+  let d = cam.dist;
+  if (kit.occ.length || (loc.custom && customScene)) {
+    camRay.set(cam.target, dir); camRay.far = d;
+    const hits = camRay.intersectObjects(loc.custom && customScene ? [...kit.occ, customScene] : kit.occ, true);
+    if (hits.length) d = Math.max(0.35, hits[0].distance - 0.2);
+  }
+  camera.position.copy(cam.target).addScaledVector(dir, d);
+  const gy = groundAt(camera.position.x, camera.position.z, camera.position.y + 0.2);
+  if (gy != null && camera.position.y < gy + 0.12) camera.position.y = gy + 0.12;
+  camera.lookAt(cam.target);
+}
+
+/* ===================================================================
+   Simulation
+   =================================================================== */
+function stepSelected(dt) {
+  const c = sel; if (!c) return;
+  let ix = 0, iz = 0;
+  if (mode === "walk" && camMode === "follow") {
+    if (keys.has("KeyW") || keys.has("ArrowUp")) iz += 1; if (keys.has("KeyS") || keys.has("ArrowDown")) iz -= 1;
+    if (keys.has("KeyD") || keys.has("ArrowRight")) ix += 1; if (keys.has("KeyA") || keys.has("ArrowLeft")) ix -= 1;
+    if (joy.active) { ix += joy.x; iz -= joy.y; }
+  }
+  const mag = Math.min(1, Math.hypot(ix, iz));
+  const running = keys.has("ShiftLeft") || keys.has("ShiftRight") || (joy.active && Math.hypot(joy.x, joy.y) > 0.92);
+  const gravity = loc.lowGravity ? 4.5 : 13;
+  if (mag > 0.08) {
+    const fx = -Math.sin(cam.yaw), fz = -Math.cos(cam.yaw), rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
+    let dx = fx * iz + rx * ix, dz = fz * iz + rz * ix; const dl = Math.hypot(dx, dz); dx /= dl; dz /= dl;
+    const speed = (running ? RUN_SPEED : WALK_SPEED) * Math.max(mag, 0.35);
+    const next = new THREE.Vector3(c.pos.x + dx * speed * dt, c.pos.y, c.pos.z + dz * speed * dt);
+    collide(next, c.pos.y, c);
+    const gy = groundAt(next.x, next.z, c.pos.y + STEP + 0.05);
+    const blocked = (gy != null && gy > c.pos.y + STEP) || blockedForward(c.pos, new THREE.Vector3(dx, 0, dz), speed * dt);
+    if (!blocked) { c.pos.x = next.x; c.pos.z = next.z; }
+    let dy = Math.atan2(dx, dz) - c.yaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy)); c.yaw += dy * Math.min(1, dt * 14);
+    if (c.onGround) c.moveAnim = running ? "run" : "walk";
+  } else if (c.onGround && (c.moveAnim === "walk" || c.moveAnim === "run" || c.moveAnim === "jump")) c.moveAnim = "idle";
+  if (jumpQueued && c.onGround && mode === "walk" && camMode === "follow") { c.vy = JUMP_VEL * (loc.lowGravity ? 1.1 : 1); c.onGround = false; c.moveAnim = "jump"; }
+  jumpQueued = false;
+  // vertical
+  const gy = groundAt(c.pos.x, c.pos.z, c.pos.y + STEP + 0.05);
+  const floor = gy ?? -50;
+  if (!c.onGround || c.pos.y > floor + 0.02) { c.vy -= gravity * dt; c.pos.y += c.vy * dt; c.onGround = false; if (c.moveAnim !== "jump" && c.pos.y < floor - 0.3) c.moveAnim = "jump"; }
+  if (c.pos.y <= floor) { c.pos.y = floor; if (!c.onGround && c.vy <= 0) { c.onGround = true; c.vy = 0; if (c.moveAnim === "jump") c.moveAnim = mag > 0.08 ? "walk" : "idle"; } }
+  else if (c.onGround && c.pos.y - floor < STEP) c.pos.y = floor;
+  if (c.pos.y < -30) placeAtSpawn();
+}
+
+/* ===================================================================
+   Modes and UI
+   =================================================================== */
+let mode = "walk";
+const resultEl = document.getElementById("result");
+function setMode(m) {
+  mode = m; keys.clear(); joy.active = false;
+  document.body.classList.toggle("photo", m === "photo");
+  if (m === "photo" && sel && ["wave", "bow"].includes(sel.moveAnim)) sel.pose = sel.moveAnim;
+  if (m === "walk" && sel) sel.moveAnim = "idle";
+  // photo mode swings round to a 3/4 front view of your Chonk; walking uses a wider view from behind
+  // (a free camera stays exactly where you put it)
+  if (m === "photo") { applyLens(); if (sel && camMode === "follow") { cam.yaw = sel.yaw + 0.55; cam.pitch = 0.16; } }
+  if (m === "walk") { setPicked(null); camera.fov = WALK_FOV; camera.updateProjectionMatrix(); if (sel && camMode === "follow") { cam.yaw = sel.yaw + Math.PI; cam.pitch = 0.3; cam.dist = Math.max(cam.dist, 4.2); } }
+  renderRoster(); syncPoseUI(); layoutFrame();
+  // start with about 1.8 m of scene filling the frame height, whatever the screen shape
+  if (m === "photo" && camMode === "follow") { const half = THREE.MathUtils.degToRad(camera.fov) / 2; cam.dist = Math.max(1.2, Math.min(14, 0.9 / Math.tan(half) * innerHeight / frameRect.h)); }
+}
+document.getElementById("photoBtn").onclick = () => setMode("photo");
+document.getElementById("closePhoto").onclick = () => setMode("walk");
+
+const statusEl = document.getElementById("status");
+function setStatus(msg, kind = "") { statusEl.textContent = msg; statusEl.className = "status " + kind; }
+let toastTimer = 0;
+function toast(msg) { const t = document.getElementById("toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => t.hidden = true, 2600); }
+
+function renderRoster() {
+  const el = document.getElementById("roster"); el.textContent = "";
+  for (const c of chonks) {
+    const row = document.createElement("div"); row.className = "member" + (c === sel ? " sel" : "");
+    const pick = document.createElement("button"); pick.className = "pick"; pick.type = "button";
+    const st = document.createElement("strong"); st.textContent = `Chonk #${c.id}`; const sp = document.createElement("span"); sp.textContent = `${POSES.find(p => p.id === c.pose)?.label ?? "Idle"} · ${c.label}`;
+    pick.append(st, sp); pick.onclick = () => { select(c); };
+    const rm = document.createElement("button"); rm.className = "rm"; rm.type = "button"; rm.textContent = "×"; rm.title = "Remove from scene"; rm.setAttribute("aria-label", `Remove Chonk #${c.id}`);
+    rm.disabled = chonks.length < 2; rm.onclick = () => removeChonk(c);
+    row.append(pick, rm); el.append(row);
+  }
+  document.getElementById("cloneBtn").disabled = chonks.length >= MAX_CHONKS;
+  document.getElementById("poseWho").textContent = sel ? `· #${sel.id}` : "";
+}
+function select(c) { sel = c; snapCamera = false; renderRoster(); syncPoseUI(); saveSoon(); if (mode === "photo" && picked?.ref !== c) setPicked({ kind: "chonk", ref: c }); }
+function removeChonk(c) {
+  if (chonks.length < 2) return;
+  if (picked?.ref === c) setPicked(null);
+  chonks.splice(chonks.indexOf(c), 1); c.remove();
+  if (sel === c) sel = chonks[0];
+  renderRoster(); syncPoseUI(); saveSoon();
+}
+function cloneSelected() {
+  if (!sel || chonks.length >= MAX_CHONKS) return;
+  const c = new Chonk(sel.vox, { id: sel.id, label: sel.label, accessory: sel.accessory });
+  c.pos.copy(sel.pos); c.yaw = sel.yaw; c.pose = mode === "photo" ? sel.pose : "idle"; c.freeze = sel.freeze; c.phase = sel.phase;
+  chonks.push(c);
+  // the original steps aside so the copy keeps the spot
+  const side = new THREE.Vector3(Math.cos(sel.yaw), 0, -Math.sin(sel.yaw)).multiplyScalar(0.9);
+  const p = sel.pos.clone().add(side); collide(p, sel.pos.y, sel); sel.pos.x = p.x; sel.pos.z = p.z; sel.pos.y = groundAt(p.x, p.z, sel.pos.y + STEP) ?? sel.pos.y;
+  renderRoster(); saveSoon();
+  toast(`Cloned Chonk #${c.id}. Load a different Chonk into your slot to group them.`);
+}
+document.getElementById("cloneBtn").onclick = cloneSelected;
+
+/* ---------- loading ---------- */
+const INDEXER = "https://indexer.chonks.xyz";
+const inClaude = !!window.claude?.use;
+const offlineMsg = inClaude
+  ? "This preview inside Claude can't reach outside sites, so token IDs and wallets can't load here. Open the downloadable index.html (on your computer or any website) to load any Chonk. The samples work everywhere."
+  : "Couldn't reach the Chonks servers. Check your connection and try again.";
+function decodeTokenURI(uri) {
+  const i = uri.indexOf(","), head = uri.slice(0, i), body = uri.slice(i + 1);
+  if (head.endsWith(";base64")) return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body), c => c.charCodeAt(0))));
+  return JSON.parse(decodeURIComponent(body));
+}
+async function fetchChonk(id) {
+  const r = await fetch(`${INDEXER}/chonk/zmap?tokenId=${id}`);
+  if (!r.ok) throw new Error("http " + r.status);
+  const j = await r.json(), c = j.chonks?.[0];
+  if (!j.success || !c?.z_map) return null;
+  let meta = {}; try { meta = decodeTokenURI(c.token_uri); } catch {}
+  const attrs = meta.attributes || [], acc = attrs.find(a => a.trait_type === "Accessory")?.value ?? null;
+  const label = attrs.filter(a => ["Head", "Hair", "Face", "Top", "Accessory"].includes(a.trait_type)).map(a => a.value).slice(0, 3).join(" · ") || "Loaded from chain";
+  return { vox: parseZMap(c.z_map), id: Number(c.token_id ?? id), label, accessory: acc };
+}
+async function loadIntoSelected(id) {
+  setStatus(`Fetching Chonk #${id}…`);
+  try {
+    const got = await fetchChonk(id);
+    if (!got) { setStatus(`Chonk #${id} wasn't found. Check the token ID.`, "err"); return; }
+    putIntoSelected(got.vox, got); setStatus(`Chonk #${got.id} loaded.`, "ok");
+  } catch { setStatus(offlineMsg, "err"); }
+}
+function putIntoSelected(vox, meta) {
+  if (!sel) { sel = new Chonk(vox, meta); chonks.push(sel); placeAtSpawn(); }
+  else sel.setVoxels(vox, meta);
+  renderRoster(); saveSoon();
+}
+async function loadSample(id) { putIntoSelected(await unpackSample(id), { id: Number(id), label: SAMPLE_META[id] + " · sample" }); }
+document.getElementById("idForm").addEventListener("submit", (e) => { e.preventDefault(); const v = document.getElementById("tokenId").value.trim(); if (v !== "") loadIntoSelected(parseInt(v, 10)); document.activeElement.blur(); });
+document.getElementById("walletForm").addEventListener("submit", async (e) => {
+  e.preventDefault(); const a = document.getElementById("wallet").value.trim(); const box = document.getElementById("walletChonks"); box.textContent = "";
+  if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { setStatus("Enter a full wallet address starting with 0x (42 characters).", "err"); return; }
+  setStatus("Looking up Chonks in that wallet…");
+  try {
+    const r = await fetch(`${INDEXER}/chonk/owner/${a.toLowerCase()}`); const j = await r.json();
+    const ids = (j.success && j.chonks ? j.chonks.map(c => Number(c.id)) : []).sort((x, y) => x - y);
+    if (!ids.length) { setStatus("No Chonks found in that wallet.", "err"); return; }
+    setStatus(`${ids.length} Chonk${ids.length > 1 ? "s" : ""} in this wallet. Tap one to load it into the selected slot.`, "ok");
+    for (const id of ids.slice(0, 80)) { const b = document.createElement("button"); b.type = "button"; b.textContent = `#${id}`; b.onclick = () => loadIntoSelected(id); box.append(b); }
+  } catch { setStatus(offlineMsg, "err"); }
+});
+const samplesEl = document.getElementById("samples");
+for (const id of Object.keys(SAMPLES)) { const b = document.createElement("button"); b.type = "button"; b.textContent = `#${id}`; b.onclick = () => { setStatus(""); loadSample(id); }; samplesEl.append(b); }
+
+/* ---------- locations UI ---------- */
+const locsEl = document.getElementById("locs");
+for (const L of LOCATIONS) { const b = document.createElement("button"); b.type = "button"; b.className = "loc"; b.dataset.id = L.id;
+  b.innerHTML = `<i style="background:${L.swatch}"></i><span></span>`; b.querySelector("span").textContent = L.name; b.onclick = () => applyLocation(L.id); locsEl.append(b); }
+document.getElementById("studioColor").addEventListener("input", (e) => {
+  if (locSettings?.studio) { const c = new THREE.Color(e.target.value); locSettings.studio.color.copy(c); skyMat.uniforms.top.value.copy(c); skyMat.uniforms.bottom.value.copy(c); }
+});
+document.getElementById("glbFile").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; if (!f) return;
+  setStatus("Loading your scene…");
+  try {
+    const { GLTFLoader } = await import("three/addons/loaders/GLTFLoader.js");
+    const buf = await f.arrayBuffer();
+    const gltf = await new Promise((res, rej) => new GLTFLoader().parse(buf, "", res, rej));
+    const wrap = new THREE.Group(); wrap.add(gltf.scene);
+    const bb = new THREE.Box3().setFromObject(gltf.scene), size = bb.getSize(new THREE.Vector3()), c = bb.getCenter(new THREE.Vector3());
+    gltf.scene.position.set(-c.x, -bb.min.y, -c.z);
+    gltf.scene.traverse(o => { if (o.isMesh) o.castShadow = o.receiveShadow = true; });
+    customBase = 24 / Math.max(size.x, size.z, 0.001);
+    customScene = wrap; applyCustomScale(); applyLocation("custom");
+    setStatus(`Loaded ${f.name}. Use Scene size to fit your Chonks in.`, "ok");
+  } catch { setStatus("That file didn't load as a 3D scene. Use a .glb export.", "err"); }
+});
+function applyCustomScale() {
+  const v = parseFloat(document.getElementById("glbScale").value), k = Math.pow(4, v);
+  document.getElementById("glbScaleOut").textContent = k.toFixed(k < 1 ? 2 : 1) + "×";
+  if (customScene) { customScene.scale.setScalar(customBase * k); customScene.updateMatrixWorld(true); }
+}
+document.getElementById("glbScale").addEventListener("input", applyCustomScale);
+
+/* ---------- pose UI (acts on the selected Chonk) ---------- */
+const posesEl = document.getElementById("poses"), freezeEl = document.getElementById("freeze"), phaseEl = document.getElementById("phase"), phaseOut = document.getElementById("phaseOut");
+const turnEl = document.getElementById("turn"), turnOut = document.getElementById("turnOut");
+for (const P of POSES) { const b = document.createElement("button"); b.type = "button"; b.textContent = P.label; b.dataset.id = P.id;
+  b.onclick = () => { if (!sel) return; sel.pose = P.id; syncPoseUI(); renderRoster(); }; posesEl.append(b); }
+function syncPoseUI() {
+  if (!sel) return;
+  for (const x of posesEl.children) x.setAttribute("aria-pressed", x.dataset.id === sel.pose);
+  freezeEl.checked = sel.freeze; phaseEl.disabled = !sel.freeze; phaseEl.value = sel.phase; phaseOut.textContent = Math.round(sel.phase * 100) + "%";
+  let deg = Math.round(THREE.MathUtils.radToDeg(sel.yaw)); deg = ((deg + 180) % 360 + 360) % 360 - 180; turnEl.value = deg; turnOut.textContent = deg + "°";
+}
+freezeEl.addEventListener("change", () => { if (sel) { sel.freeze = freezeEl.checked; phaseEl.disabled = !sel.freeze; } });
+phaseEl.addEventListener("input", () => { if (sel) sel.phase = +phaseEl.value; phaseOut.textContent = Math.round(phaseEl.value * 100) + "%"; });
+turnEl.addEventListener("input", () => { if (sel) sel.yaw = THREE.MathUtils.degToRad(+turnEl.value); turnOut.textContent = turnEl.value + "°"; });
+
+/* ---------- shot UI ---------- */
+const lensEl = document.getElementById("lens"), lensOut = document.getElementById("lensOut");
+const applyLens = () => { if (mode !== "photo") { lensOut.textContent = lensEl.value + "mm"; return; } camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(12 / +lensEl.value)); camera.updateProjectionMatrix(); lensOut.textContent = lensEl.value + "mm"; };
+lensEl.addEventListener("input", applyLens);
+document.getElementById("resetCam").onclick = () => { if (!sel) return; setCamMode("follow"); cam.yaw = sel.yaw; cam.pitch = 0.18; cam.dist = 3.2; lensEl.value = 35; applyLens(); };
+const frameEl = document.getElementById("frame");
+document.getElementById("guides").addEventListener("change", (e) => frameEl.classList.toggle("noguides", !e.target.checked));
+const ASPECTS = { "1:1": [1, 1, 2048, 2048], "4:5": [4, 5, 1638, 2048], "16:9": [16, 9, 2560, 1440], "9:16": [9, 16, 1152, 2048] };
+let aspect = "1:1";
+const aspectsEl = document.getElementById("aspects");
+for (const k of Object.keys(ASPECTS)) { const b = document.createElement("button"); b.type = "button"; b.textContent = k; b.dataset.k = k;
+  b.onclick = () => { aspect = k; for (const x of aspectsEl.children) x.setAttribute("aria-pressed", x.dataset.k === k); layoutFrame(); }; aspectsEl.append(b); }
+aspectsEl.firstChild.setAttribute("aria-pressed", "true");
+
+/* ===================================================================
+   Framing: in photo mode the guide box is exactly what the photo captures
+   =================================================================== */
+const rail = document.getElementById("rail");
+let frameRect = { x: 0, y: 0, w: 1, h: 1 };
+function viewArea() {
+  const W = innerWidth, H = innerHeight;
+  if (W <= 760) { const railH = rail.getBoundingClientRect().height || H * 0.52; return { x: 16, y: 74, w: W - 32, h: Math.max(120, H - railH - 74 - 14) }; }
+  return { x: 324 + 48, y: 24, w: W - 324 - 48 - 24, h: H - 24 - 100 };
+}
+function layoutFrame() {
+  if (mode !== "photo") { camera.clearViewOffset(); return; }
+  const [aw, ah, ow, oh] = ASPECTS[aspect], A = viewArea();
+  let w = A.w, h = w * ah / aw; if (h > A.h) { h = A.h; w = h * aw / ah; }
+  frameRect = { x: A.x + (A.w - w) / 2, y: A.y + (A.h - h) / 2, w, h };
+  Object.assign(frameEl.style, { left: frameRect.x + "px", top: frameRect.y + "px", width: w + "px", height: h + "px" });
+  document.getElementById("snapSize").textContent = `${ow} × ${oh} px`;
+  const cx = frameRect.x + w / 2, cy = frameRect.y + h / 2;
+  camera.setViewOffset(innerWidth, innerHeight, innerWidth / 2 - cx, innerHeight / 2 - cy, innerWidth, innerHeight);
+}
+function resize() { renderer.setSize(innerWidth, innerHeight); camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); layoutFrame(); }
+addEventListener("resize", resize);
+
+/* ===================================================================
+   Snap
+   =================================================================== */
+let lastShot = null;
+async function snap() {
+  const btn = document.getElementById("snap"); btn.classList.add("busy");
+  await new Promise(r => requestAnimationFrame(r));
+  const [, , OW, OH] = ASPECTS[aspect], s = OW / frameRect.w, prevPR = renderer.getPixelRatio();
+  renderer.setPixelRatio(1); renderer.setSize(OW, OH, false);
+  const cx = frameRect.x + frameRect.w / 2, cy = frameRect.y + frameRect.h / 2;
+  const ox = frameRect.x + innerWidth / 2 - cx, oy = frameRect.y + innerHeight / 2 - cy;
+  camera.setViewOffset(innerWidth * s, innerHeight * s, ox * s, oy * s, OW, OH); camera.updateProjectionMatrix();
+  const gizmoWasVisible = gizmoHelper.visible; gizmoHelper.visible = false;
+  renderer.render(scene, camera);
+  gizmoHelper.visible = gizmoWasVisible;
+  const out = document.createElement("canvas"); out.width = OW; out.height = OH;
+  const ctx = out.getContext("2d"); ctx.drawImage(renderer.domElement, 0, 0, OW, OH);
+  renderer.setPixelRatio(prevPR); resize();
+  if (document.getElementById("tag").checked) drawTag(ctx, OW, OH);
+  const blob = await new Promise(r => out.toBlob(r, "image/png"));
+  const ids = [...new Set(chonks.map(c => c.id))];
+  lastShot = { blob, name: `chonk-${ids.slice(0, 4).join("-")}-${loc.id}.png` };
+  const img = document.getElementById("shot"); if (img.src) URL.revokeObjectURL(img.src); img.src = URL.createObjectURL(blob);
+  document.getElementById("shotMeta").textContent = `${ids.map(i => "#" + i).join(" · ")} · ${loc.name} · ${OW} × ${OH} px`;
+  document.getElementById("saveStatus").textContent = "";
+  resultEl.hidden = false; btn.classList.remove("busy");
+  const fl = document.getElementById("flash"); fl.classList.remove("go"); void fl.offsetWidth; fl.classList.add("go");
+}
+function drawTag(ctx, W, H) {
+  const ids = [...new Set(chonks.map(c => c.id))], u = Math.round(Math.min(W, H) / 64);
+  const text = ids.length === 1 ? `CHONK #${ids[0]}` : `CHONKS ${ids.slice(0, 5).map(i => "#" + i).join(" ")}${ids.length > 5 ? " +" + (ids.length - 5) : ""}`;
+  ctx.font = `${u * 1.6}px Silkscreen, "Courier New", monospace`;
+  const tw = ctx.measureText(text).width, pad = u, x = u * 2, y = H - u * 2 - u * 3.2;
+  ctx.fillStyle = "rgba(15,17,23,.72)"; ctx.fillRect(x, y, tw + pad * 2 + u * 2.2, u * 3.2);
+  ctx.fillStyle = "#efb15e"; ctx.fillRect(x + pad, y + u * 1.05, u * 1.1, u * 1.1);
+  ctx.fillStyle = "#ffffff"; ctx.textBaseline = "middle"; ctx.fillText(text, x + pad + u * 2.2, y + u * 1.65);
+}
+document.getElementById("snap").onclick = () => { snap(); };
+document.getElementById("closeShot").onclick = () => { resultEl.hidden = true; };
+let downloads = null;
+if (inClaude) window.claude.use("downloads").then(d => { downloads = d; }).catch(() => {});
+document.getElementById("saveShot").onclick = async () => {
+  if (!lastShot) return;
+  const st = document.getElementById("saveStatus");
+  if (downloads) {
+    try { await downloads.save({ filename: lastShot.name, data: lastShot.blob }); st.textContent = "Saved."; st.className = "status ok"; }
+    catch (e) { st.textContent = e?.code === "declined" ? "Not saved." : "Saving isn't available here. Right-click or long-press the photo to save it."; st.className = "status " + (e?.code === "declined" ? "" : "err"); }
+    return;
+  }
+  if (inClaude) { st.textContent = "Saving isn't available in this view. Right-click or long-press the photo to save it."; st.className = "status err"; return; }
+  const a = document.createElement("a"); a.href = URL.createObjectURL(lastShot.blob); a.download = lastShot.name; document.body.append(a); a.click(); a.remove();
+  st.textContent = "Saved."; st.className = "status ok";
+};
+
+/* ===================================================================
+   Remember the scene between visits (this browser only)
+   =================================================================== */
+const STORE = "chonkit-gallery-scene-v1";
+let saveTimer = 0;
+function saveSoon() { clearTimeout(saveTimer); saveTimer = setTimeout(() => { try {
+  localStorage.setItem(STORE, JSON.stringify({ location: loc?.id, ids: chonks.map(c => c.id), sel: chonks.indexOf(sel) })); } catch {} }, 400); }
+function loadSaved() { try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; } }
+
+/* ===================================================================
+   Loop
+   =================================================================== */
+const clock = new THREE.Clock(); let t = 0;
+function animate() {
+  const dt = Math.min(clock.getDelta(), 0.05); t += dt;
+  if (loc && sel) stepSelected(dt);
+  for (const c of chonks) {
+    c.holder.position.copy(c.pos); c.holder.rotation.y = c.yaw;
+    const anim = mode === "walk" && c === sel ? c.moveAnim : c.pose;
+    const P = POSES.find(p => p.id === anim);
+    const freeze = c.freeze && !(mode === "walk" && c === sel);
+    c.rig.pose(anim, freeze ? c.phase * P.period : t + c.offset);
+  }
+  updateCamera(dt);
+  for (const fn of kit?.updates ?? []) fn(t, dt, focusPoint());
+  // shadows and the soft fill follow the action
+  const focus = focusPoint();
+  sun.target.position.copy(focus); sun.position.copy(focus).addScaledVector(sunDir, 30); sun.target.updateMatrixWorld();
+  fill.position.copy(camera.position).add(new THREE.Vector3(0, 2.5, 0)); fill.target.position.copy(focus); fill.target.updateMatrixWorld();
+  sky.position.copy(camera.position);
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+
+/* ===================================================================
+   Free camera: fly anywhere, independent of your Chonk
+   =================================================================== */
+let camMode = "follow";
+const freeCam = { pos: new THREE.Vector3(), yaw: 0, pitch: 0 };
+function freeForward(out = new THREE.Vector3()) {
+  return out.set(-Math.sin(freeCam.yaw) * Math.cos(freeCam.pitch), Math.sin(freeCam.pitch), -Math.cos(freeCam.yaw) * Math.cos(freeCam.pitch));
+}
+function setCamMode(m) {
+  if (m === camMode) return;
+  if (m === "free") {
+    freeCam.pos.copy(camera.position);
+    const d = new THREE.Vector3(); camera.getWorldDirection(d);
+    freeCam.yaw = Math.atan2(-d.x, -d.z); freeCam.pitch = Math.asin(THREE.MathUtils.clamp(d.y, -1, 1));
+  } else if (sel) {
+    // hand the view back to the follow camera from where the free camera was looking
+    cam.yaw = Math.atan2(camera.position.x - sel.pos.x, camera.position.z - sel.pos.z);
+    cam.dist = Math.max(1.2, Math.min(14, camera.position.distanceTo(sel.pos)));
+  }
+  camMode = m; keys.clear(); jumpQueued = false;
+  if (sel && m === "free") sel.moveAnim = "idle";
+  document.body.classList.toggle("freecam", m === "free");
+  for (const b of document.querySelectorAll("[data-freecam]")) b.setAttribute("aria-pressed", m === "free");
+  toast(m === "free" ? "Free camera on. WASD to fly, Q and E for down and up, drag to look, F to go back." : "Camera follows your Chonk again.");
+}
+function toggleFreeCam() { setCamMode(camMode === "free" ? "follow" : "free"); }
+function freeCamDolly(amount) { freeCam.pos.addScaledVector(freeForward(), amount); }
+function updateFreeCam(dt) {
+  let f = 0, r = 0, u = 0;
+  if (keys.has("KeyW") || keys.has("ArrowUp")) f += 1; if (keys.has("KeyS") || keys.has("ArrowDown")) f -= 1;
+  if (keys.has("KeyD") || keys.has("ArrowRight")) r += 1; if (keys.has("KeyA") || keys.has("ArrowLeft")) r -= 1;
+  if (keys.has("KeyE") || keys.has("Space")) u += 1; if (keys.has("KeyQ") || keys.has("KeyC")) u -= 1;
+  if (joy.active) { r += joy.x; f -= joy.y; }
+  const fast = keys.has("ShiftLeft") || keys.has("ShiftRight");
+  const speed = fast ? 9 : 3;
+  const fwd = freeForward(), right = new THREE.Vector3(Math.cos(freeCam.yaw), 0, -Math.sin(freeCam.yaw));
+  freeCam.pos.addScaledVector(fwd, f * speed * dt).addScaledVector(right, r * speed * dt); freeCam.pos.y += u * speed * dt;
+  freeCam.pos.clampScalar(-400, 400);
+  camera.position.copy(freeCam.pos); camera.rotation.set(freeCam.pitch, freeCam.yaw, 0, "YXZ");
+}
+// where shadows, snow and other effects centre themselves
+function focusPoint() {
+  if (camMode === "free") return new THREE.Vector3().copy(camera.position).addScaledVector(freeForward(), 5);
+  return cam.target;
+}
+for (const b of document.querySelectorAll("[data-freecam]")) b.addEventListener("click", () => { toggleFreeCam(); b.blur(); });
+
+/* ===================================================================
+   3D traits as props (all 270 Chonks traits, CC0, packed from Ztudio)
+   =================================================================== */
+const TRAITS_B64 = "7X0NmFxFlWj93Nvz0zP5IQkIQW0D6FMCmZewSYhoyCQhAQkEJhghy2Jn0mSa6XSHnh7DwO4D5ZPVVdyPCIquf6u7mofw3Lh84iq/y8uCgJGfQFiBMQQIxoSsQPBFFr3vq/9T99btvj3TEwJ0Babr59xzTp06darqVN26CE09Y9WqaStK5d6+adOnLejtzQ0MlMpD0y6cvmpaz4ZSeU0kt7uQ7e1fnSuXhyJF5+bWZLqzhUKpVIyUnZYf6MsX12bOLUVR9lSyF18cJZRdO5irVHJR8N6hSl80+9zB1atz5cyiwd7+KGvd+fKaTNf/jMmfGZM/K0qkVBqo5MqR/BWD5UrBwWox2x/NXZ4rrh2M5C4qrY3kLc0WSpHMhdn1UZxn5tf2VVYXsmtymXNzURGD4iXlXC7aPj2l4trMgsyi7FBmWb43Unx2MZfpzlcyLiaXZNflMt3lfG+/u6b5SiXj1qVl2fLF2Uz3YLmcrzjrmTmtVN6Q5U8uzWXXSL0YyK3OFgoZVq4q4y7lugpLOXimu1QRjaXzV5TWZ5ZmKzBrYV/u4nDeyvzl2fKaCGR2XSmcx7QwUypmeIYF259z51dc2d25bBmmTytz+eu0kK8lANYJFxZKvX25ME9nl7PFtbmYwrNyGwZWl4a42Jbni/1xZRGBw8LuwqAl1u7B3v5chZHKCOIxhWGCp2UHevPFbKVUTlIcoVpavbrAK5jhap85P1colDZUBQnjWFgq5nuzhbCUGCeZ07LF3qFwic7MLB8sr7e167RCaUOuHCMGUCg6Lmz83j5eENVyXRRmvKe3NFjJLM0V1uUqcfmZlflKX2bpeYuqA/A/y0rFUhjSmAqWtzpbtNhent1QzKzsy1csvj5W5HKO5HfnB/pK66P555ZK/dHccwZZ/40iZyNLJJczEjEBkpFIvmQkks8ZieQKRqLIGSORXM5IVC0kJ9ECyUq0gPMSzRbMOAgwbqLZC0sbWIcNKfDS/Nq+DLODqrdl82XR3H2lstZNlXkm0wFXXnehVFyTi2QbLjTa/Jpcpmd9vj83ZPTbVeiiki2uUcWmR8VBRGmHISL0F5ZzGzILByuO6uiisJx0gYvhnr7s2kx3ubSh6C7q6R/SXTlaGq1Bd2l1TG6ECMsMsbS8VByqZPMFh/B0kdZiR0mYz0Ihv760PipGXRKWlSmI1GHBwNC6dblKOd8beQoURRkHhRE+uG53DxbDctD50WbWRYuy5f6oUEWn4MMBzwNFy0p92Q39USZkfrTG52bzxdVifFJZK7OfGsqcmS8VM0tKhTU2HlMWFUJPX3ZNbmDa9GmnZXtzcHhZPJSDuWeVBosDmSWF7MBAbkA1aFxpdvVQDRAhVl04a5EqgblLs+vW5cqm/uGCEJKeSwez5VyEsMx2YMllyxUX3e7C4EBfGHv34EDfUIZNr6zsFSUxieHGQQ0oK0rrdSGbXbnKegbzlcwKMH5ECs7KfmoI5HeXS5InmKOUBubpqqrMBeW1uWIlX8yCvKWl0pp8zmqrcFGIMZ3tArY5W5Et9vM6RCSiCsLI2eT5AwOZhSU+xhhZDKzPFdfkygO6Q4VkOz3Tkx3oc0p+Wb5YycSUi+nQwnxlKKNYgk/ncpmVmeUlPt1cUs4OxZWFZHFu7uJcOWfxMXhZbk0pyp7Idgiht18otltnNuSylVyZl62INkWkOCQyYYJczWJKpAXVcsr354t55zN8EXP2ekv7FAcRna6Uc9n+gTDDi8q5gYEwSZGpLZWdHUZ8ZmlDxonFFOi5vCpiPDt1UBeEq3pmaYAtSHndYrK51bckkV83wHpytA1lQagvDw7ki4xd1QisBUH5x7PlAaatSjXCvKtybYtCassMVmaFpZvCTGQWlsTEX7crS0c0u7QuWwz1goiZYZmRdutZn13bl6tU8pmeSjm7PtTTugulwQFpapwqz0ajIXcTC/vdna1wNxEzm6BwWfayvHgsSi3COO8oYdtzZr64NlfOO8B1SagJS9lK5qxcb3/0iY9ZveTcoUGQOiO7PlvM9PTnHRrGfGOZJYy5cL/UBeEBYFmuvC6bXxN+QGWz2YFtByE96S3QGqKdBSrnrFIlc35psMy0Zn22OBRSqYV95dK6fC7Tc+lgfu3aQi7T05cvVywZVSqldUq7RAoWqOaPlmiZRouUCKIlooEcTwgpRAuUyYyWLOzLlntL2YKzUA7VTtZCBcvzxYFKOb8+l+nJlvlCRzRUNZAou7Ig2m8gmmyxMlAfSEReAGAGq+QMYU0zfKSKB+VinMEJ1gJlEpqxbHCgwvxkDthlg4VKvrdUYEonnnM0t6MezNzk11epjzSjgzk3JMssrh3KQEmHIAbXlewczn7mtEI2X64heAsyPNzHwQlfJIN0dQY9V8rw0XzAzXIIZlGumA/Jko/rXE52/rnZ3pxqgoiewMJo54alUV0++1O5crZQcD2oixxt3tOfL1cyC7lmXDxYcBXySoYUILe+MLguw8sjqpEruAp6CvmKM5+N4kChYksd1kGYXZAjLa/FqTK+INMMFo4W6ukr6aUVj4NcJcBwvuI8ki8NoclfmS+uHRDOT0e+nP6Es8PMiNxl+TXFCB5JF6xHTNmi3Fon91KZwtnSpDpkMOTIVt3O5MvmMRmydUyGaRyTZ9qmu1TibWPKpActVHDhpHQq1YG9/zp1yivfOfGV356IZMD6j4wS/odi9pdghDzM8j2k/kSiaNK4VEsrpsPDww899NDT/w4RC3SOv5T/RZTyv+KJyYelfB/7UzbPGf/AnNXTeu6Y9Y2Hz/kxwgQjQj1KPJ/6PvJ8X1CenPJaxlO6pb39sUWLdu7ciXSQhLCoC9ZJwNfoAubIGGaMeYJYP7JQyFPQo+Cv+gn/Ui0RSsMEx7ZGkzpSLR3Y7zkZBUHw4N+glWcvfO5LvqaLMCLmB6PoDxbsY4So5/Mf3+d54gdRCUEntafaxmHSczLqORlblcBSVFgJjVGTESlSU6LEEvqtpwRNHp9KpTC9/YtLvl7qyi87VsuZMuXEhMAY4n/QpM5USxrTJ598csuWLRIfZ4mwIJrQ/gk3enweahtPx6V8+sdgDkIo+H49DYhVcKRGGiwR4ohAGxBsnBiNDD0GASZQvCSsNCaYWtgoRRYWHIOFhcmTU76HvZ/0vTt4/IYlp54U3HWYUBhMiYd5jBnJKZNTnofprq8d9qf7j121bCYrwJRwAIwwmnJYyk9hH21/Obj/6A/N/fCrA+8JXnlIkCQUe8jHwiAjhdNjz7SkcGrHIvT6D9PB1nb0tXn/2IMuPJWYTkUIpZ6HhB1H3HBK+4lQinE/xU9RTJ64ejL53OFMKoRwM8aUlyA0ZWIq1YK96XNnfOCXc2d8Y8KLcw4X8hIKzxXXE2aA8v+I1HtCEWPPS2Fv6bILjzzyyL1XH337lt2iDphiz0Pqf4ooA2U98Z5rj3t186zyBScalRB9i0mIcEkRhpkw/B0tXgummA03suWlEolUagLuaPXJreiIbWhqEiWC2mJHUSRq1K4atihOA0CQM+6ORnDG/h1NaNzoeNDxT+pMtbVhGqD3BSf3AIqkvl8aMy5rApcEF00MAN0GEhjve22UTJ/eddri5bUrTDhKwv/IPhf+n5CIBrnwTJmUSvlmHiGHWDF/QUptMWJwno/piUf//e6Tjvm7m8dxM0EpM5baOsp54Oo9Bz762sN//E0vUljrnQdOZMaSXLfq9Me2380B2UyUEF7X9hRN+z7NfPijx3QvPrqrK7ZqRA7JKkYIojrYsFjDYllONGeImFYSUzOFwDQiAIBR1QLx1Jh9plSYUynHWCatYADkY4A12t5C016KXHJnVxAEMQgco1scADBhesDG8chU7eCES2aHAdgMT0VDD6kgH0PgsWrDcWxFsRQKm1k1haJgx9EUTWESBMEld3aJqTxHKPobafNIR4rL7M4kWGvTi/AHs+Piuv8SKAnsHlpxfFzbw2p4AMK68TSqXiMPUM5tLaTDS7G2HR4ehgUEhCSIrEkJweofgvFYeGyiMB6PH8gBxOPxayYQjNdb3zZKOlpT9Ojpf8kMxGvzEku8nhDTB0aMisdMzWCdR4rT5jSM30BWR1QFJwQQ+EU8gj/2Sat+IAF4xiH+KW2EfGoGgL4tRTraUnTJhbM/fsWcC675i2QI2ISKr8DEKoslxUxDVIHPSCQElY4KLPsiX7lx0x1miuHAfI7BJwdYzG6grM0j8HG+iHPlgw5IeRJLUAUfNsgQ3sRhZ4QNAvMJ4IFytySRsyqVT+D8Chpqixa1FvgAP4VxUF8xr5LVhm4KYPwBLQzmeHG0rHxQyZBNkhZLRCmfFjIuqNBj7nBkQsAiToyECDENA1WcQIPZ6aVafUzFFEi6mNTiWdhxpkdcDYkeEPlzXsqn3vZ/fCEIgqhrChpa2QOo8g54rtKqzwomwVQNy5aVuo4Fx6CzMwvu044OzyucfpR4KNt9RJjLBMGYB2gqoN1IEoe2aFQBotR59cctgzvKEaIGP15MvBo/Oqr6C9abD+JHbEeIH2jE7bhm0uqYieJwCg+MuFApvY666IfHj1xoI1CjMVWpEajRmKpUPK23n0rRTCYTvwpNJrGmiarKThV+aEx8lPqkZm0HV59StKPF93+Mj/slOv6P6KRrjmn93qW9yUTlyYC0I4G5lLDK9ti+g0kg5bhCBp5PPvT6ihqUnoc8g9N0WkQoaFViCFfD6ftOnCQOZyI+3Thj+UwSFJ8hecbgFC3nPXoNevHL6MdzD//RJz6ajAzwDkot4B4E7TVk83GT0FAIdg5ix4HLkRqcgF0MlxVGAUk1nJ7nxInjcCbi040zls8kQfEZkmcMzjafdqZ8b8fKX2z74E9ve++3nvjI7dWQa1+JiSuHN/Dxhly+Bsp6Bro6LD8MAk2uFhq6b7s4wCPGZgWAGYHnbWwoKbaRBolNNAyd+1DuXbcsbrnmhEOyVYwvpRGt4vZpjbRVanjI6gwSm2yVT94anPTtAOXvbbbKIdEqKdqR8rxb89N2Xn7E/s9l7l3jq1IlSj0swzgY3hUqe4gzwy9NiIcYPM5hvAF4GlIvKbJ/yd3xf9c/+uQVL9664pamyKrXq8UjE1pSqfumrnvmPUPBsRt/+U20b8upt4z/ZB0KO6KQCgUnkJkk8uCZiShP+iJDPouxJ1AJJ6G1pUDc9DBEZ010Of6q9DCkR5G9hUGoTewg03uz5DmGIUxPKm7uoicvu/TAxi8EQnG7PnjPwWbECdRU3KbiyhCm10Zpus2jwVM/Cu7+VvCdS2IfNFWOOITYIUA9C9GnUviegHk6HrGajCmRsCy1fiOaBKmXBFiEjRUJVy0aKCjZNvf/6fUbX39t8Nm9zbY5dNqmldLOVo9+u4D23b7i0RunuMiCONwZpcBW8LhM8e1akcI6HnY2S/m5Zcme0+xiahwdWNLBCOLGhwydsZdba4qO831veF7v60svC/Lf3P3gEkGMhDZZdSMT6HOQYwql5qA3MUZfHMqTzylQkSDcYSiwYICF1o3FS4bFqpEERdWxOGo0kmBjkQJfNX3z+tlP/e2CYN9J32oKfCwF3ubTdMqnt3z4iP9ccXzw+VP4vEhD8qMhos7iGK5wUfBsypsBiwoiUSwcChEMFGCgAAMNYzA8ujGQNw+DUjzo+NFRcyTCYJCSvfuo9/73nI8E/+szo5FLU7JQsmLZ5H3lJ8f967bFW3afeeqtzyXW/pEGMCrEuvvt+X14vi/TyhuN5Z6XBNJzexwNkAAK46M10p7SHIsejqUXIhC2uiOjRxPRC79KAM18vDylMR5B/cYkuOlJlUXfvvW0p/Z9ft/+TadvG2tGmirbVNlkwU2vrY2mWz3/M7uXn7rz+L6BoY13PHX8nI9YDyqGG8oFxD9iZICxBuPFGEfxOgRBCHtBWUSxjtYMTak78dYldXbCwqdc6iJak0BT6k68Y6zr7e20HXt4+vQuQ8Cc2gAxHVraaOd4j+7bt2/vb5/+5yujKCGjlkFLmGjYabW6gsWAzkPug2JJE+LXaiyrciNJ1KyBVQWE4csWzFOGQAlIJK9CuOHYCwfiyCF/V0HcjMHLeImzPtxBCIWMnah1yk5YtXaKIHJkckyDrgJbb07y/H379l155ZXXXnttTA9JGsz5AHAQomYUvLX6JgTgc42c6Ih5ddYd1Q5D6+YMoIjiKJcXioLKu6P11cL0HfGmpOLDYsxmnZiLPwiApAKGxlbI87iyCicY9rHPpqbMHYp99nIIO2PHc9klD/JIHJWMqSkwd1iZw1aOWiDsqpBpIbPTTz0i/8VGzakAOkY6pyvURmnHFM/bt2/fP1+J9v726Tv+/aehiiHQ00G3d41G9ogDjAYOjURvnwBsO44Jtv0fTXCMFg2N1xnqqfuo2130Kt2tiF7X8jgn5fHujLEnrmDhvmn5ajiPS0ZMnPuezWwvVueJkZV6pYtDEKDz5C2m8+Y+prYWmp7oef39/Xpw5ZfYiKts+I0PiP/l5gl71MMeF694W1K/Q4dFY5iXhSlvGzY3EmBY3GrD77s4OHVUrCOqWafYsG42z8CeJtajCxVX+BDloDasY+HSFXJkeOVKgnhE5xJ5ul5ooQIgGCequ2Eda9axkTrAQszNS8APTbk2i10NLXWM9NEQ0aM460S89urxvww/Z53ys+ccmp+ANqx7/AkxP1DDSH0Ko2tpOdNg5c2bpGOlMJr1VkLGHe6nbv3SGXrpde0FR31t7TGjwY6td2FAyjIQTNQiqF8V8WCscUdXD+UgXrEW/dB++cJKWaIg4Py7jzy1y8hTBPkg8FdLQCKUQlYC+Yjf85V0sZ+oenAqZyoE+gKExtFFI4Y/WIBQLKUSllKszHzLq+vrboeVzEyZj4AEfBRJ2UFpqtysVqpr1V0AqpRdWEtKlFrJkYeEehbVLA6RQGbguRpBrC0UPisFas0ttZYZXFjUlJkhNPI9dVXVhtqzFJCUpWfRFDwAmKquZyhy6qlaynSLeAm2UjJuik9v/dIZj25/aO9vn26Q1EIpe6JovShxaE8iRx3YTV2yP/Jz7zSmKWz7iN0p20H3VglhR5v61XYf8/vMpAuQSamK1QrJxZ5TNUhKei/PkbINdMhcJ7RaBIY6+BqNLknb3kBd0mc4VQrrlGXbI3OBpFJCahFa7aBnnKQOFbtEMFjXqzU+jrXmFq3QNo2+KBCuM7gOYXVJnNhiIZMnoFmzZkWlAusKa5cw0dxfqZqoWYODvb9CpM9G7K8QsL9CMImpz9t7f2XyBCRcQEuWLBn+1cMjxgtmoMZi1Yw291feqvsrfOUs9lfYRoov9lfYZwh8sb/Cc8X+Cod9x+2vPLr9ockT0OzZs5v7K/WFg7q/ApUBSrNR8TrDQd1fkbcaItm1KVHXYfK42l9hl+ax/RXpGQbucLNHYuLcX2E61ztqf8XcPhDeX5k8oU53eXN/pbm/8nbYXxGD4Lx585r7K29CaO6vgNDcX2nurzT3Vw6V/RVPDA7z5s2bPKFRgjvorsxDNWB2AFL+x4QBLx0Kpd7RWyz8mCj/n5l+IxeMwikL8UHfYoGtF04hZ1moob3RbLGMXJe4HBuqS9KpBc27skGSC8mLZ/OZWEqG0Ft5i4XK5bwUj0ybctuEW+NYzBYLf6+Pr2SULsmxU2+xnNd1fff7L41KBdYV1i5hornFUjVRswbNLZYwhhqCG3UIb7Gc13V9c4ulucXS3GIZdXBssZzXdX1zi6Xu0NxiSVb35hbLIRbit1jO67q+ucXS3GJ5R26xnNd1fXOL5c0JzS0WEJpbLM0tluYWy6G3xXJe1/UNEtxBd2UeqqG5xdLcYmlusTS3WA7OFgu/R5p9egbNmDFj8+bNzz//vKgnVDTrdkZs1BAbR5748ntYSd9WWNp9mm73yb3oxu1oUx0NCv2B2BHFtaM18bpIYKSuDNZfuuRfI9f+mkReKIBYdjCrZ0Spmcm6ZVKqUdLyJ8YoEFjmombvKY0oRMVnNdHoqbWnaLrVJ0+jkwO0YCSsJdGT+pDpWkBvZQM4M8iSYiMoNLApNdDdtKGtHGpaUOwiAaLMH9jhe4+g2QFa8Nz0VdvQnJFRTdDRPTGlkfeLqWGR+WXEPx6qf6cREDaVqRX1HFGMwSxFo6/ylUijjy4ejEQ9t5w9J0SCj1ICMw86haOtsZswjNbiIZYdddGbpktMuxICdsNiVK9WFLSBmwehpmT/79HO4TgmYSDA6pquV0cUXnBK+KRLz+kSE1ZZSM8JRZTIXD0gWJM7JR1nbhXqRk+IaiPwmHuKBaO1s90BWGpD2ESJi4cYfuBby3XxAGQpA4YXk1uzoVo8xERrtABT0LRHvkx//7nxT8jJiJqVOBlScdcgUTtggNcKcm9mFJKorjMGA9h/4LOmUROuHo0lXFvUY0K43aedbT6hP6XoPjT6ACc8dU1/kuO26GBkDaEjnYFYbMbScRJF9RHV1g2JK6nlo/rKAgKuzOfmN54oTNXBQaimtghqVjtmeA4lpFb9uv3UeufUsSw3tapKiNMqBMyJga2qVSPk4KBoVYq2t3vkgSG045rknOn6Jx2U7DOaiTCbnGis9qX1akZVg60o5lEF0wDYFTQYisZcQTbObcu/eN/yr9TNROxhnAhbSTu/ecDkRGO1VTzaOJoX8G0TB+ZRhbFpnNRtqQSjvNa3Rvcco8lj13N027yFek6L354i9IW9HX8M5hx48LMOQgBp9Y1kU3PwrDkxZABpJILaW7z2FKV3ohu2o00WHwB/1ZpYfFSpQ81no3XQ7CaqwxNoToAWHGp1SNgOrS20s8Pz/+bMzh9cPHG4qyv467/um99Ri5xhDyZ8kDDx6gmd8kHCPloSPSWAzRktRD3VCZmrSn9GljlbfGwY9uHDsQnfnfBBgjEJeIs0TVLe/ES8AVs/At7Ck/akvBkGGiA37OItFKQWHv3IE+/dtUdo4RE/uDkOWjPX1EJVMlLemloIgtTCm7PDD38qEFr4uWU/iIPWzDW1UJWMlLemFoLAtLDdo0ILv3jWrXFwhi+MYdzhuUiYqLLc0d8zi6g8VTMPBI5ciy+Qm4fBaYVqCXNOO/LVcoyNW9IU8BccKJK7akTHJTKgMeb4OrIOmIcSJkXhHmY8B8jiAI0hB1Ivrjhnyg2rj1zTPdHRSiA09eIdphe7V3802PCxh1fW2Ipu6sU7RS9aUnRch+dtuXzqt3sPn7rliuGNMxwNVSXAdoub6cQrhduD7sRZH1vqQZOAGUYCMGE71iVnNsbRuN1NghB96lxt+Hvy7SC128cOXhJwNsrD8EpquPkmLrCGxCyfUrVUnR8vteVJgFsfnOGyaODIucO6CLqDVNkzzjhj/vz5U7dcUSgU6kPQVNmEnDRVtrEqe/LfPfO+gXumbrnigk3760PQVNmEnDRVtkEq25ai6XbPQ7ddh575l+BnJ6AbPlUfAnPA3qsRrDcK7BcdqgejwVif8sfmvBs8fpgAGVF/1RSQqYZ5fYya7uOihuqjNsq61UVNNuW+tfcGl24PfnbCr/7yR/Xx0mzKUYXGN+Xd6/Y+dlkQ/OyEH2Z/VR8vzaYcVWhgU7a20I605+1YtmXfhU/dd+ot+6/oQfagI3dzkVzo6SGev3crElTlY3FDgubODPWYOuKIrwRjhln1qRpQXwJ5IJIHJMYeqk8wm31EdcmWCAQsRu2FKYwn4AEDHjDgASse2Ktr8GVw0AqxdGN5sNtCyy3SFiE5oNB+KtQEmiBuglAR/w9XZQ58tXvHuvTMb+484doHI5w1teRtoCXQ0z8SLfE++OT/OeuFezvv/HJTRWrz8JZUkZEbEnY9WadH/23lu759+mF33pN2Ao0ogAUKVBUQiDsecXdqsYyOHyhezRsGSye4cAILpdDR9+oUZJQAnq04OPCqPrHXIN7GKowtb1L/Xr1j4lM3jW/qn2EeueJN/Rsj/RtcccJFi45r6p9hHrniTf1ruP610nEtHn1j3KeDVZue66woeqGJiaRprk+C39lF4Rt23J+2DdVIzn2gDpqZk6QAObXnD9VvO0pIgVgUcD0UUDUpJalDqCis2e0tXqvvEXYCPe4EV60T2uZVUzf3hKhKCO0y7xXazIA7DGLoSma3o00/Rl8YHbOu0FhmUyk6vsNLnfiFpz9x/4duzg4f2D5599XvHf6r6dUZROpMvt7YZrePeB6mKXGBFRG3EFMvRUSKX0TpgyRJnEy5k4CTeEtoW2useJbeKnNIQVkIXyUxuGwPh0xJgmQKJJFJEuxSQdsgiMWGurqaGp6pSOlaM68aMbewsZtJPYjUMnkJkoZnfg2n4ZlaPDuFXUPO7Cpqpm3cAjHdEMhTIgXuPGNJVEcSXpeGAM/8L1yItbTQ8WmPfHVg0j3fOlyxDHa75Kuy1iip6gTeUUbyfno1TTCFPMkupDfX17P3cDG4IRbzG4X4O8+8WKKSSUuPwW4f0pLFikkx/oHXicRdRbrBeBKIyVqcmxuNVFXtpTt8VjJpPQmZ1PuVDibJqJmEXI2WyVCo0dwKCoWYtG1NKEmi7+9DJmFSNLeFSSroT5Ye9Z+rjkOoqaBGck0FPRQUtK3DT1N+Yi8IgporoNoAap0lBY2RvHhc/ZmYbvE8TF58A03a/E/cN6pEgjFqS/tpj9KjFt4/PBy6DwU7oyPk0igPZ5WKP/x2bIxkVAFInmZe+6cx4QniqJenhz7wgUNNTv4bb7zxoe8H6+4Ngtmzg4GBetbUdcFayxHOjufzy22ZJvkeVDkprXMm//jy9wTfOCEYKclEbCHl8AfS4jxR4uDpzs7O52bOPHDxxYcCT+3pVDslJP35e2Zu3l2Lhu7gusOLoY39kYgum//zH1zyu9Egakv7HR4lj87asHv1N+qtd93wYmDW+q5YkuyooQYrhOlxqTaM8euXLdXmtb0j1e5hcvzsk5YuXWpogtEHjMnyPiHUNsFL+4Qelfnay3848OKuF0I86fEhQVTxh/VHHkQdiHlfRt5mI6NIUf86Qm8edTaj3/nss1/nN5jXSxVGiVBotmYllF2cyQ+dsSjGICov12R0ZfUnHbN857PPNoY6llFVfWombjRc/Yle2iN0RwfG83e8eq+npgRcX8DL6s6oUVB1Yp9i+JoxgJV0jr0RHRQ6r9zrX965ccdvdowtHdJ3//D+l39fVzthOU8T5hCrebK6EZYA2LY22tHhk7N/8kQQwDEDjD7WQJQsDp8dVYAodZ51xwCGsDFx+ygoZK3OOKgjdvMDqxwTt/iB1/dqKIwNJjj/h4Kowk8CHkIXDmKYDQcC8DU7Z1PjKvIBlUzSSNZKAJvoKIJU7vSkVFO5m8r99lTuoxbe31TupnK/PZX7d9xhYxc1lbup3G9t5U5P9Fo8gve//HurJcOhSpnEgEAr1YlBLgmHh4e3bNkC4eqPKoGoFaD4Sh0/eEjMVVDEHIlUSxtvy5Ytw8PDhcXv5wyAz0nUimIZ5Q4G9sVAsfxUufx7ejxXr6K+NV5YkjqqJm/HlqsodScykVFeH3WIQxKZ9ur3xpCIaHR65n8EL//hwIEDB2Tz6oMcPJhvZCHz+QjdBDxIZl/c9cIf9v++9orVWryquESGsXUhcnTx2nLJI/6ngzEmghB6ja+Qze5ErWiCFbKClUQ4hfr6RoiIPpul6CGkzZipyQgUqD4i9MVdL3wdM0cY343BZjNJfyjTlcs6F//HHRf8Hz95o+L8+4+8XNGZdNMDO1/98ytneHXWx3IsYekesa0I7HX077s7x5YO63iU4J2v/tltUXUmKJHP/PrGp2s8A0L6MK+FEPzff/gvNcxIWGHoJQFZ6wuu+YslF87++BVzxM4AlSYS6908/oVQQYh/95WCDTeKeWsh1a7iBBP3mRNlz8UIQd7//vd3dnaOYnhQUfNBItDPrC7n8Hy9Noaer4leOkVIcNUDz57+XbVhqA59qLvZARForELbvNLYCgzSkguzaymUG4OOKobumvvc37YdOgzRdDr90t49GzdujOdJHCQMNQofjHFCnoQxIXEYpKsUIdZHfEJe2rsnuOoBiZS4gulCCIPRwxEAyrvmNgblaMy5mlWBMnMqgYAJlySiFkhjRERYgW146s5X/+z6oElIE2vlmq0hoImW/9t0UEGabZscbNLMevsEv7R3T7U5dHihFA+i8LUtbgw+OQYwlUULHnvssbpHPjE14PNFLD8HjsUgyL9DLaKaDkJoG576yCOP1D2Ro1hO0gmY04pcudWBwZbKI488cuIn7kJJkI+GDgle9jZ/ek79QsNqjCfqi/I2rNCi1oleewslD8/at/eTu2U3QlItsTy5KT8eYtUjErMtT2OwjDhoLLJ6U3q+t+CGZ99+1WubSNMtHmmZ/VD6nCDBg7UC6Lo6B7lUCyVTvRA2AExGjawh1ZR9eev/CF7vuu7e922pd/4mPAmym5mXJNRcVuYi1D7Ra/MI2VpAP7ggZVDER+C3jeQefQRGOlamP9NlJt3RUK2MVd93Dv01TZrVSmqioaZI6q/ZJcbhx6TqvjZvXnD11Q1tU9g/1TozFAX2WD8GOqetbQ1F1rhqstZPEbLDP3xPappkkohzpyFTI482IFidBJCyhR5473efv/T+hrCulju2/9Wc4bTX8mZtCOwF0ZMB4DNoJLIGVFO6NdjY2ukT8swpd39j/GeRtSCRiwt1DFScF9YJwArUHLMeEUDSQCBpLpQhQmbGZCEQnZ3+ZPDwB648/LEvnihfU9E9GyWewlC+yBH+TPb+hJ7CmP5OzWMiKnwM9KYjb9r6vq2bT9xsmyUtPKGcghmGmFAqn/zXCSfs7ik+4n8o+ZNth3lpSsiFR2y+9MinalbM+h6AjoZW+ilCt6GpiddKToNpKwtSA6MGiCx7qcZA5XtAWO0OSJ6CIBBsJeAJvCU3Qp74Z481Bu2w1Dxpd/2BAwd+jk6oy3UX59BTcf6Xt6/4x9cE2gVKEGo9jHamPP/1ruveGPfpX7TmvuOd/VnSgC9c+SZIMcGLQ4EcrRkefCUR3B/k+yF0jcXWuJpKac558a6pD/3T+M1fbLu+3HZVb2NpoHeYNMneWV+6KX3+6FGH5inSnKvBgpjXFeGQYj0CEGBsoWsstkbWVApxx3/gp/5hXGNRv3OEKJ0LhdOPynYfMXLngt7D0cMDjEoil9zZddEPjx9jIplMBiXBPEIi8kT4u+95d+aJutdKzlkAH9YplRMWMU0SzmUxfYETD069LQiC4CuYBkd0omDXrl1BB6Z3BZejIHie1lVvO4rU5MmWBhVf0PZTuA234Fbf8jhOYXs/BM19EM/fYZlUJLeD5TxMAm7dujUIggSAhfSnL+/cmABw4udbpn5nfALAm8cf+/C0kxMA7tp0XHDX3ASAF82b2r/4uASAM2fOPOWUUxIATj3xnGPnXphMji/t3ZMA8NnTvxtc9YDaR8Lwn/yRgHz/Jm0XuQDZvsrGjRtf2ruHWoHNv8Rcm/0qvRBvrhklM9pls8lctWhqbUA2RB8798L7bl8VrjummERh+xcft3///tqw7C2HU0455b7bV82cOdMJ7nFwT4JP/c74XcMfvuyZl5ivPcw1P0biUUQ9ajjZhqa6YLHYz2UHPwwsA5y/wwnLdqopkXhhZ+XnjrCdksJ9ae+erVu3OtGJ5R6ym4vAVyux2otkngKtLHyRYb9W6QS85fQnWe8URUBC8mVXQrB0XiCEHn/8ceVhcf3Y/FeF1BYcyS3tFCFCa8aEgGg3vbONpVtfqY/oGpSwhbJUn5f27vm3abO3oam/E2/BeB4A5z5DvppWqF/auwed/EumEmJkqAErDBgGJ2oisFwmdNbVr+x78Mjjio85BWEHp1i0IMxJHmzLnU64bfq+B4+c8ZUFY0GjbTJNe17q18/c9Iuzn1+5ede8Lz0+f8um7U/+b1QzYEI938O+PF5AiTpMQLDHM6lPKPHZ9QeehsW1YVMANjkP6cn83MWBI4+0+2e10D7Za/Moab35M+g333c4kHUAfg0tORnTRbbNcwcFk55MWzyPTLt76vlP9sRULH4YSfBTDacgjv/f/Kwbyq1aKFzzaCYKSS2C0xhJ3/cTDL3j371g0jHLawPiwulH2Y0W6kgC6pI7uxJAZTKZ2lDkwIEDw8PDEdYIYO0IvwUTzAdliYX/yPwPXTfDma/mkeH88+ce7cpnVnl4eBjLTih+ZBFCKK5oG5rKxyn3U/Pnz3cV4cXXPefk7at/9aQzf+/2nDM/uOoBZ/6mTZvc8GwG5Kh7tvsI1vLSeSt+ZNFFPzyeNberCCHE2thV9HN0wlY001m0fvG7Ljv33bZY/j8=";
+let traitCatalog = null;
+async function loadTraitCatalog() {
+  if (traitCatalog) return traitCatalog;
+  const bin = Uint8Array.from(atob(TRAITS_B64), c => c.charCodeAt(0));
+  const raw = new Uint8Array(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+  const n = new DataView(raw.buffer).getUint32(0);
+  const names = JSON.parse(new TextDecoder().decode(raw.subarray(4, 4 + n)));
+  let o = 4 + n; const list = [];
+  for (const [name, cat] of names) {
+    const mn = [raw[o], raw[o + 1], raw[o + 2]], d = [raw[o + 3], raw[o + 4], raw[o + 5]], np = raw[o + 6]; o += 7;
+    const pal = []; for (let i = 0; i < np; i++) pal.push((raw[o + i * 3] << 16) | (raw[o + i * 3 + 1] << 8) | raw[o + i * 3 + 2]); o += np * 3;
+    const size = d[0] * d[1] * d[2], grid = raw.subarray(o, o + size); o += size;
+    list.push({ name, cat, mn, d, pal, grid, id: list.length });
+  }
+  return (traitCatalog = list);
+}
+function traitVoxels(t) {
+  const out = [], [dx, dy] = t.d;
+  for (let i = 0; i < t.grid.length; i++) if (t.grid[i]) out.push({ x: (i % dx) + t.mn[0], y: (Math.floor(i / dx) % dy) + t.mn[1], z: Math.floor(i / (dx * dy)) + t.mn[2], color: t.pal[t.grid[i] - 1] });
+  return out;
+}
+const propMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
+const props = [];
+function makeProp(t) {
+  const vox = traitVoxels(t), maxY = t.mn[1] + t.d[1] - 1;
+  const cx = t.mn[0] + t.d[0] / 2, cz = t.mn[2] + t.d[2] / 2;
+  // stand it on its lowest voxel, centred, facing the same way a Chonk faces
+  const geo = voxelGeometry(vox.map(v => ({ x: v.x, y: maxY - v.y, z: v.z, color: v.color })), [-cx, 0, -cz]);
+  const mesh = new THREE.Mesh(geo, propMat); mesh.castShadow = mesh.receiveShadow = true;
+  const inner = new THREE.Group(); inner.scale.setScalar(0.075); inner.add(mesh);
+  const obj = new THREE.Group(); obj.add(inner);
+  const p = { obj, trait: t }; obj.userData.prop = p;
+  return p;
+}
+function spawnSpot() {
+  if (camMode === "free" || !sel) {
+    const f = freeForward(); if (camMode !== "free") camera.getWorldDirection(f);
+    const p = camera.position.clone().addScaledVector(new THREE.Vector3(f.x, 0, f.z).normalize(), 2.5);
+    p.y = groundAt(p.x, p.z, camera.position.y + 1) ?? 0; return p;
+  }
+  // beside your Chonk as the camera sees it, so it doesn't block the view; each new one steps further out
+  const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0); right.y = 0; right.normalize();
+  const n = props.length % 6, side = n % 2 ? -1 : 1, dist = 0.75 + Math.floor(n / 2) * 0.45;
+  const p = sel.pos.clone().addScaledVector(right, side * dist);
+  p.y = groundAt(p.x, p.z, sel.pos.y + 1) ?? sel.pos.y; return p;
+}
+function addProp(t, { at = null, rotY = null, scale = 1 } = {}) {
+  if (props.length >= 60) { toast("That's 60 props. Remove some before adding more."); return null; }
+  const p = makeProp(t);
+  p.obj.position.copy(at ?? spawnSpot()); p.obj.rotation.y = rotY ?? (sel ? sel.yaw : 0); p.obj.scale.setScalar(scale);
+  scene.add(p.obj); props.push(p); renderProps();
+  if (mode === "photo") setPicked({ kind: "prop", ref: p });
+  return p;
+}
+function removeProp(p) {
+  if (picked?.ref === p) setPicked(null);
+  props.splice(props.indexOf(p), 1); scene.remove(p.obj); p.obj.traverse(o => o.geometry?.dispose());
+  renderProps();
+}
+function clearProps() { for (const p of [...props]) removeProp(p); }
+
+/* prop picker UI */
+const TRAIT_CATS = ["Accessory", "Head", "Hair", "Face", "Top", "Bottom", "Shoes"];
+let traitCat = "Accessory", traitQuery = "";
+const traitCatsEl = document.getElementById("traitCats"), traitListEl = document.getElementById("traitList"), traitSearch = document.getElementById("traitSearch");
+for (const c of TRAIT_CATS) { const b = document.createElement("button"); b.type = "button"; b.textContent = c; b.dataset.cat = c;
+  b.onclick = () => { traitCat = c; traitQuery = ""; traitSearch.value = ""; renderTraitList(); }; traitCatsEl.append(b); }
+traitSearch.addEventListener("input", () => { traitQuery = traitSearch.value.trim().toLowerCase(); renderTraitList(); });
+async function renderTraitList() {
+  const list = await loadTraitCatalog();
+  for (const b of traitCatsEl.children) b.setAttribute("aria-pressed", !traitQuery && b.dataset.cat === traitCat);
+  const shown = traitQuery ? list.filter(t => t.name.toLowerCase().includes(traitQuery)) : list.filter(t => t.cat === traitCat);
+  traitListEl.textContent = "";
+  for (const t of shown.slice(0, 120)) { const b = document.createElement("button"); b.type = "button"; b.textContent = t.name; b.title = `Add ${t.name} (${t.cat})`;
+    b.onclick = () => addProp(t); traitListEl.append(b); }
+  if (!shown.length) { const s = document.createElement("span"); s.className = "hint"; s.textContent = "No traits match that search."; traitListEl.append(s); }
+}
+function renderProps() {
+  const el = document.getElementById("propList"); el.textContent = "";
+  document.getElementById("propCount").textContent = props.length ? `${props.length} in the scene` : "";
+  for (const p of props) {
+    const row = document.createElement("div"); row.className = "member" + (picked?.ref === p ? " sel" : "");
+    const pick = document.createElement("button"); pick.className = "pick"; pick.type = "button";
+    const st = document.createElement("strong"); st.textContent = p.trait.name; const sp = document.createElement("span"); sp.textContent = p.trait.cat;
+    pick.append(st, sp); pick.onclick = () => setPicked({ kind: "prop", ref: p });
+    const rm = document.createElement("button"); rm.className = "rm"; rm.type = "button"; rm.textContent = "×"; rm.setAttribute("aria-label", `Remove ${p.trait.name}`); rm.onclick = () => removeProp(p);
+    row.append(pick, rm); el.append(row);
+  }
+}
+
+/* ===================================================================
+   Picking things in the scene + move / rotate / scale handles
+   =================================================================== */
+let picked = null;          // { kind: "chonk" | "prop" | "painting", ref }
+let gizmoMode = "translate";
+const pickRay = new THREE.Raycaster(), ndc = new THREE.Vector2();
+function pickAt(x, y) {
+  const r = renderer.domElement.getBoundingClientRect();
+  ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+  pickRay.setFromCamera(ndc, camera);
+  const targets = [...chonks.map(c => c.holder), ...props.map(p => p.obj), ...(kit?.paintings ?? []).map(p => p.art)];
+  const hit = pickRay.intersectObjects(targets, true)[0];
+  if (!hit) { setPicked(null); return; }
+  for (let o = hit.object; o; o = o.parent) {
+    if (o.userData.chonk) return setPicked({ kind: "chonk", ref: o.userData.chonk });
+    if (o.userData.prop) return setPicked({ kind: "prop", ref: o.userData.prop });
+    if (o.userData.painting) return setPicked({ kind: "painting", ref: o.userData.painting });
+  }
+}
+function setPicked(p) {
+  picked = p; gizmo.detach();
+  if (p?.kind === "chonk") { sel = p.ref; snapCamera = false; renderRoster(); syncPoseUI(); gizmo.attach(p.ref.holder); }
+  if (p?.kind === "prop") gizmo.attach(p.ref.obj);
+  if (p?.kind !== "prop" && gizmoMode === "scale") gizmoMode = "translate";
+  applyGizmoMode(); renderPicked(); renderProps();
+}
+function applyGizmoMode() {
+  const chonk = picked?.kind === "chonk";
+  gizmo.setMode(gizmoMode);
+  gizmo.setSpace(gizmoMode === "translate" ? "world" : "local");
+  // Chonks stay on the ground and only turn around their vertical axis
+  gizmo.showX = gizmoMode === "rotate" && chonk ? false : true;
+  gizmo.showZ = gizmoMode === "rotate" && chonk ? false : true;
+  gizmo.showY = gizmoMode === "translate" && chonk ? false : true;
+  for (const b of document.querySelectorAll("#gizmoModes button")) { b.setAttribute("aria-pressed", b.dataset.mode === gizmoMode); b.hidden = b.dataset.mode === "scale" && !(picked?.kind === "prop"); }
+}
+gizmo.addEventListener("objectChange", () => {
+  if (picked?.kind !== "chonk") return;
+  const c = picked.ref, h = c.holder;
+  c.pos.x = h.position.x; c.pos.z = h.position.z; c.yaw = h.rotation.y;
+  const gy = groundAt(c.pos.x, c.pos.z, c.pos.y + 3); if (gy != null) c.pos.y = gy;
+  syncPoseUI();
+});
+for (const b of document.querySelectorAll("#gizmoModes button")) b.addEventListener("click", () => { gizmoMode = b.dataset.mode; applyGizmoMode(); });
+function dropToFloor(p) {
+  const box = new THREE.Box3().setFromObject(p.obj), c = box.getCenter(new THREE.Vector3());
+  const gy = groundAt(c.x, c.z, box.min.y + 0.05) ?? groundAt(c.x, c.z, 50) ?? 0;
+  p.obj.position.y += gy - box.min.y;
+}
+function editKey(e) {
+  if (e.code === "KeyG") { gizmoMode = "translate"; applyGizmoMode(); return true; }
+  if (e.code === "KeyR") { gizmoMode = "rotate"; applyGizmoMode(); return true; }
+  if (e.code === "KeyS" && picked?.kind === "prop" && camMode !== "free") { gizmoMode = "scale"; applyGizmoMode(); return true; }
+  if ((e.code === "Delete" || e.code === "Backspace") && picked?.kind === "prop") { removeProp(picked.ref); return true; }
+  return false;
+}
+
+/* the "Selected" panel */
+function renderPicked() {
+  const sec = document.getElementById("pickedSec"), title = document.getElementById("pickedTitle");
+  const gizmoRow = document.getElementById("gizmoRow"), propRow = document.getElementById("propActions"), paintRow = document.getElementById("paintingTools");
+  document.getElementById("pickHint").hidden = !!picked;
+  document.getElementById("deselect").hidden = !picked;
+  sec.classList.toggle("active", !!picked);
+  gizmoRow.hidden = !(picked && picked.kind !== "painting");
+  propRow.hidden = picked?.kind !== "prop";
+  paintRow.hidden = picked?.kind !== "painting"; paintRow.style.display = paintRow.hidden ? "none" : "flex";
+  document.getElementById("paintStatus").textContent = "";
+  if (!picked) { title.textContent = "Nothing selected"; return; }
+  if (picked.kind === "chonk") title.textContent = `Chonk #${picked.ref.id}`;
+  if (picked.kind === "prop") title.textContent = `${picked.ref.trait.name} · ${picked.ref.trait.cat}`;
+  if (picked.kind === "painting") title.textContent = "Framed picture";
+}
+document.getElementById("deselect").onclick = () => setPicked(null);
+document.getElementById("propDrop").onclick = () => { if (picked?.kind === "prop") dropToFloor(picked.ref); };
+document.getElementById("propDup").onclick = () => {
+  if (picked?.kind !== "prop") return; const src = picked.ref;
+  const at = src.obj.position.clone().add(new THREE.Vector3(0.4, 0, 0.4));
+  const p = addProp(src.trait, { at, rotY: src.obj.rotation.y, scale: src.obj.scale.x }); if (p) p.obj.rotation.copy(src.obj.rotation);
+};
+document.getElementById("propDelete").onclick = () => { if (picked?.kind === "prop") removeProp(picked.ref); };
+
+/* ===================================================================
+   Your own pictures in the frames (gallery, mansion portraits, …)
+   =================================================================== */
+const PAINT_STORE = "chonk-photo-booth-paintings";
+function readPaintStore() { try { return JSON.parse(localStorage.getItem(PAINT_STORE) || "{}"); } catch { return {}; } }
+function writePaintStore(obj) { try { localStorage.setItem(PAINT_STORE, JSON.stringify(obj)); return true; } catch { return false; } }
+function loadImage(src) {
+  return new Promise((res, rej) => { const img = new Image(); if (/^https?:/i.test(src)) img.crossOrigin = "anonymous";
+    img.onload = () => res(img); img.onerror = () => rej(new Error("load")); img.src = src; });
+}
+function normaliseLink(u) {
+  u = u.trim();
+  if (u.startsWith("ipfs://")) u = "https://ipfs.io/ipfs/" + u.slice(7).replace(/^ipfs\//, "");
+  if (u.startsWith("ar://")) u = "https://arweave.net/" + u.slice(5);
+  return u;
+}
+async function setPaintingImage(p, src) {
+  const img = await loadImage(src);
+  const tex = new THREE.Texture(img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; tex.needsUpdate = true;
+  if (p.art.material !== p.origMat) { p.art.material.map?.dispose(); p.art.material.dispose(); }
+  p.art.material = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
+  // reshape the frame to the picture, keeping its height
+  p.group.scale.x = Math.max(0.2, Math.min(5, (img.width / img.height) * p.h / p.w));
+}
+function resetPainting(p) {
+  if (p.art.material !== p.origMat) { p.art.material.map?.dispose(); p.art.material.dispose(); }
+  p.art.material = p.origMat; p.group.scale.x = 1;
+  const store = readPaintStore(); delete store[`${loc.id}:${p.idx}`]; writePaintStore(store);
+}
+function paintStatus(msg, kind = "") { const el = document.getElementById("paintStatus"); el.textContent = msg; el.className = "status " + kind; }
+async function applyToPicked(src, { label }) {
+  if (picked?.kind !== "painting") return;
+  const p = picked.ref;
+  paintStatus("Loading the picture…");
+  try { await setPaintingImage(p, src); }
+  catch {
+    paintStatus(label === "link"
+      ? "That link didn't load. The site may block other pages from using its images. Save the image and use Upload instead."
+      : "That file didn't load as an image.", "err");
+    return;
+  }
+  const store = readPaintStore(); store[`${loc.id}:${p.idx}`] = src;
+  paintStatus(writePaintStore(store) ? "Done. This browser will remember it." : "Done. It's too big to remember after a reload, but it's in the scene now.", "ok");
+}
+document.getElementById("paintFile").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = ""; if (!f) return;
+  // shrink big uploads so they stay light and can be remembered
+  try {
+    const url = URL.createObjectURL(f), img = await loadImage(url); URL.revokeObjectURL(url);
+    const k = Math.min(1, 1400 / Math.max(img.width, img.height)), c = document.createElement("canvas");
+    c.width = Math.round(img.width * k); c.height = Math.round(img.height * k); c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+    await applyToPicked(c.toDataURL("image/jpeg", 0.88), { label: "file" });
+  } catch { paintStatus("That file didn't load as an image.", "err"); }
+});
+document.getElementById("paintLinkForm").addEventListener("submit", (e) => {
+  e.preventDefault(); const u = normaliseLink(document.getElementById("paintLink").value);
+  if (!/^https?:\/\//i.test(u)) { paintStatus("Paste a full image link starting with https://, ipfs:// or ar://", "err"); return; }
+  applyToPicked(u, { label: "link" }); document.activeElement.blur();
+});
+document.getElementById("paintReset").onclick = () => { if (picked?.kind === "painting") { resetPainting(picked.ref); paintStatus("Back to the original artwork."); } };
+
+/* when a location is (re)built */
+function onLocationBuilt() {
+  setPicked(null); clearProps();
+  // in the Chonkit gallery the frames show your mosaics, so they aren't swappable
+  for (const p of kit.paintings) delete p.art.userData.painting;
+  kit.paintings.length = 0;
+  document.getElementById("paintHint").hidden = true;
+}
+
+/* boot */
+resize(); camera.fov = WALK_FOV; camera.updateProjectionMatrix();
+window.chonkBooth = { get sel() { return sel; }, get chonks() { return chonks; }, get props() { return props; }, get picked() { return picked; }, get camMode() { return camMode; },
+  get paintings() { return kit?.paintings ?? []; }, camera, setPicked, gizmo, pickAt, renderer, freeCamState: freeCam,
+  async addTrait(name) { return addProp((await loadTraitCatalog()).find(t => t.name === name)); },
+  project(obj) { const v = new THREE.Vector3(); obj.getWorldPosition(v); v.project(camera); const r = renderer.domElement.getBoundingClientRect(); return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (1 - v.y) / 2 * r.height }; } };
+{
+  const saved = loadSaved();
+  const startLoc = "gallery";
+  await loadGallery();
+  loc = LOCATIONS.find(l => l.id === startLoc);
+  await loadSample(1);
+  applyLocation(startLoc);
+  renderRoster(); syncPoseUI();
+  if (saved?.ids?.length) {
+    // restore: samples load instantly; other IDs fetch in the background
+    const first = saved.ids[0];
+    const fillSlot = async (c, id) => { if (SAMPLES[id]) { c.setVoxels(await unpackSample(id), { id, label: SAMPLE_META[id] + " · sample" }); renderRoster(); return; }
+      try { const got = await fetchChonk(id); if (got) { c.setVoxels(got.vox, got); renderRoster(); } } catch {} };
+    if (first !== 1) fillSlot(sel, first);
+    for (const id of saved.ids.slice(1, MAX_CHONKS)) { const c = new Chonk(sel.vox, { id: sel.id, label: sel.label }); chonks.push(c); fillSlot(c, id); }
+    placeAtSpawn(); renderRoster();
+  }
+}
+renderTraitList(); renderPicked(); renderProps();
+animate();
+
+</script>
+
+</body></html>

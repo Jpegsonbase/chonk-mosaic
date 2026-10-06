@@ -68,7 +68,7 @@
         if (dd) dd.textContent = `Chonk images saved ${d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}.`;
       }
       state.idToIndex = new Map(meta.ids.map((id, i) => [id, i]));
-      state.worker = new Worker("worker.js?v=36");
+      state.worker = new Worker("worker.js?v=37");
       state.worker.onmessage = onWorker;
       state.worker.postMessage({ type: "load", buffer, meta }, [buffer]);
       paintHero();
@@ -262,7 +262,14 @@
     pv.addEventListener("click", (e) => { if (cropping()) e.preventDefault(); });
   }
 
+  // a readable title from a file name, for the gallery label ("starry-night.jpg" -> "Starry night")
+  function titleFromFile(name) {
+    const base = String(name || "").replace(/\.[a-z0-9]+$/i, "").replace(/[_-]+/g, " ").trim();
+    if (!base || /^(image|pasted|img ?\d*|dsc ?\d*|photo ?\d*|screenshot.*|\d+)$/i.test(base)) return null;
+    return base.charAt(0).toUpperCase() + base.slice(1);
+  }
   function setPicture(img, label = null) {
+    state.fileTitle = null;
     state.image = img;
     state.label = label;
     state.cropX = state.cropY = 0.5;
@@ -287,7 +294,7 @@
     if (!file.type.startsWith("image/")) { setPhase("That file isn't a picture", "Choose a JPG, PNG, WebP or GIF.", 0); return; }
     const url = URL.createObjectURL(file);
     const img = new Image();
-    img.onload = () => { el.pickId.value = ""; setPicture(img, null); setPhase("Ready", "Picture loaded", 0); };
+    img.onload = () => { el.pickId.value = ""; setPicture(img, null); state.fileTitle = titleFromFile(file.name); setPhase("Ready", "Picture loaded", 0); };
     img.onerror = () => setPhase("Couldn't open that picture", "Try a JPG or PNG. Some phone formats (like HEIC) don't open in every browser.", 0);
     img.src = url;
   }
@@ -473,6 +480,41 @@
   el.walletGo.addEventListener("click", loadWallet);
   el.wallet.addEventListener("keydown", (e) => { if (e.key === "Enter") loadWallet(); });
 
+  // ---------------------------------------------------------------- gallery
+  // "Add to Gallery" keeps the finished mosaic in this browser; gallery.html hangs it in a 3D gallery.
+  const addGalleryBtn = document.getElementById("addGallery");
+  const openGalleryLink = document.getElementById("openGallery");
+  const galBadge = document.getElementById("galBadge");
+  function updateGalleryBadge() {
+    if (!galBadge || !window.ChonkitGallery || !ChonkitGallery.supported) return;
+    ChonkitGallery.count().then((n) => { galBadge.textContent = n; galBadge.hidden = !n; }).catch(() => {});
+  }
+  function galleryReset(busy) {
+    if (!addGalleryBtn) return;
+    const ok = window.ChonkitGallery && ChonkitGallery.supported;
+    addGalleryBtn.hidden = !ok;
+    addGalleryBtn.disabled = busy || !state.last;
+    addGalleryBtn.textContent = "Add to Gallery";
+    if (openGalleryLink) openGalleryLink.hidden = true;
+  }
+  if (addGalleryBtn) {
+    addGalleryBtn.addEventListener("click", async () => {
+      if (!state.last || state.busy) return;
+      addGalleryBtn.disabled = true; addGalleryBtn.textContent = "Adding…";
+      try {
+        await ChonkitGallery.addCanvas(el.canvas, { title: state.last.label || state.last.fileTitle || "Untitled", tiles: state.last.result.length });
+        addGalleryBtn.textContent = "In your Gallery ✓";
+        if (openGalleryLink) openGalleryLink.hidden = false;
+        updateGalleryBadge();
+      } catch (err) {
+        console.error(err);
+        addGalleryBtn.disabled = false; addGalleryBtn.textContent = "Add to Gallery";
+        setPhase("Couldn't add to the gallery", "Your browser may be out of storage space, or blocking it in private mode.", 1);
+      }
+    });
+  }
+  updateGalleryBadge();
+
   // ---------------------------------------------------------------- build
   async function build() {
     if (!state.ready || !state.image || state.busy) return;
@@ -482,6 +524,7 @@
     if (el.dlFull) el.dlFull.disabled = true;
     setShareEnabled(false);
     if (el.makeGif) el.makeGif.disabled = true;
+    galleryReset(true);
     if (window.MosaicZoom && MosaicZoom.setCompare) MosaicZoom.setCompare(false);
     saveSettings();
     try {
@@ -514,7 +557,7 @@
       });
       buildResolve = buildReject = null;
       const result = done.result;
-      state.last = { result, cols, rows, tile, source: state.source, label: state.label, gap: state.gap };
+      state.last = { result, cols, rows, tile, source: state.source, label: state.label, fileTitle: state.fileTitle, gap: state.gap };
 
       // 3. Draw.
       const used = new Map(); // index -> [tile positions]
@@ -552,6 +595,7 @@
       setShareEnabled(true);
       preparePhoto();
       if (el.makeGif) el.makeGif.disabled = !(window.ChonkGif && ChonkGif.supported());
+      galleryReset(false);
       if (state.source !== "chain") state.onchainNote = "";
       setPhase("Done", state.missingSheets
         ? `Some Chonks couldn't load (blank squares). Check your connection and press Chonk it again.`
