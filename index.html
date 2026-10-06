@@ -209,6 +209,12 @@
     border: 2px dashed var(--drop-line); border-radius: 16px; background: var(--soft); overflow: hidden;
     transition: border-color .15s, background .15s;
   }
+  .drop { position: relative; }
+  .clear-pic { position: absolute; top: 8px; right: 8px; z-index: 2; width: 32px; height: 32px; border-radius: 50%; border: 0; cursor: pointer;
+    display: grid; place-items: center; font: 700 20px/1 var(--body); color: #fff; background: rgba(14, 18, 48, .72); box-shadow: 0 4px 12px rgba(14, 18, 48, .3); }
+  .clear-pic:hover { background: var(--warn); }
+  .clear-pic[hidden] { display: none; }
+  .controls.locked .clear-pic { display: none; }
   .drop:hover, .drop.over { border-color: var(--blue); background: var(--drop-hover); }
   .drop img { max-width: 100%; max-height: 240px; display: block; }
   .drop canvas.preview { max-width: 100%; max-height: 240px; display: block; }
@@ -561,6 +567,7 @@
         <div class="step-head"><span class="n" style="--c: var(--yellow)">1</span>Choose a picture<button class="link-btn val" id="changePic" type="button" hidden>Change picture</button></div>
         <label class="drop" id="drop" tabindex="0" role="button" aria-label="Choose a picture: drop, paste or press Enter to browse">
           <input type="file" id="file" accept="image/*" hidden>
+          <button class="clear-pic" id="clearPic" type="button" hidden aria-label="Remove this picture" title="Remove this picture">&times;</button>
           <div class="hint" id="dropHint"><strong>Drop an image here</strong><span id="dropHow">or click to browse. Copied an image? Press <kbd>Ctrl</kbd>+<kbd>V</kbd>.</span></div>
         </label>
         <div class="or-chonk">
@@ -822,12 +829,12 @@
     </div>
   </form>
 </dialog>
-<script src="chain.js?v=41"></script>
-<script src="zoom.js?v=41"></script>
-<script src="export.js?v=41"></script>
-<script src="vendor/gifenc.js?v=41"></script>
-<script src="gif.js?v=41"></script>
+<script src="chain.js?v=42"></script>
+<script src="zoom.js?v=42"></script>
+<script src="export.js?v=42"></script>
+<script src="vendor/gifenc.js?v=42"></script>
+<script src="gif.js?v=42"></script>
 <script src="gallery-store.js?v=3"></script>
-<script src="app.js?v=41"></script>
+<script src="app.js?v=42"></script>
 </body>
 </html>

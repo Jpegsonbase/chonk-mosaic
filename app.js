@@ -115,7 +115,7 @@
   // once the "load" message is posted; messages after it queue in order.
   function startWorker(buffer = null) {
     const meta = state.meta;
-    const w = new Worker("worker.js?v=41");
+    const w = new Worker("worker.js?v=42");
     state.worker = w;
     w.onmessage = onWorker;
     w.onerror = (e) => {
@@ -326,7 +326,30 @@
     }
     el.dropHint.style.display = "none";
     el.changePic.hidden = false;
+    document.getElementById("clearPic").hidden = false;
   }
+
+  // the × on the picture: back to an empty drop box (a mosaic already made stays on screen)
+  function clearPicture() {
+    if (state.busy) return;
+    state.image = state.srcImage = null; state.label = state.fileTitle = null;
+    state.cropX = state.cropY = 0.5; state.rotation = 0; state.zoom = 1;
+    el.drop.querySelector("canvas.preview")?.remove();
+    el.dropHint.style.display = "";
+    el.changePic.hidden = true;
+    document.getElementById("clearPic").hidden = true;
+    el.pickId.value = ""; el.file.value = "";
+    el.gridNote.textContent = "Choose a picture to see the grid.";
+    el.sizeNote.textContent = "";
+    if (!state.last) {
+      const t = document.getElementById("emptyText"); if (t) t.textContent = "Choose a picture to get started.";
+      el.tryExample.hidden = false;
+    }
+    lastPic = null; LastPic.clear().catch(() => {});
+    syncCropTools(); updateNotes(); refreshButton();
+    setPhase("Ready", "Picture removed", 0);
+  }
+  document.getElementById("clearPic").addEventListener("click", (e) => { e.preventDefault(); e.stopPropagation(); clearPicture(); });
 
   // Drag the crop box. Works with mouse and touch; a drag never opens the file picker.
   function attachCropDrag(pv) {
@@ -468,6 +491,7 @@
     return {
       get: () => run("readonly", (s) => s.get(KEY)),
       put: (v) => run("readwrite", (s) => s.put(v, KEY)),
+      clear: () => run("readwrite", (s) => s.delete(KEY)),
     };
   })();
 
