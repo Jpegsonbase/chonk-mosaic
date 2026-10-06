@@ -2855,6 +2855,15 @@ window.chonkBooth = { tourPlan, rebuild: () => applyLocation("gallery", { keepPo
     if (first !== 1) sel.id = first;
     for (const id of saved.ids.slice(1, MAX_CHONKS)) { const c = new Chonk(sel.vox, { id, label: "loading…" }); chonks.push(c); fillSlot(c, id); }
     placeAtSpawn(); renderRoster();
+  } else {
+    // first visit: you start as Chonk #15064. It's fetched in the background and your Chonk stays out of sight
+    // until it arrives (sample #1 shows instead if the Chonks server can't be reached within a few seconds).
+    const FIRST_CHONK = 15064, me = sel;
+    me.holder.visible = false;
+    const show = () => { clearTimeout(timer); if (me === sel && !fpOn()) me.holder.visible = true; };
+    const timer = setTimeout(show, 4000);
+    fetchChonk(FIRST_CHONK).then((got) => { if (got && me === sel) { me.setVoxels(got.vox, got); renderRoster(); syncPoseUI(); saveSoon(); } })
+      .catch(() => {}).finally(show);
   }
 }
 renderTraitList(); renderPicked(); renderProps();
