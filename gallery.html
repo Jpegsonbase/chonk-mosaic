@@ -66,6 +66,10 @@ input { -webkit-user-select: text; user-select: text; }
 @keyframes dlIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
 @media (max-width: 760px) { .dl-prompt { position: fixed; left: 50%; transform: translateX(-50%); top: calc(64px + env(safe-area-inset-top, 0px)); max-width: calc(100% - 32px); animation: none; } }
 .statue-row { display: flex; gap: 8px; }
+.rail.settings-panel { z-index: 7; }
+@media (min-width: 761px) { .rail.settings-panel { left: auto; right: 16px; top: calc(66px + env(safe-area-inset-top, 0px)); } }
+body.settings-open .keys, body.settings-open #joy, body.settings-open .tbtns { display: none !important; }
+#settingsBtn[aria-expanded="true"] { border-color: var(--skin); color: var(--skin); }
 /* touch controls */
 #joy { position: fixed; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 124px; height: 124px; border-radius: 50%; z-index: 6;
   background: rgba(10,11,16,.35); border: 1px solid rgba(255,255,255,.22); touch-action: none; }
@@ -194,6 +198,10 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 7l9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg>
     <span class="lbl">Free cam</span> <kbd>F</kbd>
   </button>
+  <button class="hudBtn" id="settingsBtn" aria-label="Settings" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>
+    <span class="lbl">Settings</span>
+  </button>
   <button id="photoBtn" aria-label="Open photo mode">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
     Photo mode <kbd>P</kbd>
@@ -240,57 +248,10 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
       </div>
     </section>
 
-    <section>
-      <h2>Your mosaics <span id="galCount" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
-      <div class="roster" id="galList"></div>
-      <p class="hint" style="margin:0" id="galHint">Make a mosaic on <a href="./" style="color:var(--skin)">Chonkit</a> and press <b>Add to Gallery</b> to hang it here. Your gallery is saved in this browser.</p>
-      <div hidden><div class="locs" id="locs"></div><div class="row" id="studioColorRow" hidden><input type="color" id="studioColor" value="#f2c14e"></div><div id="glbRow" hidden><input type="file" id="glbFile"><input type="range" id="glbScale" min="-2" max="2" step="0.01" value="0"><output id="glbScaleOut"></output></div></div>
-    </section>
 
-    <section>
-      <h2>Statue <span id="statueWho" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
-      <form class="row" id="statueForm">
-        <input id="statueId" type="number" min="0" inputmode="numeric" placeholder="Chonk ID for the statue" aria-label="Chonk ID for the gold statue">
-        <button class="primary" type="submit">Use</button>
-      </form>
-      <button type="button" id="statueMine">Use my Chonk</button>
-      <div class="seg" id="statueStyle" role="group" aria-label="Statue finish"><button type="button" data-style="gold">Gold</button><button type="button" data-style="colour">Full colour</button></div>
-      <div class="status" id="statueStatus"></div>
-    </section>
 
-    <section>
-      <h2>Chonks in the scene</h2>
-      <div class="roster" id="roster"></div>
-      <div class="row">
-        <button id="cloneBtn" style="flex:1">Clone selected</button>
-      </div>
-      <div class="hint">Cloning leaves a copy standing where your Chonk is. Then load a different Chonk into the selected slot to group your Chonks together.</div>
-    </section>
 
-    <section>
-      <h2>Load a Chonk</h2>
-      <form class="row" id="idForm">
-        <input id="tokenId" type="number" min="0" inputmode="numeric" placeholder="Token ID, e.g. 13" aria-label="Chonk token ID">
-        <button class="primary" type="submit">Load</button>
-      </form>
-      <form class="row" id="walletForm">
-        <input id="wallet" type="text" placeholder="Wallet 0x…" aria-label="Wallet address" spellcheck="false" autocomplete="off">
-        <button type="submit">Find</button>
-      </form>
-      <div class="chips" id="walletChonks"></div>
-      <div class="status" id="status"></div>
-      <div class="hint">Samples</div>
-      <div class="chips" id="samples"></div>
-    </section>
 
-    <section>
-      <h2>Props <span id="propCount" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
-      <p class="hint" style="margin:0">Every Chonks 3D trait, ready to drop into the scene.</p>
-      <div class="chips" id="traitCats"></div>
-      <input type="text" id="traitSearch" placeholder="Search all 270 traits" aria-label="Search traits" spellcheck="false" autocomplete="off">
-      <div class="traitlist" id="traitList"></div>
-      <div class="roster" id="propList"></div>
-    </section>
 
 
     <section>
@@ -308,6 +269,62 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
       <label class="check"><input type="checkbox" id="tag" checked> Add Chonk tag to photo</label>
       <label class="check"><input type="checkbox" id="guides" checked> Show thirds grid</label>
       <div class="row"><button data-freecam aria-pressed="false" style="flex:1">Free camera <kbd>F</kbd></button><button id="resetCam" style="flex:1">Reset camera</button></div>
+    </section>
+  </div>
+</aside>
+<aside class="rail settings-panel" id="settingsPanel" hidden aria-label="Settings">
+  <header>
+    <div class="brand">Gallery <b>settings</b></div>
+    <button id="closeSettings" type="button">Done</button>
+  </header>
+  <div class="rail-body">
+    <section>
+      <h2>Load Chonks</h2>
+      <form class="row" id="idForm">
+        <input id="tokenId" type="number" min="0" inputmode="numeric" placeholder="Token ID, e.g. 13" aria-label="Chonk token ID">
+        <button class="primary" type="submit">Load</button>
+      </form>
+      <form class="row" id="walletForm">
+        <input id="wallet" type="text" placeholder="Wallet 0x…" aria-label="Wallet address" spellcheck="false" autocomplete="off">
+        <button type="submit">Find</button>
+      </form>
+      <div class="chips" id="walletChonks"></div>
+      <div class="status" id="status"></div>
+      <div class="hint">Samples</div>
+      <div class="chips" id="samples"></div>
+    </section>
+    <section>
+      <h2>Statue <span id="statueWho" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <form class="row" id="statueForm">
+        <input id="statueId" type="number" min="0" inputmode="numeric" placeholder="Chonk ID for the statue" aria-label="Chonk ID for the gold statue">
+        <button class="primary" type="submit">Use</button>
+      </form>
+      <button type="button" id="statueMine">Use my Chonk</button>
+      <div class="seg" id="statueStyle" role="group" aria-label="Statue finish"><button type="button" data-style="gold">Gold</button><button type="button" data-style="colour">Full colour</button></div>
+      <div class="status" id="statueStatus"></div>
+    </section>
+    <section>
+      <h2>Paintings <span id="galCount" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <div class="roster" id="galList"></div>
+      <p class="hint" style="margin:0" id="galHint">Make a mosaic on <a href="./" style="color:var(--skin)">Chonkit</a> and press <b>Add to Gallery</b> to hang it here. Your gallery is saved in this browser.</p>
+      <div hidden><div class="locs" id="locs"></div><div class="row" id="studioColorRow" hidden><input type="color" id="studioColor" value="#f2c14e"></div><div id="glbRow" hidden><input type="file" id="glbFile"><input type="range" id="glbScale" min="-2" max="2" step="0.01" value="0"><output id="glbScaleOut"></output></div></div>
+    </section>
+    <section>
+      <h2>Props <span id="propCount" style="text-transform:none;letter-spacing:0;font-family:var(--mono)"></span></h2>
+      <p class="hint" style="margin:0">Every Chonks 3D trait, ready to drop into the scene.</p>
+      <div class="chips" id="traitCats"></div>
+      <input type="text" id="traitSearch" placeholder="Search all 270 traits" aria-label="Search traits" spellcheck="false" autocomplete="off">
+      <div class="traitlist" id="traitList"></div>
+      <div class="roster" id="propList"></div>
+    </section>
+    <section>
+      <h2>Clone</h2>
+      <p class="hint" style="margin:0">Chonks in the scene. The highlighted one is you.</p>
+      <div class="roster" id="roster"></div>
+      <div class="row">
+        <button id="cloneBtn" style="flex:1">Clone selected</button>
+      </div>
+      <div class="hint">Cloning leaves a copy standing where your Chonk is. Then load a different Chonk into the selected slot to group your Chonks together.</div>
     </section>
   </div>
 </aside>
@@ -1264,7 +1281,7 @@ let jumpQueued = false;
 const isTyping = () => ["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName);
 addEventListener("keydown", (e) => {
   if (isTyping()) return;
-  if (e.key === "Escape") { if (!resultEl.hidden) { resultEl.hidden = true; return; } if (picked) { setPicked(null); return; } if (mode === "photo") setMode("walk"); return; }
+  if (e.key === "Escape") { if (!resultEl.hidden) { resultEl.hidden = true; return; } if (!document.getElementById("settingsPanel").hidden) { setSettings(false); return; } if (picked) { setPicked(null); return; } if (mode === "photo") setMode("walk"); return; }
   if (!resultEl.hidden) return;
   if (e.code === "KeyP") { setMode(mode === "photo" ? "walk" : "photo"); return; }
   if (e.code === "KeyF") { toggleFreeCam(); return; }
@@ -1392,6 +1409,7 @@ const resultEl = document.getElementById("result");
 function setMode(m) {
   mode = m; keys.clear(); joy.active = false;
   document.body.classList.toggle("photo", m === "photo");
+  if (m === "photo") setSettings(false);
   if (m === "photo" && sel && ["wave", "bow"].includes(sel.moveAnim)) sel.pose = sel.moveAnim;
   if (m === "walk" && sel) sel.moveAnim = "idle";
   // photo mode swings round to a 3/4 front view of your Chonk; walking uses a wider view from behind
@@ -1402,6 +1420,14 @@ function setMode(m) {
   // start with about 1.8 m of scene filling the frame height, whatever the screen shape
   if (m === "photo" && camMode === "follow") { const half = THREE.MathUtils.degToRad(camera.fov) / 2; cam.dist = Math.max(1.2, Math.min(14, 0.9 / Math.tan(half) * innerHeight / frameRect.h)); }
 }
+function setSettings(open) {
+  const el = document.getElementById("settingsPanel");
+  el.hidden = !open; document.body.classList.toggle("settings-open", open);
+  document.getElementById("settingsBtn").setAttribute("aria-expanded", open);
+  if (open) { keys.clear(); joy.active = false; }
+}
+document.getElementById("settingsBtn").onclick = () => setSettings(document.getElementById("settingsPanel").hidden);
+document.getElementById("closeSettings").onclick = () => setSettings(false);
 document.getElementById("photoBtn").onclick = () => setMode("photo");
 document.getElementById("closePhoto").onclick = () => setMode("walk");
 
