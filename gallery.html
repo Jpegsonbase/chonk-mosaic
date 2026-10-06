@@ -73,6 +73,14 @@ body.settings-open .keys, body.settings-open #joy, body.settings-open .tbtns { d
 #soundBtn[aria-pressed="true"] { background: var(--panel); color: var(--warn); border-color: var(--line); }
 #soundBtn[aria-pressed="true"] .wave { display: none; } #soundBtn[aria-pressed="true"] .mute { display: inline !important; }
 #settingsBtn[aria-expanded="true"] { border-color: var(--skin); color: var(--skin); }
+.edit-bar { position: fixed; left: 50%; transform: translateX(-50%); top: calc(70px + env(safe-area-inset-top, 0px)); z-index: 8; display: flex; align-items: center; gap: 8px;
+  padding: 6px 6px 6px 14px; border-radius: 999px; background: var(--panel-solid); border: 1px solid var(--skin); box-shadow: 0 10px 30px rgba(0,0,0,.35); max-width: calc(100% - 24px); }
+.edit-bar[hidden] { display: none; }
+.edit-bar .eb-name { font: 400 12px var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; max-width: 34vw; }
+.edit-bar .eb-modes { display: flex; gap: 4px; }
+.edit-bar .eb-modes button { padding: 6px 10px; font-size: 12px; border-radius: 999px; }
+.edit-bar .eb-done { background: var(--skin); color: var(--ink); border-color: var(--skin-deep); font-weight: 700; padding: 7px 16px; border-radius: 999px; }
+@media (min-width: 761px) { body.photo .edit-bar { left: calc(50% + 170px); } }
 /* touch controls */
 #joy { position: fixed; left: 22px; bottom: calc(26px + env(safe-area-inset-bottom, 0px)); width: 124px; height: 124px; border-radius: 50%; z-index: 6;
   background: rgba(10,11,16,.35); border: 1px solid rgba(255,255,255,.22); touch-action: none; }
@@ -238,7 +246,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     <section id="pickedSec">
       <h2>Selected</h2>
       <div class="card2">
-        <div class="row" style="justify-content:space-between"><strong id="pickedTitle">Nothing selected</strong><button id="deselect" hidden>Done <kbd>Esc</kbd></button></div>
+        <div class="row" style="justify-content:space-between"><strong id="pickedTitle">Nothing selected</strong><button id="deselect" hidden>✓ Done <kbd>Esc</kbd></button></div>
         <p class="hint" id="pickHint" style="margin:0">Click a Chonk or prop in the scene to move or turn it. <span id="paintHint">Click a framed picture to hang your own image in it.</span></p>
         <div id="gizmoRow" hidden>
           <div class="seg" id="gizmoModes"><button type="button" data-mode="translate">Move<kbd>G</kbd></button><button type="button" data-mode="rotate">Turn<kbd>R</kbd></button><button type="button" data-mode="scale">Size<kbd>S</kbd></button></div>
@@ -352,6 +360,11 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
     </section>
   </div>
 </aside>
+<div class="edit-bar" id="editBar" hidden>
+  <span class="eb-name" id="ebName"></span>
+  <div class="eb-modes" id="ebModes"><button type="button" data-mode="translate">Move</button><button type="button" data-mode="rotate">Turn</button><button type="button" data-mode="scale">Size</button></div>
+  <button type="button" class="eb-done" id="ebDone">✓ Done</button>
+</div>
 <div class="dock photo-only"><button id="snap" aria-label="Take photo"><span class="lens"></span><span><strong>Snap</strong><small id="snapSize">2048 × 2048 px</small></span></button></div>
 
 <div id="result" hidden>
@@ -1350,15 +1363,30 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyF") { toggleFreeCam(); return; }
   if (mode === "photo" && picked && editKey(e)) return;
   if (mode !== "walk" && camMode !== "free") return;
-  keys.add(e.code);
+  keys.add(e.code); if (!keySeen.has(e.code)) keySeen.set(e.code, { t: performance.now(), rep: e.repeat });
   if (camMode === "free") { if (e.code === "Space" || e.code.startsWith("Arrow")) e.preventDefault(); return; }
   if (e.code === "Space") { jumpQueued = true; e.preventDefault(); }
   if (e.code === "Digit1" && sel) sel.moveAnim = "wave";
   if (e.code === "Digit2" && sel) sel.moveAnim = "bow";
   if (e.code.startsWith("Arrow")) e.preventDefault();
 });
-addEventListener("keyup", (e) => keys.delete(e.code));
+addEventListener("keyup", (e) => { keys.delete(e.code); keySeen.delete(e.code); });
 addEventListener("blur", () => keys.clear());
+// Browsers sometimes swallow a key-up (right-click menu, a pop-up, switching windows), which left the
+// Chonk walking on its own. Held keys repeat their key-down every ~30 ms, so once a key has started
+// repeating, a gap with no repeats means it was let go.
+const keySeen = new Map();
+addEventListener("keydown", (e) => { if (keys.has(e.code)) keySeen.set(e.code, { t: performance.now(), rep: e.repeat || keySeen.get(e.code)?.rep }); }, true);
+function expireKeys() {
+  const now = performance.now();
+  for (const [code, k] of keySeen) if (k.rep && now - k.t > 350) { keys.delete(code); keySeen.delete(code); }
+}
+const releaseAll = () => { keys.clear(); keySeen.clear(); };
+addEventListener("contextmenu", releaseAll);
+document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
+addEventListener("pointerdown", (e) => { if (e.button === 2) releaseAll(); });
+// HUD buttons shouldn't keep focus (Space would "press" them instead of jumping)
+document.addEventListener("click", (e) => { const b = e.target.closest(".hud-top button, .dock button"); if (b) b.blur(); });
 const joy = { x: 0, y: 0, active: false };
 (function setupJoystick() {
   const el = document.getElementById("joy"), knob = el.querySelector("i"); let pid = null;
@@ -1736,6 +1764,7 @@ function loadSaved() { try { return JSON.parse(localStorage.getItem(STORE) || "n
 const clock = new THREE.Clock(); let t = 0;
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05); t += dt;
+  expireKeys();
   if (loc && sel) stepSelected(dt);
   for (const c of chonks) {
     c.holder.position.copy(c.pos); c.holder.rotation.y = c.yaw;
@@ -1934,6 +1963,7 @@ function applyGizmoMode() {
   gizmo.showZ = gizmoMode === "rotate" && chonk ? false : true;
   gizmo.showY = gizmoMode === "translate" && chonk ? false : true;
   for (const b of document.querySelectorAll("#gizmoModes button")) { b.setAttribute("aria-pressed", b.dataset.mode === gizmoMode); b.hidden = b.dataset.mode === "scale" && !(picked?.kind === "prop"); }
+  renderEditBar();
 }
 gizmo.addEventListener("objectChange", () => {
   if (picked?.kind !== "chonk") return;
@@ -1957,7 +1987,16 @@ function editKey(e) {
 }
 
 /* the "Selected" panel */
+function renderEditBar() {
+  const bar = document.getElementById("editBar"), on = !!picked && picked.kind !== "painting";
+  bar.hidden = !on; if (!on) return;
+  document.getElementById("ebName").textContent = picked.kind === "chonk" ? `Chonk #${picked.ref.id}` : picked.ref.trait.name;
+  for (const b of document.querySelectorAll("#ebModes button")) { b.setAttribute("aria-pressed", b.dataset.mode === gizmoMode); b.hidden = b.dataset.mode === "scale" && picked.kind !== "prop"; }
+}
+document.getElementById("ebDone").onclick = () => setPicked(null);
+document.getElementById("ebModes").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) document.querySelector(`#gizmoModes button[data-mode="${b.dataset.mode}"]`)?.click(); });
 function renderPicked() {
+  renderEditBar();
   const sec = document.getElementById("pickedSec"), title = document.getElementById("pickedTitle");
   const gizmoRow = document.getElementById("gizmoRow"), propRow = document.getElementById("propActions"), paintRow = document.getElementById("paintingTools");
   document.getElementById("pickHint").hidden = !!picked;
@@ -2109,9 +2148,9 @@ syncStatueStyleUI();
 /* ===================================================================
    Visitors: Chonks that wander the gallery and look at the art
    =================================================================== */
-const VISITOR_KEY = "chonkit-gallery-visitors";
+const VISITOR_KEY = "chonkit-gallery-visitors-v2";
 const VISITOR_COUNT = 8;
-const DEFAULT_VISITORS = [172, 171, 30183, 55683, null, null, null, null];   // null = a random Chonk each visit
+const DEFAULT_VISITORS = [172, 171, 30183, 55683, 1, 2, 7000, 30000];      // a blank box (null) = a random Chonk each visit
 const visitors = [];
 let visitorIds = DEFAULT_VISITORS.slice(), visitorsOn = true;
 try { const v = JSON.parse(localStorage.getItem(VISITOR_KEY) || "null");
