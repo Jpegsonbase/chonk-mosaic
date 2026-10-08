@@ -49,12 +49,11 @@ header.top{display:flex;align-items:center;justify-content:space-between;gap:12p
 .site-nav .short{display:none}
 .site-nav #galBadge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--yellow);color:#0E1230;font:800 10.5px/18px var(--body);text-align:center}
 @media (max-width:640px){.site-nav .long{display:none}.site-nav .short{display:inline}.site-nav a{padding:6px 9px;font-size:12.5px}}
-.wrap{max-width:1240px;margin:0 auto;display:grid;gap:16px;padding:0 clamp(16px,3vw,32px) 32px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:0 clamp(16px,3vw,32px) 32px}
 .intro h1{font:800 clamp(26px,4.4vw,40px)/1.1 var(--display);letter-spacing:-.02em;margin:4px 0 6px}
 .intro h1 span{color:var(--blue)}
 .intro p{margin:0;color:var(--muted);max-width:62ch}
 .main{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px;align-items:start}
-@media (max-width:760px){.main{grid-template-columns:minmax(0,1fr)}}
 .stage{background:var(--stage);transition:background .2s;border:1px solid var(--line);border-radius:22px;position:relative;overflow:hidden;min-height:320px;display:grid;place-items:center;cursor:grab;touch-action:none}
 .stage.drag{outline:2px dashed var(--accent);outline-offset:-8px}
 .stage:active{cursor:grabbing}
@@ -94,6 +93,17 @@ select,input[type=text]{width:100%;font:inherit;padding:9px 11px;border-radius:1
 .hint a{color:var(--accent)}
 .status{font-size:13px;min-height:1.2em;color:var(--muted)}
 .status.err{color:#d23a52}
+.left{display:grid;gap:18px;min-width:0}
+.look{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 24px;font-size:14px}
+.look .col{display:grid;gap:12px;align-content:start;min-width:0}
+.look h2{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 0}
+@media (max-width:1060px){.look{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+  .main{display:flex;flex-direction:column;min-width:0}
+  .stage,.rail,.look{width:100%;min-width:0}
+  .left{display:contents}
+  .stage{order:1}.rail{order:2}.look{order:3;grid-template-columns:minmax(0,1fr)}
+}
 footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px;color:var(--muted);font-size:13px}
 /* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
 @media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
@@ -118,11 +128,66 @@ button,a,label,input,select{touch-action:manipulation}
 
 
   <div class="main">
-    <div class="stage" id="stage" aria-label="ASCII render. Drag to rotate, drop a .glb to load.">
-      <pre id="out"></pre>
-      <div class="badge" id="badge">Loading…</div>
-    </div>
+    <div class="left">
+      <div class="stage" id="stage" aria-label="ASCII render. Drag to rotate, drop a .glb to load.">
+        <pre id="out"></pre>
+        <div class="badge" id="badge">Loading…</div>
+      </div>
 
+      <section class="look" aria-label="Look">
+        <div class="col">
+          <h2>Framing</h2>
+          <button class="btn ghost" id="fit">Fit to frame</button>
+          <label class="f" for="pan"><span class="row">Move up / down <b id="panV">0.00</b></span>
+            <input type="range" id="pan" min="-1" max="1" step="0.02" value="0"></label>
+          <label class="f" for="zoom"><span class="row">Zoom <b id="zoomV">1.00×</b></span>
+            <input type="range" id="zoom" min="0.2" max="4" step="0.05" value="1"></label>
+          <label class="f" for="cols"><span class="row">Width <b id="colsV">90 cols</b></span>
+            <input type="range" id="cols" min="30" max="200" value="90"></label>
+        </div>
+        <div class="col">
+          <h2>Characters</h2>
+          <label class="f" for="ramp">Characters
+            <select id="ramp">
+              <option value=" .:-=+*#%@">Classic  .:-=+*#%@</option>
+              <option value=" ░▒▓█" selected>Chonky blocks ░▒▓█</option>
+              <option value=" .oO0@">Bubbly .oO0@</option>
+              <option value=" `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@">Dense (70)</option>
+              <option value="custom">Custom…</option>
+            </select></label>
+          <label class="f" for="custom" id="customWrap" hidden>Custom ramp, dark → light
+            <input type="text" id="custom" value=" .chonk#" spellcheck="false"></label>
+          <label class="f" for="contrast"><span class="row">Contrast <b id="contrastV">1.2</b></span>
+            <input type="range" id="contrast" min="0.5" max="2.5" step="0.1" value="1.2"></label>
+          <label class="f" for="light"><span class="row">Light angle <b id="lightV">40°</b></span>
+            <input type="range" id="light" min="-180" max="180" value="40"></label>
+          <div class="checks">
+            <label class="chip"><input type="checkbox" id="spin" checked> Spin</label>
+            <label class="chip"><input type="checkbox" id="reverse"> Reverse spin</label>
+            <label class="chip"><input type="checkbox" id="invert"> Invert</label>
+          </div>
+
+        </div>
+        <div class="col">
+          <h2>Colour</h2>
+          <label class="f" for="mode">Character colour
+            <select id="mode">
+              <option value="model" selected>Model colours</option>
+              <option value="solid">One colour</option>
+            </select></label>
+          <div class="swatches">
+            <label class="sw" for="ink" id="inkWrap" hidden><input type="color" id="ink" value="#b9f2c2"> Text</label>
+            <label class="sw" for="bg"><input type="color" id="bg" value="#14111c"> Background</label>
+          </div>
+          <div class="presets" role="group" aria-label="Colour presets">
+            <button class="pre" data-bg="#14111c" data-ink="#e9e4f7" style="--b:#14111c;--i:#e9e4f7">Night</button>
+            <button class="pre" data-bg="#0b1a10" data-ink="#7dff9a" style="--b:#0b1a10;--i:#7dff9a">Terminal</button>
+            <button class="pre" data-bg="#ffffff" data-ink="#1d1a26" style="--b:#ffffff;--i:#1d1a26">Paper</button>
+            <button class="pre" data-bg="#2a1f6b" data-ink="#ffd84a" style="--b:#2a1f6b;--i:#ffd84a">Chonk</button>
+          </div>
+        </div>
+      </section>
+    </div>
     <aside class="rail">
       <h2>Load a Chonk</h2>
       <form class="inrow" id="idForm">
@@ -140,49 +205,6 @@ button,a,label,input,select{touch-action:manipulation}
       <div class="status" id="status" role="status"></div>
       <label class="f" for="anim" id="animWrap" hidden>Animation
         <select id="anim"><option value="-1">None (rest pose)</option></select></label>
-
-      <h2>Look</h2>
-      <button class="btn ghost" id="fit">Fit to frame</button>
-      <label class="f" for="pan"><span class="row">Move up / down <b id="panV">0.00</b></span>
-        <input type="range" id="pan" min="-1" max="1" step="0.02" value="0"></label>
-      <label class="f" for="zoom"><span class="row">Zoom <b id="zoomV">1.00×</b></span>
-        <input type="range" id="zoom" min="0.2" max="4" step="0.05" value="1"></label>
-      <label class="f" for="cols"><span class="row">Width <b id="colsV">90 cols</b></span>
-        <input type="range" id="cols" min="30" max="200" value="90"></label>
-      <label class="f" for="ramp">Characters
-        <select id="ramp">
-          <option value=" .:-=+*#%@">Classic  .:-=+*#%@</option>
-          <option value=" ░▒▓█" selected>Chonky blocks ░▒▓█</option>
-          <option value=" .oO0@">Bubbly .oO0@</option>
-          <option value=" `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@">Dense (70)</option>
-          <option value="custom">Custom…</option>
-        </select></label>
-      <label class="f" for="custom" id="customWrap" hidden>Custom ramp, dark → light
-        <input type="text" id="custom" value=" .chonk#" spellcheck="false"></label>
-      <label class="f" for="contrast"><span class="row">Contrast <b id="contrastV">1.2</b></span>
-        <input type="range" id="contrast" min="0.5" max="2.5" step="0.1" value="1.2"></label>
-      <label class="f" for="light"><span class="row">Light angle <b id="lightV">40°</b></span>
-        <input type="range" id="light" min="-180" max="180" value="40"></label>
-      <label class="f" for="mode">Character colour
-        <select id="mode">
-          <option value="model" selected>Model colours</option>
-          <option value="solid">One colour</option>
-        </select></label>
-      <div class="swatches">
-        <label class="sw" for="ink" id="inkWrap" hidden><input type="color" id="ink" value="#b9f2c2"> Text</label>
-        <label class="sw" for="bg"><input type="color" id="bg" value="#14111c"> Background</label>
-      </div>
-      <div class="presets" role="group" aria-label="Colour presets">
-        <button class="pre" data-bg="#14111c" data-ink="#e9e4f7" style="--b:#14111c;--i:#e9e4f7">Night</button>
-        <button class="pre" data-bg="#0b1a10" data-ink="#7dff9a" style="--b:#0b1a10;--i:#7dff9a">Terminal</button>
-        <button class="pre" data-bg="#ffffff" data-ink="#1d1a26" style="--b:#ffffff;--i:#1d1a26">Paper</button>
-        <button class="pre" data-bg="#2a1f6b" data-ink="#ffd84a" style="--b:#2a1f6b;--i:#ffd84a">Chonk</button>
-      </div>
-      <div class="checks">
-        <label class="chip"><input type="checkbox" id="spin" checked> Spin</label>
-        <label class="chip"><input type="checkbox" id="reverse"> Reverse spin</label>
-        <label class="chip"><input type="checkbox" id="invert"> Invert</label>
-      </div>
 
       <h2>Export</h2>
       <button class="btn" id="gif">Download GIF</button>
