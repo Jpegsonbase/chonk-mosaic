@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chonk ASCII: any Chonk as spinning text art</title>
+<meta name="description" content="Turn any Chonk into spinning ASCII art. Load by number or wallet, then copy it or export a GIF. Free, in your browser.">
+<meta property="og:title" content="Chonk ASCII · Chonkit">
+<meta property="og:description" content="Turn any Chonk into spinning ASCII art. Free, in your browser.">
+<meta property="og:image" content="https://chonkit.xyz/og.png?v=4">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script>
+  try { var t = localStorage.getItem("chonk-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<style>
+/* Chonkit look: same palette, fonts and menu as the mosaic maker, gallery and studio */
+:root{
+  --paper:#FAFBFF; --surface:#FFFFFF; --ink:#0E1230; --muted:#5B6185; --line:#E3E6F2; --soft:#F1F3FB; --quiet-hover:#E4E8F7;
+  --blue:#0052FF; --yellow:#FFC93C;
+  --display:"Unbounded","Arial Black",sans-serif; --body:"Manrope",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  /* names the tool below uses */
+  --bg:var(--paper); --panel:var(--surface); --fg:var(--ink); --accent:var(--blue); --accent-ink:#ffffff; --stage:#14111c;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1024; --surface:#161A33; --ink:#EEF0FF; --muted:#9BA2C8; --line:#262B4D; --soft:#1E2340; --quiet-hover:#262C50; --blue:#3D7BFF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0D1024; --surface:#161A33; --ink:#EEF0FF; --muted:#9BA2C8; --line:#262B4D; --soft:#1E2340; --quiet-hover:#262C50; --blue:#3D7BFF; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--body)}
+a{color:var(--blue)}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px clamp(16px,3vw,32px)}
+.logo{display:flex;align-items:center;gap:10px;font:800 18px var(--display);color:var(--ink);text-decoration:none}
+.logo .sq{width:22px;height:22px;border-radius:6px;background:var(--yellow);box-shadow:inset -4px -4px 0 #E8A91F}
+.logo small{font:500 13px var(--body);color:var(--muted)}
+@media (max-width:440px){.logo .logo-text{display:none}}
+.site-nav{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.site-nav a{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font:700 13.5px var(--body);color:var(--muted);text-decoration:none;white-space:nowrap}
+.site-nav a:hover{color:var(--ink)}
+.site-nav a[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.site-nav .short{display:none}
+.site-nav #galBadge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--yellow);color:#0E1230;font:800 10.5px/18px var(--body);text-align:center}
+@media (max-width:640px){.site-nav .long{display:none}.site-nav .short{display:inline}.site-nav a{padding:6px 9px;font-size:12.5px}}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:16px;padding:0 clamp(16px,3vw,32px) 32px}
+.intro h1{font:800 clamp(26px,4.4vw,40px)/1.1 var(--display);letter-spacing:-.02em;margin:4px 0 6px}
+.intro h1 span{color:var(--blue)}
+.intro p{margin:0;color:var(--muted);max-width:62ch}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px;align-items:start}
+@media (max-width:760px){.main{grid-template-columns:minmax(0,1fr)}}
+.stage{background:var(--stage);transition:background .2s;border:1px solid var(--line);border-radius:22px;position:relative;overflow:hidden;min-height:320px;display:grid;place-items:center;cursor:grab;touch-action:none}
+.stage.drag{outline:2px dashed var(--accent);outline-offset:-8px}
+.stage:active{cursor:grabbing}
+#out{margin:0;padding:14px;font-family:var(--mono);line-height:1;white-space:pre;color:inherit;user-select:text;letter-spacing:0}
+.badge{position:absolute;left:14px;bottom:10px;color:#9a93ad;font:12px var(--body);pointer-events:none}
+.rail{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;gap:14px;font-size:14px}
+.rail h2{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 0}
+.inrow{display:flex;gap:6px;margin:0}
+.inrow input{flex:1;min-width:0;font:inherit;padding:9px 11px;border-radius:11px;border:1.5px solid transparent;background:var(--soft);color:var(--fg)}
+.inrow input:focus{border-color:var(--blue);background:var(--surface);outline:none}
+.btn.sm{width:auto;padding:9px 14px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.tags button{font:700 12px var(--body);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.tags button:hover,.tags button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.tags:empty{display:none}
+label.f{display:grid;gap:6px;font-size:13px;font-weight:500}
+label.f .row{display:flex;justify-content:space-between;color:var(--muted)}
+label.f .row b{color:var(--fg);font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,input[type=text]{width:100%;font:inherit;padding:9px 11px;border-radius:11px;border:1.5px solid transparent;background:var(--soft);color:var(--fg)}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;user-select:none}
+.chip input{accent-color:var(--accent);margin:0}
+.btn{font:700 14px var(--body);border:0;border-radius:12px;padding:11px 12px;cursor:pointer;background:var(--accent);color:var(--accent-ink);width:100%}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn.ghost{background:var(--soft);color:var(--fg);border:1.5px solid transparent;font-weight:700}
+.btn.ghost:hover:not(:disabled){background:var(--quiet-hover);filter:none}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.chip:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.sw input{width:26px;height:26px;border:0;padding:0;background:none;border-radius:50%;cursor:pointer}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pre{font:700 11.5px var(--body);padding:7px 0;border-radius:10px;border:1px solid var(--line);background:var(--b);color:var(--i);cursor:pointer}
+.gifout{display:grid;gap:6px}.gifout img{border-radius:10px;border:1px solid var(--line);width:100%}
+.btn:disabled{opacity:.6;cursor:progress}
+.hint{color:var(--muted);font-size:12.5px;line-height:1.5;margin:0}
+.hint a{color:var(--accent)}
+.status{font-size:13px;min-height:1.2em;color:var(--muted)}
+.status.err{color:#d23a52}
+footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px;color:var(--muted);font-size:13px}
+/* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
+@media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
+button,a,label,input,select{touch-action:manipulation}
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="./"><span class="sq" aria-hidden="true"></span><span class="logo-text">Chonk ASCII <small>· text art from any Chonk</small></span></a>
+  <nav class="site-nav" aria-label="Chonkit">
+    <a href="./"><span class="long">Mosaic maker</span><span class="short">Mosaic</span></a>
+    <a href="gallery.html">Gallery</a>
+    <a href="studio.html"><span class="long">Chonkit Studio</span><span class="short">Studio</span></a>
+    <a href="ascii.html" aria-current="page">ASCII</a>
+  </nav>
+</header>
+<div class="wrap">
+  <div class="intro">
+    <h1>Chonk <span>ASCII</span></h1>
+    <p>Load any Chonk by number or wallet, or drop in a .glb. Drag to spin, scroll or pinch to zoom, then copy it or export a GIF.</p>
+  </div>
+
+
+  <div class="main">
+    <div class="stage" id="stage" aria-label="ASCII render. Drag to rotate, drop a .glb to load.">
+      <pre id="out"></pre>
+      <div class="badge" id="badge">Loading…</div>
+    </div>
+
+    <aside class="rail">
+      <h2>Load a Chonk</h2>
+      <form class="inrow" id="idForm">
+        <input type="number" id="tokenId" min="1" max="99999" inputmode="numeric" placeholder="Chonk #, e.g. 42" aria-label="Chonk token ID">
+        <button class="btn sm" type="submit">Load</button>
+      </form>
+      <form class="inrow" id="walletForm">
+        <input type="text" id="wallet" placeholder="Wallet 0x…" aria-label="Wallet address" spellcheck="false" autocomplete="off">
+        <button class="btn ghost sm" type="submit">Find</button>
+      </form>
+      <div class="tags" id="walletChonks"></div>
+      <div class="tags"><span class="hint">Samples</span><span id="samples" class="tags"></span></div>
+      <input type="file" id="file" accept=".glb,.gltf,model/gltf-binary" hidden>
+      <button class="btn ghost" id="pick">Load a .glb file</button>
+      <div class="status" id="status" role="status"></div>
+      <label class="f" for="anim" id="animWrap" hidden>Animation
+        <select id="anim"><option value="-1">None (rest pose)</option></select></label>
+
+      <h2>Look</h2>
+      <button class="btn ghost" id="fit">Fit to frame</button>
+      <label class="f" for="pan"><span class="row">Move up / down <b id="panV">0.00</b></span>
+        <input type="range" id="pan" min="-1" max="1" step="0.02" value="0"></label>
+      <label class="f" for="zoom"><span class="row">Zoom <b id="zoomV">1.00×</b></span>
+        <input type="range" id="zoom" min="0.2" max="4" step="0.05" value="1"></label>
+      <label class="f" for="cols"><span class="row">Width <b id="colsV">90 cols</b></span>
+        <input type="range" id="cols" min="30" max="200" value="90"></label>
+      <label class="f" for="ramp">Characters
+        <select id="ramp">
+          <option value=" .:-=+*#%@">Classic  .:-=+*#%@</option>
+          <option value=" ░▒▓█" selected>Chonky blocks ░▒▓█</option>
+          <option value=" .oO0@">Bubbly .oO0@</option>
+          <option value=" `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@">Dense (70)</option>
+          <option value="custom">Custom…</option>
+        </select></label>
+      <label class="f" for="custom" id="customWrap" hidden>Custom ramp, dark → light
+        <input type="text" id="custom" value=" .chonk#" spellcheck="false"></label>
+      <label class="f" for="contrast"><span class="row">Contrast <b id="contrastV">1.2</b></span>
+        <input type="range" id="contrast" min="0.5" max="2.5" step="0.1" value="1.2"></label>
+      <label class="f" for="light"><span class="row">Light angle <b id="lightV">40°</b></span>
+        <input type="range" id="light" min="-180" max="180" value="40"></label>
+      <label class="f" for="mode">Character colour
+        <select id="mode">
+          <option value="model" selected>Model colours</option>
+          <option value="solid">One colour</option>
+        </select></label>
+      <div class="swatches">
+        <label class="sw" for="ink" id="inkWrap" hidden><input type="color" id="ink" value="#b9f2c2"> Text</label>
+        <label class="sw" for="bg"><input type="color" id="bg" value="#14111c"> Background</label>
+      </div>
+      <div class="presets" role="group" aria-label="Colour presets">
+        <button class="pre" data-bg="#14111c" data-ink="#e9e4f7" style="--b:#14111c;--i:#e9e4f7">Night</button>
+        <button class="pre" data-bg="#0b1a10" data-ink="#7dff9a" style="--b:#0b1a10;--i:#7dff9a">Terminal</button>
+        <button class="pre" data-bg="#ffffff" data-ink="#1d1a26" style="--b:#ffffff;--i:#1d1a26">Paper</button>
+        <button class="pre" data-bg="#2a1f6b" data-ink="#ffd84a" style="--b:#2a1f6b;--i:#ffd84a">Chonk</button>
+      </div>
+      <div class="checks">
+        <label class="chip"><input type="checkbox" id="spin" checked> Spin</label>
+        <label class="chip"><input type="checkbox" id="reverse"> Reverse spin</label>
+        <label class="chip"><input type="checkbox" id="invert"> Invert</label>
+      </div>
+
+      <h2>Export</h2>
+      <button class="btn" id="gif">Download GIF</button>
+      <label class="f" for="frames"><span class="row">GIF frames per spin <b id="framesV">36</b></span>
+        <input type="range" id="frames" min="12" max="72" step="6" value="36"></label>
+      <div class="gifout" id="gifOut" hidden><img id="gifImg" alt="Spinning ASCII GIF of the current model"><p class="hint">Right-click or long-press the GIF to save it.</p></div>
+      <button class="btn ghost" id="copy">Copy ASCII</button>
+      <button class="btn ghost" id="copyHtml">Copy coloured HTML</button>
+      <p class="hint">Chonks load from the Chonks indexer, which mirrors each Chonk’s onchain voxel data. Or get a GLB from <a href="https://ztudio.chonks.xyz" target="_blank" rel="noopener">ztudio.chonks.xyz</a>. Chonks are CC0. Everything runs in your browser; nothing is uploaded.</p>
+    </aside>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const out = $('out'), stage = $('stage'), statusEl = $('status');
+  const setStatus = (t, err) => { statusEl.textContent = t; statusEl.className = 'status' + (err ? ' err' : ''); };
+
+  if (!window.THREE) { setStatus('3D library failed to load. Check your connection and reload.', true); return; }
+
+  // ---- three setup (offscreen, tiny resolution: one pixel per character) ----
+  const renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(1);
+  renderer.outputEncoding = THREE.sRGBEncoding;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(35, 1, 0.01, 1000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x444455, 0.55));
+  const key = new THREE.DirectionalLight(0xffffff, 1.4);
+  scene.add(key);
+  const pivot = new THREE.Group(); scene.add(pivot);
+  let model = null, radius = 1, mixer = null, clips = [], action = null, rig = null, rigPose = null, rigT = 0, current = { name: 'chonk' };
+  const clock = new THREE.Clock();
+
+  const sample = document.createElement('canvas');
+  const sctx = sample.getContext('2d', { willReadFrequently: true });
+
+  // ---- Chonk voxel data + rig (ported from Chonk Photo Booth / the Chonks playground) ----
+const SAMPLES = {"1": {"b64": "xZJLCsIwFEVvPy95LwiCYweCGyidWhwobsNtOXMPbsZtuIRK/gq2FkQ9lHASCM1pI6qaLcgA6Lqubdvb5Xg97c9z9H2/bJr17rDabDGMeB7UTjgB1Ilpjmw/xuQWE45vJyz+QLYrHvODLhdGHvda5ZnspWe8JX1+gONSVucPLSzyqosGfFKXUlqHQ6vkCloH1xo1BSe7uSpL+8RGxMaiiMPI/xKxufYeQ4SNY+we6qJ2g3ciCj7Q9Q0Gu57JPxKhi/My87vt/+QO"}, "3": {"b64": "zZKxDcIwEEUvuZwdJxYNJRJVlqACRmAB1mAHJmAfajoqKnqgYgAjx46xk0ACAimvON2TE1n/y4JwNCZ5hMnteonmZ5gdtutis5oWO7jvk1O2UEoBgIIl/AhhCcQoOboM/H3Q+GkhSCuqQKF1Zm9vwlbBDPZy5BqszNDD4kQTf5u2R/b2JqhhjF7bB01w2wQvhadl2JTz0mz20ohZY2SbwARdEzEiIFYWRdWwSI3bvSakO5US5PNzPfo2AYKynEgPEzbLGWPO3jTxfxpNhNTfRHDQ74V4PwH4e90GxAM="}, "23": {"b64": "xZGxDsIgEIZP4QpYJp3dXFyZNOni6DMY39TdlzB9Bh2cMRyIV0OTNqbxJ718NLTclzOVsEu0m925bVvnXNM0AHC9nI5utV3Xz8f9BnvvvYcDjM4ihWHY9LHKgbwZf+lE6bik5kL/qsCq61LyIjEdQ/83MYNZxvzuwmfBXLIMaNY/50FexiAtQ91jeiJjZKXTex0+RokVSqQ+hZQgpSCezd8lx1LJ4QiWz+Xj8jWjGhWVyFrrxD1eU6TgNWxgAfkJxlDmP+UF"}, "42": {"b64": "rZIxDsIwDEUNaW2Kw8BF2ChjRxZmBiSOwAmYWDgER+EAHIOBE4CEULcix0kTJBBU4leKXt3UfpFSkOFxPgKAqqqW29l8Xa720+OuPGwmt0e9ODV1XV/OcL9C0zTwPewTibkTJh1A3tyjrX8Y3znpXNQwKHFA9tWwI2x4QcvApBHlwhULkR5qZFqhEUyqeWZyk+VdhB1ZF1FvdVpKEVOMHH+Trl4dAL06AuJAg4jk1QmRfJVQ1TNjRMeYDPwpev2wgDraV9+I/E5deNRDlMUhEQnaD+r/vA+JOnBoHS6JjRfV2vYr2EShG7b81zM8AQ=="}, "123": {"b64": "xZJBDoIwEEUHmIF26MqjsGZn3HMCT6QLN3oOV56AeAOXbDyAJzCYgUJLAjYkJr40k5emi//b6jTJN2R2p2dZlkVRvK77x2XbNA0A1HV9qw7F8d227b06wyq0xZnWYYVR/oiXBi16VtFXdArOIO2BlRr3fItpZBmRATDuJj2djc44p8stiIgkmbIhFSjRTFSpcVch2V1CgCSOZdlCYAtF0TACD+B/numHGaNrzDNEGSBKRKKu0qTFTwm2CMLM3A1mTrN+AHTT6nDgh7GX+AA="}, "404": {"b64": "tZIxTgQxDEUN6zDOn7HQ1pyAYinhFlyCmoYTQA8VVNRbI9FSsAUlHIALII4xKHayyexCgQRfI42f4mTyNJZupnPWeHkW7y72H6+fro7vz48O3pYnnyt9vl3cvB6+P4zjSESnHy9ERICqkgcgAMi1AIUgECkkZcWg1LA9FdZNE7CjJb//Pjs17pDkNPt4dCKnRY6ZOcux1S7HBRS8DmluMkAFOyx47DNUF4iIuy49Dp3HYc/jMPNYvVsycTO7n+TQyqGVQ5FLEKW5NiI3IN/CllzTlTxdLhGHLBcMslzgX8htjGWdne2x3Pxzdh+RfmDmfkgQuR9CCA6tHLVyJP80lNOx/AI="}};
+const SAMPLE_META = {
+  1: "Cap Forward · Top Red · Sash White",
+  3: "Side Spikey Red · Bro Green · Racer Pants",
+  23: "Short Red · Tuxedo White · Wings Light",
+  42: "Long Blonde · Beach City Tank · Wings Midnight",
+  123: "Nouns Glasses · Chef's Coat",
+  404: "Asymmetric Green · Ball Gown · Wings Dark",
+};
+const sampleCache = {};
+async function unpackSample(id) {
+  if (sampleCache[id]) return sampleCache[id];
+  const bin = Uint8Array.from(atob(SAMPLES[id].b64), c => c.charCodeAt(0));
+  const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const b = new Uint8Array(await new Response(ds).arrayBuffer());
+  const mn = [b[0], b[1], b[2]], d = [b[3], b[4], b[5]], np = b[6];
+  const pal = []; for (let i = 0; i < np; i++) pal.push((b[7+i*3] << 16) | (b[8+i*3] << 8) | b[9+i*3]);
+  const g = b.subarray(7 + np * 3), vox = [];
+  for (let i = 0; i < g.length; i++) if (g[i]) {
+    vox.push({ x: (i % d[0]) + mn[0], y: (Math.floor(i / d[0]) % d[1]) + mn[1], z: Math.floor(i / (d[0] * d[1])) + mn[2], color: pal[g[i] - 1] });
+  }
+  return (sampleCache[id] = vox);
+}
+
+/* ===================================================================
+   The playground's Chonk rig and animator, ported 1:1
+   =================================================================== */
+const RIG = { MIDDLE_X: 14, FEET_Y: 23, LEG_ROWS: [21, 22], ARM_ROWS: [17, 20], ARM_Z: [5, 6],
+  LEFT_LEG_X: [11, 13], RIGHT_LEG_X: [15, 17], LEFT_ARM_X: [8, 10], RIGHT_ARM_X: [18, 20] };
+const PIVOT = { leftLeg: [0, 2.5, 0], rightLeg: [0, 2.5, 0], leftFoot: [0, 0, 0], rightFoot: [0, 0, 0],
+  leftArm: [-4, 6.5, 0], rightArm: [4, 6.5, 0], body: [0, 0, 0] };
+const PART_BONE = { body: "bodyBone", leftLeg: "leftLegBone", rightLeg: "rightLegBone", leftFoot: "leftFootBone",
+  rightFoot: "rightFootBone", leftArm: "leftArmBone", rightArm: "rightArmBone" };
+const BONES = ["torsoBone", "bodyBone", "leftLegBone", "rightLegBone", "leftFootBone", "rightFootBone", "leftArmBone", "rightArmBone"];
+const RIGHT_HAND_ACCESSORIES = ["Torch", "Lightblade Red", "Lightblade Green", "Fishiing Rod", "Scythe", "Baguette", "A Marfa Burrito", "Sword", "Staff", "Red Balloon", "Rubber Ducky"];
+const LEFT_HAND_ACCESSORIES = ["Rubber Ducky"];
+
+function parseZMap(hex) {
+  const t = hex.startsWith("0x") ? hex.slice(2) : hex, m = new Map();
+  for (let i = 0; i + 12 <= t.length; i += 12) {
+    const x = parseInt(t.slice(i, i+2), 16), y = parseInt(t.slice(i+2, i+4), 16), z = parseInt(t.slice(i+4, i+6), 16);
+    m.set(x << 16 | y << 8 | z, { x, y, z, color: parseInt(t.slice(i+6, i+12), 16) });
+  }
+  return [...m.values()];
+}
+function partOf(x, y, z) {
+  const l = x >= RIG.LEFT_LEG_X[0] && x <= RIG.LEFT_LEG_X[1], r = x >= RIG.RIGHT_LEG_X[0] && x <= RIG.RIGHT_LEG_X[1];
+  if (y === RIG.FEET_Y) { if (l) return "leftFoot"; if (r) return "rightFoot"; }
+  else if (y >= RIG.LEG_ROWS[0] && y <= RIG.LEG_ROWS[1]) { if (l) return "leftLeg"; if (r) return "rightLeg"; }
+  if (y >= RIG.ARM_ROWS[0] && y <= RIG.ARM_ROWS[1] && z >= RIG.ARM_Z[0] && z <= RIG.ARM_Z[1]) {
+    if (x === 10 || (x === 9 && y >= 18) || (x === 8 && y >= 19 && z === 5)) return "leftArm";
+    if (x === 18 || (x === 19 && y >= 18) || (x === 20 && y >= 19 && z === 5)) return "rightArm";
+  }
+  return "body";
+}
+const FACES = [
+  [[1,0,0], [[1,0,0],[1,1,0],[1,1,1],[1,0,1]]], [[-1,0,0], [[0,0,0],[0,0,1],[0,1,1],[0,1,0]]],
+  [[0,1,0], [[0,1,0],[0,1,1],[1,1,1],[1,1,0]]], [[0,-1,0], [[0,0,0],[1,0,0],[1,0,1],[0,0,1]]],
+  [[0,0,1], [[0,0,1],[1,0,1],[1,1,1],[0,1,1]]], [[0,0,-1], [[0,0,0],[0,1,0],[1,1,0],[1,0,0]]],
+];
+function voxelGeometry(vox, off, colorOverride) {
+  const key = (x, y, z) => `${x},${y},${z}`, has = new Set(vox.map(v => key(v.x, v.y, v.z)));
+  const pos = [], nor = [], col = [], idx = [], c = new THREE.Color();
+  for (const v of vox) {
+    c.setHex(colorOverride ?? v.color).convertSRGBToLinear();
+    for (const [n, q] of FACES) {
+      if (has.has(key(v.x + n[0], v.y + n[1], v.z + n[2]))) continue;
+      const b = pos.length / 3;
+      for (const p of q) { pos.push(v.x + p[0] + off[0], v.y + p[1] + off[1], v.z + p[2] + off[2]); nor.push(...n); col.push(c.r, c.g, c.b); }
+      idx.push(b, b+1, b+2, b, b+2, b+3);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+  g.setIndex(idx); g.computeBoundingSphere();
+  return g;
+}
+class ChonkRig {
+  constructor() {
+    this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0 });
+    this.object = new THREE.Group(); this.object.scale.setScalar(0.075);
+    this.bones = {}; for (const b of BONES) { const o = new THREE.Bone(); o.name = b; this.bones[b] = o; }
+    const s = this.bones;
+    s.torsoBone.add(s.bodyBone, s.leftLegBone, s.rightLegBone, s.leftArmBone, s.rightArmBone);
+    s.leftLegBone.add(s.leftFootBone); s.rightLegBone.add(s.rightFootBone);
+    this.object.add(s.torsoBone);
+    s.leftLegBone.position.fromArray(PIVOT.leftLeg); s.rightLegBone.position.fromArray(PIVOT.rightLeg);
+    s.leftFootBone.position.fromArray(PIVOT.leftFoot).sub(s.leftLegBone.position);
+    s.rightFootBone.position.fromArray(PIVOT.rightFoot).sub(s.rightLegBone.position);
+    s.leftArmBone.position.fromArray(PIVOT.leftArm); s.rightArmBone.position.fromArray(PIVOT.rightArm);
+    this.rest = {}; for (const b of BONES) this.rest[b] = { p: s[b].position.clone(), q: s[b].quaternion.clone() };
+    this.parts = {}; for (const [p, b] of Object.entries(PART_BONE)) { const g = new THREE.Group(); this.parts[p] = g; s[b].add(g); }
+    this.locks = { l: false, r: false };
+  }
+  setVoxels(vox, accessory = null) {
+    for (const g of Object.values(this.parts)) for (const m of [...g.children]) { g.remove(m); m.geometry.dispose(); }
+    let al = false, ar = false;
+    for (const { x, y } of vox) if (y >= 18 && y <= 20) { if (x < RIG.LEFT_ARM_X[0]) al = true; if (x > RIG.RIGHT_ARM_X[1]) ar = true; }
+    this.locks = { l: al || LEFT_HAND_ACCESSORIES.includes(accessory), r: ar || RIGHT_HAND_ACCESSORIES.includes(accessory) };
+    const by = {};
+    for (const { x, y, z, color } of vox) (by[partOf(x, y, z)] ??= []).push({ x, y: RIG.FEET_Y - y, z, color });
+    for (const [p, list] of Object.entries(by)) {
+      const n = PIVOT[p];
+      const mesh = new THREE.Mesh(voxelGeometry(list, [-RIG.MIDDLE_X - .5 - n[0], -n[1], -5.5 - n[2]]), this.material);
+      mesh.castShadow = true; mesh.receiveShadow = true;
+      this.parts[p].add(mesh);
+    }
+  }
+  dispose() { for (const g of Object.values(this.parts)) for (const m of g.children) m.geometry.dispose(); this.material.dispose(); }
+  pose(anim, t) {
+    const s = this.bones;
+    for (const b of BONES) { s[b].position.copy(this.rest[b].p); s[b].quaternion.copy(this.rest[b].q); }
+    const r = s.torsoBone, body = s.bodyBone, a = s.leftLegBone, o = s.rightLegBone, lf = s.leftFootBone, rf = s.rightFootBone, la = s.leftArmBone, ra = s.rightArmBone;
+    const freeL = !this.locks.l, freeR = !this.locks.r;
+    const p = .5, m = .5, h = .3, g = .4, _ = .01;
+    switch (anim) {
+      case "idle": r.position.y += Math.sin(t * .5) * .05; r.rotation.z = Math.sin(t * .6) * .02; break;
+      case "walk": case "run": {
+        const run = anim === "run", n = t * (run ? 16 : 8), i = Math.sin(n);
+        r.position.y += Math.abs(i) * g; r.position.x += i * .03; r.rotation.z = i * .05; r.rotation.x = i * .1;
+        a.rotation.x = i * p; o.rotation.x = -i * p; a.position.x += _; o.position.x += _;
+        if (!run) { lf.rotation.x = Math.sin(n - .3) * h; rf.rotation.x = Math.sin(n + Math.PI - .3) * h; }
+        if (freeL) la.rotation.x = -i * m; if (freeR) ra.rotation.x = i * m; break;
+      }
+      case "jump": {
+        const jt = t * 10, n = -Math.PI / 2 * .4 + Math.sin(jt) * .25;
+        a.rotation.x = n; o.rotation.x = n; if (freeL) la.rotation.x = n; if (freeR) ra.rotation.x = n;
+        r.position.y += Math.abs(Math.sin(jt)) * g; r.rotation.z = Math.sin(jt) * .025; break;
+      }
+      case "wave": {
+        const e = t * 3, n = Math.sin(e) * .5 - Math.PI * .4;
+        if (freeL || !freeR) la.rotation.z = n; else ra.rotation.z = -n;
+        r.rotation.z = Math.sin(e) * .025; break;
+      }
+      case "bow": {
+        const e = .5 + .5 * Math.sin(t * 2); body.rotation.x = .2 * e;
+        if (freeL) { la.rotation.x = .2 * e; la.position.z += .9 * e; }
+        if (freeR) { ra.rotation.x = .2 * e; ra.position.z += .9 * e; } break;
+      }
+    }
+  }
+}
+const POSES = [
+  { id: "idle", label: "Idle", period: 4 * Math.PI },
+  { id: "walk", label: "Walk", period: 2 * Math.PI / 8 },
+  { id: "run", label: "Run", period: 2 * Math.PI / 16 },
+  { id: "jump", label: "Jump", period: Math.PI / 10 },
+  { id: "wave", label: "Wave", period: 2 * Math.PI / 3 },
+  { id: "bow", label: "Bow", period: Math.PI },
+];
+
+  // Bounds from the actual vertices: handles instanced voxels, skinned meshes and nested transforms
+  function measure(obj) {
+    obj.updateMatrixWorld(true);
+    const box = new THREE.Box3(), v = new THREE.Vector3(), im = new THREE.Matrix4();
+    obj.traverseVisible(m => {
+      const pos = m.geometry && m.geometry.attributes && m.geometry.attributes.position;
+      if (!pos || !(m.isMesh || m.isPoints || m.isLine)) return;
+      if (m.isInstancedMesh) {
+        m.geometry.computeBoundingBox();
+        const gb = m.geometry.boundingBox;
+        for (let i = 0; i < m.count; i++) {
+          m.getMatrixAt(i, im); im.premultiply(m.matrixWorld);
+          for (let k = 0; k < 8; k++) box.expandByPoint(v.set(k & 1 ? gb.max.x : gb.min.x, k & 2 ? gb.max.y : gb.min.y, k & 4 ? gb.max.z : gb.min.z).applyMatrix4(im));
+        }
+        return;
+      }
+      const step = Math.max(1, Math.floor(pos.count / 30000));
+      for (let i = 0; i < pos.count; i += step) {
+        v.fromBufferAttribute(pos, i);
+        if (m.isSkinnedMesh && m.boneTransform) m.boneTransform(i, v);
+        box.expandByPoint(v.applyMatrix4(m.matrixWorld));
+      }
+    });
+    if (box.isEmpty()) box.setFromObject(obj);
+    return box;
+  }
+
+  function setModel(obj, label) {
+    if (model) pivot.remove(model);
+    if (rig && rig.object !== obj) { rig.dispose(); rig = null; rigPose = null; }
+    model = obj;
+    const bb = measure(obj);
+    const c = bb.getCenter(new THREE.Vector3()), s = bb.getSize(new THREE.Vector3());
+    obj.position.sub(c);
+    radius = s.length() * 0.5 || 1; // bounding sphere, so it fits at every angle
+    pivot.add(obj);
+    pivot.rotation.set(0.12, 0.6, 0);
+    $('badge').textContent = label;
+  }
+
+  // A wave made on the fly: raise one arm from the shoulder and swing it side to side.
+  function makeWave(root) {
+    const arm = root.getObjectByName('rightArm') || root.getObjectByName('RightArm');
+    if (!arm || !arm.isBone) return null;
+    const base = arm.quaternion.clone(), z = new THREE.Vector3(0, 0, 1);
+    const at = a => base.clone().multiply(new THREE.Quaternion().setFromAxisAngle(z, a)).toArray();
+    const up = 2.6, sw = 0.4;  // ~150° raised, ±23° swing
+    const times = [0, 0.25, 0.5, 0.75, 1.0], angles = [up, up + sw, up, up - sw, up];
+    return new THREE.AnimationClip('Wave', 1.0, [
+      new THREE.QuaternionKeyframeTrack(arm.name + '.quaternion', times, angles.flatMap(at))
+    ]);
+  }
+
+  function fillAnimMenu(names, pick) {
+    const sel = $('anim');
+    sel.innerHTML = '<option value="-1">None (rest pose)</option>' + names.map((n, i) => `<option value="${i}">${n.replace(/[<>&]/g, '')}</option>`).join('');
+    $('animWrap').hidden = !names.length;
+    sel.value = String(pick);
+  }
+  function showVoxelChonk(vox, meta) {
+    if (mixer) mixer.stopAllAction();
+    mixer = null; clips = []; action = null;
+    const r = new ChonkRig(); r.setVoxels(vox, meta.accessory || null);
+    setModel(r.object, `Chonk #${meta.id}${meta.label ? ' · ' + meta.label : ''}`);
+    rig = r; rigT = 0;
+    current = { name: `chonk-${meta.id}` };
+    const keep = POSES.findIndex(p => p.id === rigPose);
+    fillAnimMenu(POSES.map(p => p.label), keep >= 0 ? keep : 0);
+    playClip();
+  }
+
+  function setClips(root, list) {
+    list = list.slice();
+    const wave = makeWave(root);
+    if (wave) list.push(wave);
+    if (mixer) mixer.stopAllAction();
+    clips = list; action = null;
+    mixer = list.length ? new THREE.AnimationMixer(root) : null;
+    const idle = list.findIndex(c => /idle/i.test(c.name));
+    fillAnimMenu(list.map((c, i) => (c.name || 'Clip ' + (i + 1)).replace(/^Chonk_/, '')), idle >= 0 ? idle : -1);
+    playClip();
+  }
+  function playClip() {
+    if (rig) {
+      const i = +$('anim').value;
+      rigPose = i >= 0 && POSES[i] ? POSES[i].id : null; rigT = 0;
+      rig.pose(rigPose, 0);
+      return;
+    }
+    if (!mixer) return;
+    const prev = action, i = +$('anim').value;
+    action = i >= 0 && clips[i] ? mixer.clipAction(clips[i]) : null;
+    if (prev && prev !== action) prev.fadeOut(0.25);
+    if (action) action.reset().fadeIn(prev ? 0.25 : 0).play();
+    if (!prev && !action) mixer.setTime(0);
+  }
+
+  // ---- loading ----
+  const loader = new THREE.GLTFLoader();
+  function loadFile(f) {
+    if (!f) return;
+    if (!/\.(glb|gltf)$/i.test(f.name)) { setStatus('That isn’t a .glb file. Export a GLB from the Ztudio and try again.', true); return; }
+    setStatus('Loading ' + f.name + '…');
+    const r = new FileReader();
+    r.onload = () => {
+      loader.parse(r.result, '', gltf => {
+        setModel(gltf.scene, f.name);
+        current = { name: f.name.replace(/\.(glb|gltf)$/i, '') };
+        setClips(gltf.scene, gltf.animations || []);
+        setStatus('Loaded ' + f.name);
+      }, e => setStatus('Couldn’t read that GLB: ' + (e && e.message || 'unknown error'), true));
+    };
+    r.onerror = () => setStatus('Couldn’t read the file.', true);
+    r.readAsArrayBuffer(f);
+  }
+  const INDEXER = 'https://indexer.chonks.xyz';
+  const inClaude = !!(window.claude && window.claude.use);
+  const offlineMsg = inClaude
+    ? 'This preview inside Claude can’t reach outside sites, so Chonk numbers and wallets only load once the page is on your website. The samples work here.'
+    : 'Couldn’t reach the Chonks indexer. Check your connection and try again.';
+  function decodeTokenURI(uri) {
+    const i = uri.indexOf(','), head = uri.slice(0, i), body = uri.slice(i + 1);
+    if (head.endsWith(';base64')) return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body), c => c.charCodeAt(0))));
+    return JSON.parse(decodeURIComponent(body));
+  }
+  async function fetchChonk(id) {
+    const r = await fetch(`${INDEXER}/chonk/zmap?tokenId=${id}`);
+    if (!r.ok) throw new Error('http ' + r.status);
+    const j = await r.json(), c = j.chonks && j.chonks[0];
+    if (!j.success || !c || !c.z_map) return null;
+    let meta = {}; try { meta = decodeTokenURI(c.token_uri); } catch (e) {}
+    const attrs = meta.attributes || [];
+    const acc = (attrs.find(a => a.trait_type === 'Accessory') || {}).value || null;
+    const label = attrs.filter(a => ['Head', 'Hair', 'Face', 'Top', 'Accessory'].includes(a.trait_type)).map(a => a.value).slice(0, 3).join(' · ');
+    return { vox: parseZMap(c.z_map), id: Number(c.token_id != null ? c.token_id : id), label, accessory: acc };
+  }
+  const markPressed = id => document.querySelectorAll('.tags button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === String(id))));
+  async function loadChonk(id) {
+    setStatus(`Fetching Chonk #${id}…`);
+    try {
+      const got = await fetchChonk(id);
+      if (!got) { setStatus(`Chonk #${id} wasn’t found. Check the number.`, true); return; }
+      showVoxelChonk(got.vox, got); markPressed(id); setStatus(`Loaded Chonk #${got.id}`);
+    } catch (e) { setStatus(offlineMsg, true); }
+  }
+  async function loadSample(id) {
+    showVoxelChonk(await unpackSample(id), { id: Number(id), label: SAMPLE_META[id] });
+    markPressed(id); setStatus('');
+  }
+  const tagBtn = (id, onclick) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.id = id; b.textContent = '#' + id; b.onclick = onclick; return b; };
+  for (const id of Object.keys(SAMPLES)) $('samples').append(tagBtn(id, () => loadSample(id)));
+  $('idForm').addEventListener('submit', e => {
+    e.preventDefault(); const v = parseInt($('tokenId').value, 10);
+    if (Number.isFinite(v) && v > 0) loadChonk(v); else setStatus('Enter a Chonk number, like 42.', true);
+  });
+  $('walletForm').addEventListener('submit', async e => {
+    e.preventDefault(); const a = $('wallet').value.trim(), box = $('walletChonks'); box.textContent = '';
+    if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { setStatus('Enter a full wallet address starting with 0x (42 characters).', true); return; }
+    setStatus('Looking up Chonks in that wallet…');
+    try {
+      const r = await fetch(`${INDEXER}/chonk/owner/${a.toLowerCase()}`); const j = await r.json();
+      const ids = (j.success && j.chonks ? j.chonks.map(c => Number(c.id)) : []).sort((x, y) => x - y);
+      if (!ids.length) { setStatus('No Chonks found in that wallet.', true); return; }
+      setStatus(`${ids.length} Chonk${ids.length > 1 ? 's' : ''} in this wallet. Tap one to load it.`);
+      for (const id of ids.slice(0, 120)) box.append(tagBtn(id, () => loadChonk(id)));
+    } catch (e2) { setStatus(offlineMsg, true); }
+  });
+  // start with a ?chonk=42 or #42 link if given, else sample #42
+  const startId = (location.search.match(/[?&]chonk=(\d+)/) || location.hash.match(/^#(\d+)$/) || [])[1];
+  if (startId && !inClaude) loadChonk(+startId).then(() => { if (!model) loadSample('42'); });
+  else loadSample(startId && SAMPLES[startId] ? startId : '42');
+
+  $('anim').onchange = playClip;
+  $('pick').onclick = () => $('file').click();
+  $('file').onchange = e => loadFile(e.target.files[0]);
+  ['dragenter', 'dragover'].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.add('drag'); }));
+  ['dragleave', 'drop'].forEach(t => stage.addEventListener(t, e => { e.preventDefault(); stage.classList.remove('drag'); }));
+  stage.addEventListener('drop', e => loadFile(e.dataTransfer.files[0]));
+
+  // ---- scroll / pinch to zoom ----
+  const setZoom = z => { const el = $('zoom'); el.value = Math.max(0.2, Math.min(4, z)); el.dispatchEvent(new Event('input')); };
+  stage.addEventListener('wheel', e => { e.preventDefault(); setZoom(ctl.zoom * Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
+  const touches = new Map(); let pinch0 = 0, zoom0 = 1;
+  stage.addEventListener('pointerdown', e => { touches.set(e.pointerId, e); if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch0 = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); zoom0 = ctl.zoom; } });
+  stage.addEventListener('pointermove', e => { if (!touches.has(e.pointerId)) return; touches.set(e.pointerId, e); if (touches.size === 2 && pinch0) { const [a, b] = [...touches.values()]; setZoom(zoom0 * Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY) / pinch0); } });
+  ['pointerup', 'pointercancel'].forEach(t => stage.addEventListener(t, e => { touches.delete(e.pointerId); pinch0 = 0; }));
+
+  // ---- drag to rotate ----
+  let dragging = false, lx = 0, ly = 0;
+  stage.addEventListener('pointerdown', e => { dragging = true; lx = e.clientX; ly = e.clientY; stage.setPointerCapture(e.pointerId); });
+  stage.addEventListener('pointermove', e => {
+    if (!dragging || touches.size > 1) return;
+    pivot.rotation.y += (e.clientX - lx) * 0.01;
+    pivot.rotation.x = Math.max(-1.4, Math.min(1.4, pivot.rotation.x + (e.clientY - ly) * 0.01));
+    lx = e.clientX; ly = e.clientY;
+  });
+  stage.addEventListener('pointerup', () => dragging = false);
+  stage.addEventListener('pointercancel', () => dragging = false);
+
+  // ---- controls ----
+  const ctl = { pan: 0, zoom: 1, cols: 90, contrast: 1.2, light: 40, frames: 36, ramp: ' ░▒▓█', mode: 'model', ink: '#e9e4f7', bg: '#14111c', spin: true, reverse: false, invert: false };
+  const bindRange = (id, fmt) => { const el = $(id); const f = () => { ctl[id] = +el.value; $(id + 'V').textContent = fmt(el.value); }; el.oninput = f; f(); };
+  bindRange('zoom', v => (+v).toFixed(2) + '×'); bindRange('pan', v => (v > 0 ? '+' : '') + (+v).toFixed(2));
+  $('fit').onclick = () => { ['zoom', 'pan'].forEach(id => { const el = $(id); el.value = id === 'zoom' ? 1 : 0; el.dispatchEvent(new Event('input')); }); }; bindRange('cols', v => v + ' cols'); bindRange('contrast', v => (+v).toFixed(1)); bindRange('light', v => v + '°'); bindRange('frames', v => v);
+  ['spin', 'reverse', 'invert'].forEach(id => { const el = $(id); el.onchange = () => ctl[id] = el.checked; });
+  const rampSel = $('ramp');
+  const syncRamp = () => {
+    $('customWrap').hidden = rampSel.value !== 'custom';
+    ctl.ramp = rampSel.value === 'custom' ? ($('custom').value || ' #') : rampSel.value;
+  };
+  rampSel.onchange = syncRamp; $('custom').oninput = syncRamp; syncRamp();
+
+  const syncColours = () => {
+    ctl.mode = $('mode').value; ctl.ink = $('ink').value; ctl.bg = $('bg').value;
+    $('inkWrap').hidden = ctl.mode !== 'solid';
+    stage.style.background = ctl.bg; out.style.color = ctl.ink;
+  };
+  ['mode', 'ink', 'bg'].forEach(id => $(id).addEventListener('input', syncColours));
+  document.querySelectorAll('.pre').forEach(b => b.onclick = () => {
+    $('bg').value = b.dataset.bg; $('ink').value = b.dataset.ink;
+    if ($('mode').value === 'model') $('mode').value = 'solid';
+    syncColours();
+  });
+  syncColours();
+
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+  if (reduce.matches) { ctl.spin = false; $('spin').checked = false; }
+
+  // ---- ASCII grid: render the model at one pixel per character ----
+  function gridSize() {
+    const cols = ctl.cols;
+    const w = stage.clientWidth || 600;
+    const aspect = Math.max(0.5, Math.min(1.6, w / Math.max(320, Math.min(w * 0.85, 640))));
+    return { cols, rows: Math.max(12, Math.round(cols / aspect * 0.5)) };
+  }
+
+  function computeGrid(cols, rows) {
+    renderer.setSize(cols, rows, false);
+    camera.aspect = cols / (rows * 2);
+    camera.updateProjectionMatrix();
+    const vHalf = THREE.MathUtils.degToRad(camera.fov / 2);
+    const hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
+    const dist = radius / Math.sin(Math.min(vHalf, hHalf)) * 1.04 / ctl.zoom;
+    const ty = -ctl.pan * radius;
+    camera.position.set(0, ty, dist); camera.near = Math.max(0.001, dist - radius * 2); camera.far = dist * 10; camera.lookAt(0, ty, 0);
+    const a = THREE.MathUtils.degToRad(ctl.light);
+    key.position.set(Math.sin(a) * dist, dist * 0.8, Math.cos(a) * dist);
+    renderer.render(scene, camera);
+
+    sample.width = cols; sample.height = rows;
+    sctx.clearRect(0, 0, cols, rows);
+    sctx.drawImage(renderer.domElement, 0, 0, cols, rows);
+    const px = sctx.getImageData(0, 0, cols, rows).data;
+
+    const ramp = [...ctl.ramp], n = ramp.length - 1;
+    const chars = new Array(cols * rows), colors = new Array(cols * rows);
+    for (let p = 0; p < cols * rows; p++) {
+      const i = p * 4;
+      chars[p] = ' '; colors[p] = null;
+      if (px[i + 3] / 255 > 0.1) {
+        const r = px[i], g = px[i + 1], b = px[i + 2];
+        let L = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+        L = Math.max(0, Math.min(1, (L - 0.5) * ctl.contrast + 0.5));
+        if (ctl.invert) L = 1 - L;
+        chars[p] = ramp[Math.max(1, Math.round(L * n))] || ramp[n];
+        // brighten model colours a touch so dark faces stay visible as text
+        colors[p] = [r, g, b].map(v => Math.min(255, Math.round(v * 0.85 + 38)));
+      }
+    }
+    return { cols, rows, chars, colors };
+  }
+
+  const hex = c => '#' + c.map(v => (Math.min(255, (v >> 4) * 17)).toString(16).padStart(2, '0')).join('');
+  const esc = ch => ch === '<' ? '&lt;' : ch === '>' ? '&gt;' : ch === '&' ? '&amp;' : ch;
+
+  function toText(G) {
+    let t = '';
+    for (let y = 0; y < G.rows; y++) t += G.chars.slice(y * G.cols, (y + 1) * G.cols).join('') + '\n';
+    return t;
+  }
+  function toHtml(G) {
+    if (ctl.mode !== 'model') return toText(G).split('').map(esc).join('');
+    let html = '';
+    for (let y = 0; y < G.rows; y++) {
+      let runC = null, run = '';
+      for (let x = 0; x < G.cols; x++) {
+        const p = y * G.cols + x, c = G.colors[p] ? hex(G.colors[p]) : null;
+        if (c !== runC && G.chars[p] !== ' ') {
+          if (run) html += runC ? `<span style="color:${runC}">${run}</span>` : run;
+          run = ''; runC = c;
+        }
+        run += esc(G.chars[p]);
+      }
+      if (run) html += runC ? `<span style="color:${runC}">${run}</span>` : run;
+      html += '\n';
+    }
+    return html;
+  }
+
+  // ---- live loop ----
+  let lastG = null, busy = false;
+  function frame() {
+    const dt = Math.min(0.1, clock.getDelta());
+    if (!busy) {
+      if (mixer) mixer.update(dt);
+      if (rig && rigPose) { rigT += dt; rig.pose(rigPose, rigT); }
+      if (ctl.spin && !dragging) pivot.rotation.y += ctl.reverse ? -0.012 : 0.012;
+      const { cols, rows } = gridSize();
+      lastG = computeGrid(cols, rows);
+      if (ctl.mode === 'model') out.innerHTML = toHtml(lastG); else out.textContent = toText(lastG);
+      out.style.fontSize = Math.max(4, Math.min(18, (stage.clientWidth - 28) / (cols * 0.6))) + 'px';
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  // ---- copy ----
+  async function copy(str, btn, label) {
+    try { await navigator.clipboard.writeText(str); btn.textContent = 'Copied'; }
+    catch { const s = getSelection(), r = document.createRange(); r.selectNodeContents(out); s.removeAllRanges(); s.addRange(r); btn.textContent = 'Selected, press Ctrl/⌘+C'; }
+    setTimeout(() => btn.textContent = label, 1600);
+  }
+  $('copy').onclick = e => copy(toText(lastG).replace(/ +$/gm, '').replace(/^\n+|\n+$/g, ''), e.currentTarget, 'Copy ASCII');
+  $('copyHtml').onclick = e => copy(`<pre style="background:${ctl.bg};color:${ctl.ink};font-family:monospace;line-height:1;padding:12px">${toHtml(lastG)}</pre>`, e.currentTarget, 'Copy coloured HTML');
+
+  // ---- GIF export: one full turn, drawn as text on a canvas ----
+  const hexToRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const tick = () => new Promise(r => setTimeout(r, 0));
+
+  async function makeGif() {
+    if (!window.GifWriter) throw new Error('GIF encoder failed to load. Reload and try again.');
+    const { cols, rows } = gridSize();
+    const fc = document.createElement('canvas'), fx = fc.getContext('2d', { willReadFrequently: true });
+    let fs = 12; const pad = 12;
+    fx.font = `${fs}px "JetBrains Mono", ui-monospace, monospace`;
+    let cw = fx.measureText('M').width;
+    const maxW = 1000;
+    if (cols * cw + pad * 2 > maxW) { fs = Math.max(5, Math.floor(fs * (maxW - pad * 2) / (cols * cw))); fx.font = `${fs}px "JetBrains Mono", ui-monospace, monospace`; cw = fx.measureText('M').width; }
+    const W = Math.ceil(cols * cw + pad * 2), H = Math.ceil(rows * fs + pad * 2);
+    fc.width = W; fc.height = H;
+
+    // palette: 0 = background, 1..216 = colour cube, 217 = text colour
+    const bg = hexToRgb(ctl.bg), ink = hexToRgb(ctl.ink);
+    const pal = new Array(256).fill(0);
+    pal[0] = (bg[0] << 16) | (bg[1] << 8) | bg[2];
+    for (let r = 0; r < 6; r++) for (let g = 0; g < 6; g++) for (let b = 0; b < 6; b++) pal[1 + r * 36 + g * 6 + b] = (r * 51 << 16) | (g * 51 << 8) | b * 51;
+    pal[217] = (ink[0] << 16) | (ink[1] << 8) | ink[2];
+
+    const N = ctl.frames, buf = new Uint8Array(W * H * N * 2 + 8192);
+    const gw = new GifWriter(buf, W, H, { palette: pal, loop: 0 });
+    const idx = new Uint8Array(W * H);
+    const startY = pivot.rotation.y;
+    const delayCs = Math.max(2, Math.round(216 / N)), loopS = N * delayCs / 100;
+    const clip = action ? action.getClip() : null, t0 = action ? action.time : 0;
+    const cycles = clip && clip.duration <= loopS * 1.5 ? Math.max(1, Math.round(loopS / clip.duration)) : 0;
+    const rp = rig && rigPose ? POSES.find(p => p.id === rigPose) : null, rT0 = rigT;
+    const rCycles = rp && rp.period <= loopS * 1.5 ? Math.max(1, Math.round(loopS / rp.period)) : 0;
+
+    for (let f = 0; f < N; f++) {
+      pivot.rotation.y = startY + (ctl.reverse ? -1 : 1) * (f / N) * Math.PI * 2;
+      if (clip) { action.time = cycles ? (f / N) * cycles * clip.duration : t0 + f * delayCs / 100; mixer.update(0); }
+      if (rp) rig.pose(rigPose, rCycles ? (f / N) * rCycles * rp.period : rT0 + f * delayCs / 100);
+      const G = computeGrid(cols, rows);
+      fx.fillStyle = ctl.bg; fx.fillRect(0, 0, W, H);
+      fx.font = `${fs}px "JetBrains Mono", ui-monospace, monospace`; fx.textBaseline = 'top';
+      for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
+        const p = y * cols + x, ch = G.chars[p];
+        if (ch === ' ') continue;
+        fx.fillStyle = ctl.mode === 'model' && G.colors[p] ? `rgb(${G.colors[p].join(',')})` : ctl.ink;
+        fx.fillText(ch, pad + x * cw, pad + y * fs);
+      }
+      const d = fx.getImageData(0, 0, W, H).data;
+      for (let i = 0, j = 0; i < d.length; i += 4, j++) {
+        const r = d[i], g = d[i + 1], b = d[i + 2];
+        if (Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]) < 24) idx[j] = 0;
+        else if (ctl.mode !== 'model' && Math.abs(r - ink[0]) + Math.abs(g - ink[1]) + Math.abs(b - ink[2]) < 48) idx[j] = 217;
+        else idx[j] = 1 + Math.round(r / 51) * 36 + Math.round(g / 51) * 6 + Math.round(b / 51);
+      }
+      gw.addFrame(0, 0, W, H, idx, { delay: delayCs });
+      setStatus(`Rendering GIF… frame ${f + 1} of ${N}`);
+      await tick();
+    }
+    pivot.rotation.y = startY;
+    if (clip) { action.time = t0; mixer.update(0); }
+    if (rp) rig.pose(rigPose, rT0);
+    return buf.slice(0, gw.end());
+  }
+
+  let downloads = null;
+  if (window.claude && claude.use) claude.use('downloads').then(d => downloads = d).catch(() => {});
+
+  $('gif').onclick = async () => {
+    const btn = $('gif');
+    btn.disabled = true; busy = true;
+    try {
+      const bytes = await makeGif();
+      const name = (current.name || 'chonk').replace(/[^\w-]+/g, '-') + '-ascii.gif';
+      const blob = new Blob([bytes], { type: 'image/gif' });
+      const url = URL.createObjectURL(blob);
+      $('gifImg').src = url; $('gifOut').hidden = false;
+      setStatus(`GIF ready · ${(bytes.length / 1024).toFixed(0)} KB`);
+      if (!inClaude) {
+        const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+        setStatus('GIF downloaded');
+      } else if (downloads) {
+        try { await downloads.save({ filename: name, data: blob }); setStatus('GIF saved'); }
+        catch (e) { if (e && e.code !== 'declined') setStatus('Couldn’t save directly. Right-click the GIF below to save it.'); }
+      }
+    } catch (e) {
+      setStatus(e.message || 'GIF export failed.', true);
+    } finally { btn.disabled = false; busy = false; }
+  };
+})();
+</script>
+
+<footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="./">chonkit.xyz</a></footer>
+</body>
+</html>
