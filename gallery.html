@@ -1583,7 +1583,7 @@ function buildVendingMachine(k) {
     setDisplay("TAKE YOUR", "CHONK BELOW");
     return ch;
   }
-  async function release(slot, ch) {                    // flap swings open, the Chonk tumbles out onto the floor
+  async function release(slot, ch, absorbInto) {        // flap swings open, the Chonk tumbles out onto the floor, then flies into you
     binMat.emissiveIntensity = 0;
     if (outside) { const old = outside; outside = null; tween(0.35, (e) => old.scale.setScalar(SCALE * 2.2 * (1 - e))).then(() => machine.remove(old)); }
     await tween(0.55, (e) => { flapPivot.rotation.x = -1.15 * Math.sin(e * Math.PI / 2); });
@@ -1591,10 +1591,21 @@ function buildVendingMachine(k) {
     await tween(1.0, (e) => { const kk = ease(e), a = 1 - kk;
       ch.position.set(a * a * start.x + 2 * a * kk * ctrl.x + kk * kk * end.x, a * a * start.y + 2 * a * kk * ctrl.y + kk * kk * end.y, a * a * start.z + 2 * a * kk * ctrl.z + kk * kk * end.z);
       ch.scale.setScalar(SCALE * (1 + 1.2 * kk)); ch.rotation.y = kk * Math.PI * 2; });
-    outside = ch; shake = 0.08;
+    shake = 0.08;
     tween(0.5, (e) => { flapPivot.rotation.x = -1.15 * (1 - ease(e)); });
     setDisplay("ENJOY", "#" + slot.id);
     restock(slot);
+    if (!absorbInto) { outside = ch; return; }
+    // magnetised into the player's Chonk: a little hop, then it zips across, spinning and shrinking away
+    const p0 = ch.position.clone(), s0 = ch.scale.x;
+    await tween(0.3, (e) => { ch.position.y = p0.y + Math.sin(e * Math.PI) * 0.5; ch.rotation.y += 0.08; });
+    const from = ch.position.clone();
+    await tween(0.55, (e) => {
+      const kk = e * e * (3 - 2 * e), to = machine.worldToLocal(absorbInto());
+      ch.position.lerpVectors(from, to, kk); ch.position.y += Math.sin(e * Math.PI) * 0.6;
+      ch.scale.setScalar(s0 * (1 - 0.92 * kk)); ch.rotation.y += 0.35;
+    });
+    machine.remove(ch);
   }
   function restock(slot) {                              // reset: a fresh Chonk winds forward into the empty slot
     const ch = makeChonk(slot.id); ch.position.set(slot.x, slot.y, Z_REST - PITCH * 2); ch.scale.setScalar(0.0001); machine.add(ch); slot.chonk = ch;
@@ -1647,14 +1658,18 @@ async function useVendingMachine() {
   const ch = await m.vend(slot);
   if (!alive()) return;
   await m.tween(0.35, () => {});
-  await m.release(slot, ch);
+  await m.release(slot, ch, () => me.holder.localToWorld(new THREE.Vector3(0, 0.6, 0.15)));   // aim for your Chonk's chest
   if (!alive()) return;
-  me.moveAnim = "wave"; await m.tween(1.2, () => {}); me.moveAnim = "idle";
+  // gulp: a quick squash and stretch as it's absorbed
+  await m.tween(0.45, (e) => { const q = Math.sin(e * Math.PI * 2) * (1 - e) * 0.18; me.holder.scale.set(1 + q, 1 - q, 1 + q); });
+  me.holder.scale.set(1, 1, 1);
+  me.moveAnim = "wave"; await m.tween(1.0, () => {}); me.moveAnim = "idle";
   endVendScene();
 }
 function endVendScene() {
   if (VM.m) VM.m.busy = false;
   VM.scene = false; VM.cam = null; document.body.classList.remove("cutscene");
+  if (sel) sel.holder.scale.set(1, 1, 1);
   if (sel) { cam.yaw = sel.yaw + Math.PI; cam.pitch = 0.3; cam.dist = Math.max(cam.dist, 4.2); }
   snapCamera = true;
 }
