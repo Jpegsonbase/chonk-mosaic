@@ -246,6 +246,19 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
 #tour video, #tour img { width: 100%; max-height: 58vh; object-fit: contain; border-radius: 10px; background: #000; display: block; -webkit-user-select: auto; user-select: auto; }
 #tour .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 #tour .hint { margin: 0; }
+
+/* ---------- Chonk-O-Mat prompt and cutscene ---------- */
+.vend-prompt { position: fixed; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 9; display: flex; align-items: center; gap: 10px;
+  padding: 6px 6px 6px 16px; border-radius: 999px; background: var(--panel-solid); border: 1px solid var(--skin); box-shadow: 0 8px 24px rgba(0,0,0,.3); font-size: 13.5px; white-space: nowrap; animation: dlIn .2s ease-out; }
+.vend-prompt[hidden] { display: none; }
+.vend-prompt b { color: var(--skin); font-family: var(--mono, monospace); }
+.vend-prompt button { border-radius: 999px; padding: 7px 16px; font: 400 12px var(--display); background: var(--skin); color: var(--ink); border-color: var(--skin-deep); }
+body.touch .vend-prompt .vp-desk { display: none; }
+body.touch .vend-prompt { bottom: calc(176px + env(safe-area-inset-bottom, 0px)); }
+.cine-bars i { position: fixed; left: 0; right: 0; height: 0; background: #000; z-index: 20; transition: height .45s ease; pointer-events: none; }
+.cine-bars i:first-child { top: 0; } .cine-bars i:last-child { bottom: 0; }
+body.cutscene .cine-bars i { height: 11vh; }
+body.cutscene .hud-top, body.cutscene .keys, body.cutscene #joy, body.cutscene .tbtns, body.cutscene .empty-note, body.cutscene #toast { display: none !important; }
 @media (prefers-reduced-motion: reduce) { #flash.go { animation: none; } }
 </style>
 
@@ -302,6 +315,8 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
   <button class="small" id="tWave">Wave</button>
   <button id="tJump">Jump</button>
 </div>
+<div class="vend-prompt" id="vendPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to use the </span>Chonk-O-Mat</span><button type="button" id="vendUse">Use</button></div>
+<div class="cine-bars" aria-hidden="true"><i></i><i></i></div>
 <div class="toast" id="toast" hidden></div>
 <div class="empty-note walk-only" id="emptyNote" hidden>Your gallery is empty. <a href="./">Make a mosaic on Chonkit</a> and press <b>Add to Gallery</b>.</div>
 
@@ -480,6 +495,7 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
 <script type="module">
 import * as THREE from "three";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
+import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 /* ===================================================================
    Sample Chonks (real onchain zMaps, packed: bbox grid + palette, deflate)
@@ -1107,6 +1123,8 @@ const LOCATIONS = [
       buildEasel(k, 10.2, -1.6, -0.55);
       // Three Chonks Divided: against the end wall, beside the gold statue, facing into the room
       buildVitrine(k, VITRINE.x, VITRINE.z, VITRINE.ry);
+      // ...and the Chonk-O-Mat on the other side of the statue
+      buildVendingMachine(k);
       // benches
       const benchTop = mat(0xa87b4f, { r: .7 }), steel = mat(0x8b939e, { m: .7, r: .35 });
       // benches by the back wall only (the statue end is kept clear)
@@ -1388,6 +1406,260 @@ function buildHologram(k, x, z, top, item) {
   GALLERY.spots.push({ item, x, z, nx: 0, nz: 1, w: 1, round: true });
   GALLERY.views.push({ x, z, nx: x > 0 ? -1 : 1, nz: 0, w: W, weight: 2, dist: 2.6 });
 }
+
+/* Chonk-O-Mat stock: real Chonks' zMap voxels (packed bbox grid + palette, deflated), keyed by token ID */
+const VM_CHONKS = {"1":{"b64":"xZJLCsIwFEVvPy95LwiCYweCGyidWhwobsNtOXMPbsZtuIRK/gq2FkQ9lHASCM1pI6qaLcgA6Lqubdvb5Xg97c9z9H2/bJr17rDabDGMeB7UTjgB1Ilpjmw/xuQWE45vJyz+QLYrHvODLhdGHvda5ZnspWe8JX1+gONSVucPLSzyqosGfFKXUlqHQ6vkCloH1xo1BSe7uSpL+8RGxMaiiMPI/xKxufYeQ4SNY+we6qJ2g3ciCj7Q9Q0Gu57JPxKhi/My87vt/+QO","t":"Bottom Charcoal · Top Red, Sash White · Cap Forward","acc":null},"2":{"b64":"5dExCsIwGAXgZ2OSRlsDurh0ci3UK4jUuXgAz+DoTTxHLuMJSlePUEnTpk2HiqhU8BFCPgKB/8VnRC6pPKfryzFabTIZ7e7qdLvuy7IsiiJJEqVUnucA4CGOt4c002eEQgjYaLU2Mg6B2dwEEO1dc09t8DLhYMz8UhtNHdwEHyAxGbcNNsjnbTDGGLfqTsi5Y+7X8CtSVpPVb00J0atTDjrlTLxmk99sA5TygFabpR4wGG5jIZ2fkn27xNu0bcj+0/8diQc=","t":"Suit Pants Navy · Animated Chromie Squiggle Shirt · Cowboy Hat · Song A Day Mic","acc":"Song A Day Mic"},"5":{"b64":"tZHBSsNAEIanndlJZ5IFLz3UuzeL4BuIPoJ3n8JX8VU8FArepAXPevXooa+QstkksysGIiQ/yeabMLDzMYJYrZ3fwfYDbi9er3++Pr8Ph8v795uXu9Nx8/Rw9fy4resaAPZvJUwWFRFV1YB9ElSVvznr7wuebrJ5YhODmruqUIxCj8SGGSuz/WdgQwCOae76L2PMCIMWRa3IWJIm770fducR7pTykDsDsAuJyEhEGLFjDrxCxFVgcoxFUSA7+uUevh0vlgCwXMyy98w9W7AQlRU1R2TnXFml7mTu1FqCnSWH19bbdliR7X0oU7knSWaw27NBRnHzdDhzzg==","t":"Overalls Green · Hoodie Blue · High Bun Dark Brown","acc":null},"7":{"b64":"rZFNCsIwEEanTSdNM60B7+EpvEfBA7gXj9FND+HKrSvBA7gQxJ3dWxG8QGTSX8Quqr7FxwsMyXwkkoKmgcnTS5Zl9/JGRI9tes7n6yR7HrC4FpvFcb8srbUAcFpZu5vBKHRNZ0P0BtrhcW/9GaoBII0OrRtjbxU7Q+gpdAaygu8NFRM6rRhWUfGm/SUnTRK1ScYYAMNpqONDC/y2hapbKFAqcutG7lyhFMpaJQIEvhDCD3hT35XwWT2viV//glvECSKH5pRSxslgi7/StngB","t":"Sarong Black and White · Bro Purple · Lollipop Purple","acc":null},"9":{"b64":"zZK9DoIwFIUP9t6Wn8bF0biaOLjwBDo4+C6+oTOrk5MDr4IpLdAqChhN/AjN/VJ+ck6asJgvWJ+xvSC/YllV1TFfbFZZWZanwxpAURS3dFdhjy+ROQKxyi1DBn/+a/y0CNJmTaDQBrP3N+GqkBb3cxUrpWI12UjU16dpR2Tvb4KfTPJrm9BE6vKltRhLjKWNqcZYuj1pP0MkiEi4QIKovi3RDMAs6tJrQzt7Teh2V2vo7nGzjG0CGVPCbBYblhIpZWtvmvg9T02EPJ6JYGPcCfFeAvz50f6IOw==","t":"Check Flairs Red and White · Suspenders Brown · Side Spikey Red","acc":null},"13":{"b64":"5ZS/SsRAEMYnmd3Zvb2LiaBFQCQvIFintRHB4gpLfRBbeyvBxpdQLG3trCz0GQTBR1i5/Zdkc8EzqBz43e7AfJm95H75OInp5jYVAFBV1fPr08n+1cft2cv1QV3X95dHWuv51t35rr7Z04fHp2VZvl/sPDy+wThJv1Y1ZJA30H+GJv61JDAm3XIUWZCbiY0ufVO5kzdMY6ob5kGwqgFRu16K09PKk8uWDK6BLKXZ9qBsmDpiPSNmig0gG+UfhRx69Bo0onQsMWBoop8o1r1H+z7f1Lgk94O7WCww7UFWMUIaA5mISFALsnux3jDPyHnzpDEx4ORa4hCNDEEGSFIASBFGQ4a/+U9WnE8SbkogOEmIqG18CVkgmh0MdFb717jLWdYcs8ZGlncniiJ8DQaDMYYoBCJjxjAJFmLhIOaQj+D7e1LKF9up6cyWMDCbKluWH1lXfQI=","t":"PePants · Hammer Purple · King Purple · Pengu","acc":"Pengu"},"21":{"b64":"vY49DsIwDEbtOGlsOjFzgB6BmcNxucKIECwdGDkBW5CT9AcUVIEqviifnloneeKpXrs6hHCCzf16ubVtAM3jsD82zRm2AXZd18F8KGckonmEAf4c+c23oK7uiM4hOr3YJY6YWDH9jwOTWTRxfZYUmWDOqC5lMy7ivHrWRdd/e9tkM1vSYwYRjaoZxLjjZX2JyCrlRd3nhz34idnA7AkrIi3QttYmLKovmlH9qzAzx2LmukoFEDtjP7C0cCFP","t":"Check Flairs Red and White · Candy Cane Sweater · Crew Cut Red · Nouns Glasses Red","acc":null},"33":{"b64":"vc69DcIwEIbhy/04JEfDDgxBjxgDtmEAIiFWoGUBFqCHASgB0dIFnW2SIBlFQoivuLyFFT1FTjri4Wx1rqrqdr2o6n23OG6m48m8rmsAeByWe1ifYAv9k7i2RPoTmvjz9Dtvgm52F2Y/plxEcrJksrFPRkSO6ecTiQj5M1K1k3EtXdMyl8x+Okc6GzHQ7RvpROIi3ckbHf1btMyy11HVYViSXkLZkTUNpQwKETtg1zkXMkn/6Rr6Ew==","t":"Suspender Shorts Denin · Dress Black · Crew Cut Pink","acc":null},"50":{"b64":"zZAxDsIwDEXdfNvBYoGFAzBzb47AEZB6AtgQIxyiqE7aFFQoSAjxBusNUfJii5gvxYhosducZHXV9eV4ONc1balpGtrTG0immMi0Ui+/xp+N8cPekfS2XRN+L0QE/iEGC4NdEw8awMwIKQjAZHSMJf3pqnVUp9Mlp7dHc3p7Re7Vod6lhwAguFZVN4jMzFKv9WrWb91Kjg0jZ5X4cFXVpKPpX2WYXlb9Qv+QGw==","t":"Overalls Green · Heart Bathing Suit · Mohawk Green","acc":null},"69":{"b64":"vZE9isJAGIZfZ/JNnImfEzxEOkvdcktvYCFY2uwBZMHe3sIz2NoJegMvoBbbbCl7hyxjJj+FWYjKPoGHhzCQeYlWMupR/HOajRdvo+lwshxcL+fv45GZkyTBeo7dKk1TAJ/vB3xt031/83FFI7SnrDoqB4rDzb71YowHMJpuaJ2X6yKpLEIlURbaGWiYgRSBkMEfl+zmNqawsdYC1tmakjsr6NEVYds/CIsMK0kqzFCUrZBCuJsKIeEHtVq5nv0XpJmiDpGTdlZKRZ3aFS+lyYoaOOZMzMzxTe4ts9d/8gs=","t":"Camo Pants · Sweater Black · Lollipop Green · Square Purple","acc":null},"77":{"b64":"vZIxDgIhEEVHYWAWY2EsjZ2NrZVXsPEGFl7CU3gUSw9iYc1VMDMgsIkQC+Mv2HlssvxHlqyaL7Tb7E/e+yesQgiH3XK7ngHA7eyvx/vjEqAbktRzJKKKvgSoxv+FiJwbC6Qyg5MQ8YwpBLyfiYY8dyF/gAaqrOUkFRM7tMHGfHjTcyOX7MqZTuS4FDdzeU49qVKg2gdbUEjkTIzIKaV4X5ryQ4LINgnYCA2baWsNJjmtdLkDyKaT6XtpycFIDvpy2iLyIgbaGmPe0JTLN/uTn2+UIvcC","t":"Bottom Grey · Ken · Bob Purple","acc":null},"88":{"b64":"xZIxEoIwEEUXcbMk2Nh6EUvGofISnsXGM9h7A2/haE/vCWzt4iQE+CCZSeP4gZ2XDOz8z0ZLvlpzSURVVT33F3u8v66H5lxv6pu19v04NbS1tKMkSRCgW6QwfvsvGbTDQTLgmCXG/UuYC/9PMi9zf30xejYGOQiyGJL5LOCZIzzK4gamnMLs+ogiopjZ70u/L8QqsGIiau3n3ihytuiK81+2mmTRIYsm0egfFpqLjNkV56DIlFKBZ8IH1zTUQtyD5xaP53SOMUGWmKDn0G3UOIn93eGP9QE=","t":"Pinstripe Sarong Pink · Hoodie Blue · Crew Cut Red","acc":null},"100":{"b64":"rZK7DcIwEEAP++y7QCiokagYIItQsAASBStAwwCIRWgYhgKJLgsQZjA6x/kQRRa/Vzh+SWE/O0x6PMG0uG2uMHXOHVfz3XIGAIfF6bzO8yx7FPfL1rn9HmJwRVeoJc08LrVRS0ikXo9im/kOZh4JMk/SsOoIgNOEa2MmRo/fE1bEhPqFREyJVBKoEiA5uEo8L2JLer4MS36Io7fi+PM4pZS8V4qY5eFBZLA2iBShkTJtrcEQp5VuzmBYlw4G1fBBXFPQjdMWUYYgxhgvsTgOP6K/uf/SxD0B","t":"Sarong Black and White · Ken · Long Shag Purple","acc":null},"111":{"b64":"tZLLbQIxEIZnl7HHzBwQ1+ScXughFaUFTqkiRVBBOMIxTWw0r8WLokCE8mu18qfx67NNtNpsUaZpen7fbN/o6/h5PhxKKefTCQD2AB+7p+PrC2iYGZghIiLMIsHCGSfJ6Li5KFrOoqEoeoW1lRhddKw1rLfEVIE6Ve4GLq1/Crt+rMOpz7AwZDES9OgGWRgztnVcosxoVthhPzb0m8dHMgQC+wEkRn7H0fOQvjys3/vepU9rSv1aa6U11Wr6rQW64hViUSSqBd1hNY76dacB3WkMQ/5+yo3Hn3uGK30tIg4N7TdjKWVo2nuhDz3bUvNz98ffXc59d/iHdPrf","t":"Bottom Green · Suit Top Black · Wavy Lion Orange","acc":null},"150":{"b64":"rZExbgIxEAD34rPX2QVO+UNqdFWUlgfwAkSRB6SloknHG/KBNHkBok+LdL0/AHmD0dpng1CwAmIKn+ea3bmzqIZPdQMAzrnn1/nPZrb+ePl8H//ud13XeZispl/fb861rfd+u/B+uYQSnDgXOpHjvSzZ6ERIJM+j0jK3wcwjQe6Dpp86AuBmwNmYiXUg7KQTJaG/hURMRCoJMAIkHy5J4LKoyL3i6F9xfH1cWPkREYkZEa0NggzWytPKKwBtejE6xNVKqVrlUsil1UM6rojTF+OGldZy9GKMCVKK4zg7/rn7cow7AA==","t":"Suspender Shorts Denin · Business Top Pink Tie · Long Shag Purple","acc":null},"200":{"b64":"zZM/TsMwFIefn/+8NGlInIgLsHStxNCxF2BBbGwwIAaOUG7C3hl2LhAhxAhLBkYuwBgUHDs4bdNIBIlvePL75Fj2z05AXGuZfy4vPt5e34vi+QbW5+p6Ob09icv5vKoqAHiazdZXulqtyrI8vF8kxeLy6Ozx+O7l9AGGQJZdQnVE2w8XzqiOUFa4/bSjv4AxYIyxVhDRtMb2QdzsrDEUB+QZIkX4jTkdkULLUKF2C2UFNygrQBhA2YuxwrFfMENPHqMEpPoDijYF/T4gISQiSiEagUIIKaUQwqwByJs8OMJ2UR8fu3lsiBECwr0BTULEurgZk5Bz7sSQgNqfr3lBPSRp4vWpznT6U2S5znPwjd8DZNsDGoMoiiJTbHsQmuJm1GNP+J/8V74A","t":"Slit Skirt · Tee Orange · Long Shag Brown · Nouns Glasses Red","acc":"Blackberry"},"256":{"b64":"xZJBCsIwEEWnmcnENDuX4sJjeASX3XoTD+Fa8CQeQegJdCuo4M6NiJvKNGmbQrUKgp9keCQQ/s+MZXRDcvPpuCgKALjsd4c8H03W19v9fDpusuVjMdtmK/hKNqgha/sRavijIjcUZDuRYqQGoSHQXvIue32EqBSiwnc2nSwnUAlc85MRdlrX1IWvUjBLCA4ejTHM3q0xg+DanzLpgJoAJAKiErcKsdwAkCRV6WlAPDztgYkaoJBISolaa0FKw33aSvFT1Sme","t":"Check Flairs Black and White · Top Blue and White · Long and Spikey Purple · Blush Red","acc":null},"333":{"b64":"tZK9TcRAEIWfmX07HrwBNIAICI+EEk66AmiADohJiZGIia4OiqAHC5GTnsiM9sd7ewYRIN2TbH9rj0bzydOrhHMXAIzjePa6+rTN093Vw+3F+/1ws/3YPV5eP79N0/T1sgYAsxBicUKYmWVUs3IwNdVy0Pl95BkNsBrUipZjT82P48WSSyiYElqXUFxIMrswYXJh4WCsCaUif6kc2/ic2B5OSIpLM7icP1nEOSfyDxdrXKxxsdmFhl73g1rPPetvvHBhcSFAlplJ0Bf2h3zoIiLpiulO5ttyx+o+/NixxX+Jw6kOHcmhI3DKofPeJ25c0LhAj7FX1eUb","t":"Overalls Green · Swimsuit Red · Asymmetric Orange","acc":null},"420":{"b64":"rZG7DcIwEEDvfOezYwokWiQqWgahpEe01FTswBQsgOhpGYASpmAFo8vHTkEQgbzi9GxZsZ9SCI0mHABgehyflo/DZr5fzWKMt/X5ub3G3T1eFtALV5Oti9aBdLjfXQPjawC84xLnGlNPytkYWgrZwFbod7HiKzVkiMh8eGTRTO/T9CEEgKAz+MybCv61AhF1D7F8LTNbRBSpd0V0XaplAE0wRHUQGENVZjP+/RdaIXqdoFYIWmsFOysGJVW8AA==","t":"Check Flairs Green and Purple · Open Top Black · Lollipop Pink","acc":null},"500":{"b64":"7ZK7SsRAFIZPkpnZycxkN8lswCfwGcRGCy2sLaz0CXwfsRLBzsrSRrBIs4L12oTFRvARRIjkss4trruri4J+hIF8nBNOzj9hEMiMZCdHY29rAht3zw/jx9GoKIrj3XUAyPP8bC8ty/L6YO3mlj+9gry6mOzAyyUv7xmcbp7vw+G2Dz8AbRCO0ZzQaBWbqcDtBNut/td+Pe2eNSOo7QRlqEY50RqE0Pvu0QylVq2qwHHaFLhBH5X0CCE98i3Kb5hvRybuxWHuZepSzO2MoigyhBsHpZTXqAGmcaCl41CbXjqOsN1qqEylaKVCQxFDIdxWYe37ge9Xj76JKh0rIc+bHiuh3bRrdEcFZVxYcdRVn8bBKaoPQ2GMOV04jsWJ49hxSZKm+ruUkCRWmYTh0O6TjTLiyL403fxYCUFHQgq7ud93zGBguw7V0fjP/HwUx9/iDQ==","t":"Bottom Blue · Suspenders Brown · High Bun Red · Flower Eye","acc":"Rooster"},"512":{"b64":"tZLNSQZBDIaTdybZvYkIluFF+OqxAU9WYBWCBwvxZge2IYgtrCSTjDPfZV3E97DMQ+Ynz5JlKReXdf28+3h9PD3f37zffj09XL29XG/bRhERIZEkVRVRDVbJNNKMnetFtXIWHdWwVcRWibHFzvrCd2tcFWhXUW+O/jnS9OMdSX2hyVDUSdFiDYoKMt46ZtSOboUBx7OhX1raSSFUABUk7QcwV1Tm7JmZK0/Iv0Pu2dHXP+uPvkf1EfpwfSD0AesKJfTLD3LHg/pn2Rn+7JnO9K0ILCv807GUsqy2e9Knkf2pPu5t+IfZPDrMO5n0vwE=","t":"Check Flairs Green and Purple · Purple Comet · Wavy Lion Golden","acc":null},"666":{"b64":"xZJBjsIwDEV/6rimCYiRENdgwQmQuAdLrsSWK3CBOcZcYDbskFjNrihNSpO0qDAL+GotfSdN/GpXFX3NeQqAmS+n3c9haxdlXdffs9nvev233182y+txdT2v0BMHZbZNvOrz8z6uvDwK4tT2PT/j74mcP7//377wehW3Le8xb5MQomQDP/Q93nYAtFM0D8nvYGZNRLqrh5PPSQevKQCoonBPzI+YX6k2jPAO8RghKhU1gQHj1kultY58t9/YeF7Y2KlpLvTXwljb+JLdCyhjonoAlZTHKutvh+i5MOzHeLu5C1HE9VXg+ysyqXwI61JNBC4M7gfu542O2jt0Aw==","t":"Suit Pants Black · Hoodie Black · Hammer Red · Torch","acc":"Torch"},"777":{"b64":"rZJBCsIwEEV/m0wmtivv4VrX4sozCJ7FW7j3Bl7DnSDuxaWKR4jMJG0jVKrgCw2PEsgrnRGbekx1COGy3IXN4XG/Pffr83ZxwuyIKYCA+XWywjA+0Zn3w8reswgzOD7MAER1KfzF9T+T9VLCDyr3qPcMp2i71ZdWNSK39asprbWliaprMPhTemvUNRJlyn0n0KQ7AJTSCUQpkohcUpcrUBprrSklJ5arFkWzoYq89yKbgZ506S1GpJuqc070Q3rLPwYkS5fK+m1Iqm5mqyr9BfnG1uTo9xqH/G/pLS8=","t":"Pinstripe Sarong Pink · Swimsuit White · Long Red","acc":null},"888":{"b64":"tZNNDoIwEIWnMFNa4s6liSsO4TVcG72Gd/AEHsFDuHPhBUzcewX3YtqZQhGI4M9LIF9e0vC+AJbSyZRyACgW6/NxtdsU2+X8oma3++ME+yscyrKE0TGSCBtshjEgZ/yAHyaa0+nlNls/U/Y7tNZWbIzBwGyDWDNECBnHP1dzYGifcD4SM2C5kku4wxHRMYMbTVKiqfiNY7Rfy37tTKTPMtBVrwFJenKHVaJSlajgC8FXqXBzsRxPoQEx9GxD3/r26qGm4ZIr9DdmIhLucfxHmo7t9wh9P9urY3TyX1u/zxM=","t":"Pants Black/Navy/Yellow Check · Lost Sweater · High Top Pink","acc":null},"1000":{"b64":"rZE9DsIgGIbfCh8tVGLi6hmcHTt7IXeP4ODuBUx0MvEIPUEdXBzdPAEGyk8Ha6z6hLx5Qr4Ab5CClVOuAVRVNdtN9svmfmludW0e/LheYLvCaWOMwfVgznMMQnqS9dEZiMPD7vozygMoSQ4pg1mPSskIHUUyiBZ7bt7ykTLOOOfszSPHIZWKqbTWgLapVeJFC/q2RR5wVriVk/CbgpwWhVXAVmCc+0JgzGk2CvHrX9gWZUZkQ9oUQpRZb4u/Els8AQ==","t":"Check Flairs Green and Purple · Face Tee · Lollipop Green","acc":null},"1234":{"b64":"tZPNDcIwDIXdPjsUiRt3TkzBFizAGgzQGxMwAnswBJNwLkrsNOmfFFX0Sa0+WYn6PsndCw5Hab6XS9e2j9v5fj296fmhV9d1tCZiyXDAUsYEzaoOBaliCl1mvXxnF2paf4/OuZ5FBJHVBkhMGRJrwndRAagQi9axZs61ZuRSp6TxVDKXIacje4xnHAHPCr402xDSc7kjzDEcNy+AwMbs2UwYxY5OE4hsQmYY2MX5ZPdSURm47BqElzIzGy84bpDlXZ3Zz9GPN3TMbm7U9Q/5AQ==","t":"Flowy Dress Pink · High Top Pink","acc":null},"2024":{"b64":"rZJNCsJADEaTSTKtdCWuxbVbb+FxvJKnEQ/hQjyAC/eVZDI/BZUW/AbKazoNb4asOhrW0l9358fpcjxs9tvhfoPXE8ZxhFkRTyWRRdh0AH2zlVrPM2iDGGzhLF9KEUgkGcWreUfeMMEoIJyiymhFVGkMSBhMIdkEUwuIXq2ISRgxk/EHYaNoUfWiU6hFarFy/U27ujoAuToBkasTEbs6E7H7Ms1QT45x6ltRPqkrdz2RPgyZWTF+UV8+Fz8GBk0c/aqnQxLroMZYvkJsFJZh4X+eAd4=","t":"Bottom Navy · Maxi Dress · Long Blonde","acc":null},"3000":{"b64":"tZNBDoIwEEUH6rSldecZPIqn8ULGE3gPd1xAXcLSNXtMO1NoBaKg/ITm5SdN/gtQoNju0LZtezzsAaBpmufjXpclItZVdQa4wukGF5gdw4kwYfMdA1LmD/hjojmjXm6z9TN5v0NrbcfGGAxMNog9Q4QgKLCEc8oiMQOWKn6YRxwRHRO40ZJLNB1/dtSF9puVUkoXWinXMguRMErHWivpLotcbETe+ULwzbJwuFiKp9AAG3q2oR98e/1Qk7hkAv1BLKVknnBcI6nj8D3C1M/27hjdXGvr73kB","t":"Pants Black/Brown/White Check · Suit Top Black · High Top Pink","acc":null},"4321":{"b64":"rZExDoIwFEA/7W//B+Lg5KCJV+AOxmt4Ei7h5BFcXDyKiXF0MXFx8AiY30JBQhpR31D6YPh9hUlPppivt7czzKuqeh43l90KAGb7w+J0uRbF8v6oyhJicENfqCPtPi7BqCMkEuZR7DDfwcyZIPs0r6dmAJynHIyZGB3uTNgQExoWEjEeqSRQHiC5uEYcb2I9A19+j6OP4nh8nFJK3itFzPJwIDJYW4sUoZEyba3BOk4r3d4BhNIkaZYRcW1BP05bRFlqMcY4icWxn+3/3H9p414=","t":"Pants Black/Grey/Mustard Check · Ken · Long Shag Sky Blue","acc":null},"5000":{"b64":"tZExjoMwEEUHzNjMYKXYNndIGSkVPWchJ9hqr7En4Azbb5k7bJ/kDES2xzCIRFqKfAvLjxF4nsZZs/uo/DAM99u1aP/gdPn5On6fDwAwjmPbtl3X7X8/+76HTWHJkngBEflFbU3P/7mtrXdl0QkjomoaU1iDYD4zKEJMxIpAlwBsitznUjZTWYWU/7PjGYiappkgVr33AkQUX0CELOiZJgi+RDMRK8Dw3ZKUeyDlTuBcHZcTu1qeTHUmtFKzKO6mMpN7aQwYk6ko8rZx7uIuoAet3AGIsHaIYQsS4WCtTaTd13N/f2b3Bw==","t":"Racer Pants Blue · Tuxedo Black · Ponytail Black","acc":null}};
+const VM_IDS = [1, 2, 5, 7, 9, 13, 21, 33, 50, 69, 77, 88, 100, 111, 150, 200, 256, 333, 420, 500, 512, 666, 777, 888, 1000, 1234, 2024, 3000, 4321, 5000];
+/* ===================================================================
+   Chonk-O-Mat: a vending machine stocked with 30 real Chonks (ported from the standalone Chonk-O-Mat page).
+   It stands against the end wall, left of the gold statue as you face it. Walk up and press E (or Use):
+   a short cutscene where your Chonk punches in a code, a Chonk drops into the bin, the flap swings open
+   and it tumbles out onto the gallery floor; then the machine restocks itself and the camera comes back.
+   The machine is built in its original units and scaled down to the gallery (VM.S).
+   =================================================================== */
+const VM = { x: 7.9, z: 9.6, ry: Math.PI, S: 0.28, m: null, scene: false, cam: null, near: false, geoP: null, texs: [] };
+async function vmUnpack(b64) {
+  const bin = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+  const b = new Uint8Array(await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).arrayBuffer());
+  const mn = [b[0], b[1], b[2]], d = [b[3], b[4], b[5]], np = b[6], pal = [];
+  for (let i = 0; i < np; i++) pal.push((b[7 + i * 3] << 16) | (b[8 + i * 3] << 8) | b[9 + i * 3]);
+  const g = b.subarray(7 + np * 3), vox = [];
+  for (let i = 0; i < g.length; i++) if (g[i]) vox.push({ x: (i % d[0]) + mn[0], y: (Math.floor(i / d[0]) % d[1]) + mn[1], z: Math.floor(i / (d[0] * d[1])) + mn[2], color: pal[g[i] - 1] });
+  return vox;
+}
+function vmChonkGeometry(vox) {           // zMap: x 0..29 (centre 14), y grows downward with feet on row 23, front faces +z
+  const key = (x, y, z) => `${x},${y},${z}`, has = new Set(vox.map((v) => key(v.x, v.y, v.z)));
+  const F6 = [[[1,0,0],[[1,0,0],[1,1,0],[1,1,1],[1,0,1]]],[[-1,0,0],[[0,0,0],[0,0,1],[0,1,1],[0,1,0]]],[[0,1,0],[[0,1,0],[0,1,1],[1,1,1],[1,1,0]]],
+    [[0,-1,0],[[0,0,0],[1,0,0],[1,0,1],[0,0,1]]],[[0,0,1],[[0,0,1],[1,0,1],[1,1,1],[0,1,1]]],[[0,0,-1],[[0,0,0],[0,1,0],[1,1,0],[1,0,0]]]];
+  const pos = [], nor = [], col = [], idx = [], c = new THREE.Color();
+  for (const v of vox) { c.setHex(v.color);
+    for (const [n, q] of F6) { if (has.has(key(v.x + n[0], v.y - n[1], v.z + n[2]))) continue; const b = pos.length / 3;
+      for (const p of q) { pos.push(v.x + p[0] - 14.5, (23 - v.y) + p[1], v.z + p[2] - 5.5); nor.push(...n); col.push(c.r, c.g, c.b); }
+      idx.push(b, b + 1, b + 2, b, b + 2, b + 3); } }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeBoundingSphere(); return g;
+}
+// canvas textures that redraw once the Silkscreen font has loaded
+function vmTex(w, h, draw) {
+  const c = document.createElement("canvas"); c.width = w; c.height = h; draw(c.getContext("2d"), w, h);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; t.userData.redraw = () => { draw(c.getContext("2d"), w, h); t.needsUpdate = true; };
+  VM.texs.push(t); return t;
+}
+document.fonts?.load('40px "Silkscreen"').then(() => { for (const t of VM.texs) t.userData.redraw?.(); }).catch(() => {});
+
+function buildVendingMachine(k) {
+  if (VM.scene) endVendScene();                         // the scene was rebuilt mid-cutscene: just stop it
+  const root = new THREE.Group(); root.position.set(VM.x, 0, VM.z); root.rotation.y = VM.ry; root.scale.setScalar(VM.S); k.g.add(root);
+  const machine = new THREE.Group(); machine.position.x = -0.25; root.add(machine);
+  const anims = [];                                     // {t, dur, step(e, dt), done()}
+  const tween = (dur, step) => new Promise((res) => anims.push({ t: 0, dur, step, done: res }));
+  const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+  const COL = { cobalt: 0x2f5fc4, cobaltDeep: 0x1e3f8a, cream: 0xf1e6cf, chrome: 0xc9ccd4, dark: 0x16141d };
+  const mm = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: o.r ?? 0.5, metalness: o.m ?? 0 });
+  const enamel = mm(COL.cobalt, { r: 0.32, m: 0.1 }), enamelDeep = mm(COL.cobaltDeep, { r: 0.4, m: 0.1 }), cream = mm(COL.cream, { r: 0.55 });
+  const chrome = mm(COL.chrome, { r: 0.22, m: 0.9 }), darkMat = mm(COL.dark, { r: 0.8 });
+  const CW = 1.06, X0 = -3.2, RH = 1.08, YBOT = 1.75, YTOP = YBOT + 6 * RH, Z_GLASS = 1.08, SHELF_FRONT = 0.62, COLS = 5, ROWS = "ABCDEF";
+  const colX = (c) => X0 + CW * (c + 0.5), shelfY = (r) => YTOP - (r + 1) * RH;
+  const box = (mat, w, h, d, x, y, z, parent = machine, o = {}) => {
+    const b = new THREE.Mesh(o.round ? new RoundedBoxGeometry(w, h, d, 3, o.round) : new THREE.BoxGeometry(w, h, d), mat); b.position.set(x, y, z);
+    b.castShadow = o.cast ?? true; b.receiveShadow = true; parent.add(b); return b; };
+  const LEFT = -3.5, RIGHT = 3.8, BACK = -1.25, FRONT = 1.2, TOP = 9.35;
+  // shell
+  box(enamel, 0.3, TOP - 0.3, FRONT - BACK, LEFT + 0.15, 0.3 + (TOP - 0.3) / 2, (FRONT + BACK) / 2, machine, { round: 0.06 });
+  box(enamel, 0.3, TOP - 0.3, FRONT - BACK, RIGHT - 0.15, 0.3 + (TOP - 0.3) / 2, (FRONT + BACK) / 2, machine, { round: 0.06 });
+  box(enamel, RIGHT - LEFT, 0.3, FRONT - BACK, (LEFT + RIGHT) / 2, TOP - 0.15, (FRONT + BACK) / 2, machine, { round: 0.06 });
+  box(enamelDeep, RIGHT - LEFT, 0.12, FRONT - BACK, (LEFT + RIGHT) / 2, 0.36, (FRONT + BACK) / 2);
+  box(enamelDeep, RIGHT - LEFT, TOP - 0.3, 0.1, (LEFT + RIGHT) / 2, 0.3 + (TOP - 0.3) / 2, BACK + 0.05);
+  for (const fx of [LEFT + 0.4, RIGHT - 0.4]) for (const fz of [BACK + 0.3, FRONT - 0.3]) box(chrome, 0.28, 0.3, 0.28, fx, 0.15, fz, machine, { round: 0.05 });
+  // lit interior back panel
+  const backTex = vmTex(64, 512, (g, w, h) => { const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#fff7e8"); gr.addColorStop(1, "#e9dcc4"); g.fillStyle = gr; g.fillRect(0, 0, w, h); });
+  const backPanel = new THREE.Mesh(new THREE.PlaneGeometry(CW * COLS, YTOP - YBOT), new THREE.MeshStandardMaterial({ map: backTex, emissive: 0xffffff, emissiveMap: backTex, emissiveIntensity: 0.45, roughness: 0.9 }));
+  backPanel.position.set(X0 + CW * COLS / 2, (YTOP + YBOT) / 2, BACK + 0.11); machine.add(backPanel);
+  box(enamel, 0.14, YTOP - YBOT + 0.2, FRONT - BACK - 0.1, X0 + CW * COLS + 0.07, (YTOP + YBOT) / 2, (FRONT + BACK) / 2);
+  // window frame and glass
+  const WX0 = X0 - 0.04, WX1 = X0 + CW * COLS + 0.04;
+  box(chrome, WX1 - WX0 + 0.16, 0.08, 0.1, (WX0 + WX1) / 2, YTOP + 0.04, Z_GLASS, machine, { round: 0.03 });
+  box(chrome, WX1 - WX0 + 0.16, 0.08, 0.1, (WX0 + WX1) / 2, YBOT - 0.04, Z_GLASS, machine, { round: 0.03 });
+  box(chrome, 0.08, YTOP - YBOT + 0.16, 0.1, WX0 - 0.04, (YTOP + YBOT) / 2, Z_GLASS, machine, { round: 0.03 });
+  box(chrome, 0.08, YTOP - YBOT + 0.16, 0.1, WX1 + 0.04, (YTOP + YBOT) / 2, Z_GLASS, machine, { round: 0.03 });
+  const glass = new THREE.Mesh(new THREE.PlaneGeometry(WX1 - WX0, YTOP - YBOT), new THREE.MeshPhysicalMaterial({ color: 0xdfeaff, transparent: true, opacity: 0.12, roughness: 0.04, clearcoat: 1, depthWrite: false }));
+  glass.position.set((WX0 + WX1) / 2, (YTOP + YBOT) / 2, Z_GLASS); glass.renderOrder = 5; machine.add(glass);
+  // lower front: cream panel framing the delivery bin
+  const BIN_Y0 = 0.5, BIN_Y1 = 1.42, BIN_X0 = X0 + 0.25, BIN_X1 = X0 + CW * COLS - 0.25;
+  { const L = LEFT + 0.3, R = WX1, B = 0.42, T = YBOT, z = FRONT - 0.05, o = { cast: false };
+    box(cream, R - L, BIN_Y0 - B, 0.1, (L + R) / 2, (B + BIN_Y0) / 2, z, machine, o); box(cream, R - L, T - BIN_Y1, 0.1, (L + R) / 2, (BIN_Y1 + T) / 2, z, machine, o);
+    box(cream, BIN_X0 - L, BIN_Y1 - BIN_Y0, 0.1, (L + BIN_X0) / 2, (BIN_Y0 + BIN_Y1) / 2, z, machine, o); box(cream, R - BIN_X1, BIN_Y1 - BIN_Y0, 0.1, (BIN_X1 + R) / 2, (BIN_Y0 + BIN_Y1) / 2, z, machine, o); }
+  const binMat = new THREE.MeshStandardMaterial({ color: 0x24212c, roughness: 0.9, emissive: 0xffc27a, emissiveIntensity: 0 });
+  box(binMat, BIN_X1 - BIN_X0, YBOT - BIN_Y0, 0.05, (BIN_X0 + BIN_X1) / 2, (BIN_Y0 + YBOT) / 2, 0.3, machine, { cast: false });
+  box(binMat, BIN_X1 - BIN_X0, 0.05, 0.9, (BIN_X0 + BIN_X1) / 2, BIN_Y0 - 0.025, 0.75);
+  const flapPivot = new THREE.Group(); flapPivot.position.set((BIN_X0 + BIN_X1) / 2, BIN_Y1, FRONT + 0.04); machine.add(flapPivot);
+  const flapTex = vmTex(512, 128, (g, w, h) => { g.fillStyle = "#1a1822"; g.fillRect(0, 0, w, h); g.strokeStyle = "rgba(255,255,255,.12)"; g.lineWidth = 3; g.strokeRect(6, 6, w - 12, h - 12);
+    g.fillStyle = "#cfc8b8"; g.font = "400 34px Silkscreen, monospace"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("PUSH", w / 2, h / 2 + 2); });
+  const flap = new THREE.Mesh(new RoundedBoxGeometry(BIN_X1 - BIN_X0 - 0.06, BIN_Y1 - BIN_Y0 - 0.06, 0.04, 2, 0.015), new THREE.MeshStandardMaterial({ map: flapTex, roughness: 0.3, transparent: true, opacity: 0.78 }));
+  flap.position.y = -(BIN_Y1 - BIN_Y0) / 2; flapPivot.add(flap);
+  // header sign
+  const signTex = vmTex(1024, 160, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, "#241a10"); gr.addColorStop(1, "#120c08"); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.textAlign = "center"; g.textBaseline = "middle"; g.font = "400 92px Silkscreen, monospace";
+    g.shadowColor = "#ffb347"; g.shadowBlur = 28; g.fillStyle = "#ffcf85"; g.fillText("CHONK-O-MAT", w / 2, h / 2 + 4);
+    g.shadowBlur = 0; g.fillStyle = "#fff4dc"; g.fillText("CHONK-O-MAT", w / 2, h / 2 + 4);
+    g.fillStyle = "rgba(255,179,71,.6)"; for (let x = 24; x < w; x += 48) { g.fillRect(x, 12, 12, 6); g.fillRect(x, h - 18, 12, 6); } });
+  { const sh = TOP - 0.3 - YTOP - 0.12, sw = sh * 1024 / 160;
+    const sMat = new THREE.MeshStandardMaterial({ map: signTex, emissive: 0xffffff, emissiveMap: signTex, emissiveIntensity: 1.1, roughness: 0.4 });
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(sw, sh), sMat); s.position.set((LEFT + RIGHT) / 2, YTOP + 0.12 + (TOP - 0.3 - YTOP) / 2, FRONT + 0.01); machine.add(s);
+    box(enamelDeep, RIGHT - LEFT - 0.3, TOP - 0.3 - YTOP, 0.1, (LEFT + RIGHT) / 2, YTOP + (TOP - 0.3 - YTOP) / 2 + 0.05, FRONT - 0.05, machine, { cast: false });
+    k.every((t) => { sMat.emissiveIntensity = 1.1 + Math.sin(t * 3.1) * 0.06 + (Math.random() < 0.004 ? -0.6 : 0); }); }
+  // control panel: display + keypad
+  const PX = (X0 + CW * COLS + 0.14 + RIGHT - 0.3) / 2, PW = RIGHT - 0.3 - (X0 + CW * COLS + 0.14);
+  box(cream, PW, YTOP - 0.42, 0.1, PX, 0.42 + (YTOP - 0.42) / 2, FRONT - 0.05, machine, { cast: false });
+  let dispLines = ["SELECT", "A1 - F5"];
+  const dispTex = vmTex(384, 160, (g, w, h) => {
+    g.fillStyle = "#0d0a06"; g.fillRect(0, 0, w, h); g.fillStyle = "rgba(255,179,71,.06)"; for (let y = 0; y < h; y += 4) g.fillRect(0, y, w, 2);
+    g.textAlign = "center"; g.textBaseline = "middle"; g.shadowColor = "#ff9d2e"; g.shadowBlur = 14; g.fillStyle = "#ffbd5c";
+    g.font = "400 46px Silkscreen, monospace"; g.fillText(dispLines[0], w / 2, h * 0.38); g.font = "400 24px Silkscreen, monospace"; g.fillText(dispLines[1], w / 2, h * 0.76); });
+  const setDisplay = (a, b = "") => { dispLines = [a, b]; dispTex.userData.redraw(); };
+  const disp = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 1.0 * 160 / 384), new THREE.MeshStandardMaterial({ map: dispTex, emissive: 0xffffff, emissiveMap: dispTex, emissiveIntensity: 0.9, roughness: 0.2 }));
+  disp.position.set(PX, 7.35, FRONT + 0.01); machine.add(disp);
+  box(darkMat, 1.1, 0.53, 0.04, PX, 7.35, FRONT - 0.01, machine, { cast: false });
+  const KEYS = ["A", "B", "C", "D", "E", "F", "1", "2", "3", "4", "5", "CLR"], keyMeshes = {};
+  KEYS.forEach((key, i) => {
+    const face = vmTex(128, 96, (g, w, h) => { g.fillStyle = key === "CLR" ? "#d8443a" : "#f7f3ea"; g.fillRect(0, 0, w, h); g.fillStyle = key === "CLR" ? "#fff" : "#1d2a4a";
+      g.textAlign = "center"; g.textBaseline = "middle"; g.font = `400 ${key === "CLR" ? 34 : 54}px Silkscreen, monospace`; g.fillText(key, w / 2, h / 2 + 2); });
+    const btn = new THREE.Mesh(new RoundedBoxGeometry(0.28, 0.21, 0.07, 2, 0.03), [chrome, chrome, chrome, chrome, new THREE.MeshStandardMaterial({ map: face, roughness: 0.45 }), chrome]);
+    btn.position.set(PX + ((i % 3) - 1) * 0.33, 6.62 - Math.floor(i / 3) * 0.27, FRONT + 0.03); btn.userData.z0 = btn.position.z; machine.add(btn); keyMeshes[key] = btn;
+  });
+  // coin and note slots, stickers
+  box(chrome, 0.34, 0.5, 0.06, PX - 0.22, 5.2, FRONT + 0.02, machine, { round: 0.03 }); box(darkMat, 0.05, 0.3, 0.07, PX - 0.22, 5.22, FRONT + 0.03, machine, { cast: false });
+  box(chrome, 0.5, 0.22, 0.06, PX + 0.24, 5.2, FRONT + 0.02, machine, { round: 0.03 }); box(darkMat, 0.38, 0.03, 0.07, PX + 0.24, 5.2, FRONT + 0.03, machine, { cast: false });
+  { const t = vmTex(256, 320, (g, w, h) => { g.fillStyle = "#2f5fc4"; g.fillRect(0, 0, w, h); g.fillStyle = "#f1e6cf"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.font = "400 30px Silkscreen, monospace"; g.fillText("STOCKED", w / 2, 50); g.fillText("ONCHAIN", w / 2, 88); g.fillStyle = "#ffb347"; g.font = "400 76px Silkscreen, monospace"; g.fillText("30", w / 2, 170);
+      g.fillStyle = "#f1e6cf"; g.font = "400 28px Silkscreen, monospace"; g.fillText("CHONKS", w / 2, 236); g.fillText("ON BASE", w / 2, 272); });
+    const s = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 1.0), new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 })); s.position.set(PX, 3.8, FRONT + 0.006); machine.add(s);
+    const r = vmTex(256, 96, (g, w, h) => { g.fillStyle = "#16141d"; g.fillRect(0, 0, w, h); g.fillStyle = "#cfc8b8"; g.textAlign = "center"; g.textBaseline = "middle";
+      g.font = "400 22px Silkscreen, monospace"; g.fillText("FREE CHONKS", w / 2, 34); g.fillStyle = "#ffb347"; g.fillText("NO COINS NEEDED", w / 2, 64); });
+    const rr = new THREE.Mesh(new THREE.PlaneGeometry(1.0, 0.375), new THREE.MeshStandardMaterial({ map: r, roughness: 0.7 })); rr.position.set(PX, 4.65, FRONT + 0.006); machine.add(rr); }
+  // shelves, coils, price tags and the Chonks themselves (filled in once their voxels have unpacked)
+  const COIL_R = 0.17, COIL_L = 1.24, TURNS = 4, PITCH = COIL_L / TURNS, SCALE = 0.04, Z_REST = 0.13;
+  class Helix extends THREE.Curve { getPoint(t, out = new THREE.Vector3()) { const a = t * TURNS * Math.PI * 2; return out.set(COIL_R * Math.sin(a), COIL_R * Math.cos(a), (t - 0.5) * COIL_L); } }
+  const coilGeo = new THREE.TubeGeometry(new Helix(), 120, 0.016, 6, false), coilMat = mm(0xd7dbe3, { r: 0.25, m: 0.95 }), shelfMat = mm(0xb9bec8, { r: 0.35, m: 0.85 });
+  const chonkMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.82 });
+  const tagTex = (code, id, lit) => vmTex(192, 64, (g, w, h) => { g.fillStyle = lit ? "#ffb347" : "#f7f3ea"; g.fillRect(0, 0, w, h); g.fillStyle = "#1d2a4a"; g.textBaseline = "middle";
+    g.font = "400 34px Silkscreen, monospace"; g.textAlign = "left"; g.fillText(code, 10, h / 2 + 2); g.font = "400 22px Silkscreen, monospace"; g.textAlign = "right"; g.fillText("#" + id, w - 10, h / 2 + 2); });
+  const slots = []; let geo = null;
+  const makeChonk = (id) => { const mesh = new THREE.Mesh(geo[id], chonkMat); mesh.castShadow = true; const holder = new THREE.Group(); holder.add(mesh); holder.scale.setScalar(SCALE); return holder; };
+  for (let r = 0; r < 6; r++) {
+    const y = shelfY(r);
+    box(shelfMat, CW * COLS, 0.05, SHELF_FRONT - BACK - 0.1, X0 + CW * COLS / 2, y - 0.025, (SHELF_FRONT + BACK + 0.1) / 2);
+    box(shelfMat, CW * COLS, 0.14, 0.03, X0 + CW * COLS / 2, y - 0.05, SHELF_FRONT);
+    if (r > 0) { const strip = new THREE.Mesh(new THREE.BoxGeometry(CW * COLS - 0.1, 0.02, 0.06), new THREE.MeshBasicMaterial({ color: 0xfff1d6 })); strip.position.set(X0 + CW * COLS / 2, y + RH - 0.09, 0.35); machine.add(strip); }
+    for (let c = 0; c < COLS; c++) {
+      const id = VM_IDS[r * COLS + c], code = ROWS[r] + (c + 1), x = colX(c);
+      const coil = new THREE.Mesh(coilGeo, coilMat); coil.position.set(x, y + COIL_R + 0.02, 0); machine.add(coil);
+      const tag = new THREE.Mesh(new THREE.PlaneGeometry(0.42, 0.14), new THREE.MeshStandardMaterial({ map: tagTex(code, id, false), roughness: 0.6 }));
+      tag.position.set(x, y - 0.05, SHELF_FRONT + 0.02); machine.add(tag);
+      slots.push({ r, c, id, code, x, y, coil, tag, chonk: null, tagNormal: tag.material.map, tagLit: tagTex(code, id, true) });
+    }
+  }
+  VM.geoP ||= Promise.all(VM_IDS.map(async (id) => [id, vmChonkGeometry(await vmUnpack(VM_CHONKS[id].b64))])).then(Object.fromEntries);
+  VM.geoP.then((g) => { geo = g; if (!root.parent) return; for (const s of slots) { s.chonk = makeChonk(s.id); s.chonk.position.set(s.x, s.y, Z_REST); machine.add(s.chonk); } })
+    .catch((e) => console.warn("Chonk-O-Mat couldn't stock its shelves", e));
+
+  // ---- vending ----
+  let outside = null, shake = 0;
+  const press = async (key) => { const b = keyMeshes[key]; b.position.z = b.userData.z0 - 0.03; await tween(0.14, () => {}); b.position.z = b.userData.z0; };
+  async function vend(slot) {                           // coil turns, the Chonk drops into the bin
+    setDisplay(slot.code, "#" + slot.id + " VENDING"); slot.tag.material.map = slot.tagLit; slot.tag.material.needsUpdate = true;
+    const ch = slot.chonk, z0 = ch.position.z;
+    await tween(1.7, (e) => { const kk = ease(e); slot.coil.rotation.z = -kk * Math.PI * 4; ch.position.z = z0 + PITCH * 2 * kk; ch.rotation.x = Math.max(0, kk - 0.75) * 0.6; });
+    slot.chonk = null; let vy = 0, landed = false, settle = 0;
+    await new Promise((res) => anims.push({ t: 0, dur: Infinity, done: res, step(_, dt) {
+      if (!landed) { vy -= 15 * dt; ch.position.y += vy * dt; ch.position.z += (0.82 - ch.position.z) * Math.min(1, dt * 6); ch.rotation.y += dt * 7; ch.rotation.x *= 0.9;
+        if (ch.position.y <= BIN_Y0) { ch.position.y = BIN_Y0; landed = true; shake = 0.12; } }
+      else { settle += dt; const sq = Math.exp(-settle * 7) * Math.cos(settle * 22) * 0.25; ch.scale.set(SCALE * (1 + sq * 0.6), SCALE * (1 - sq), SCALE * (1 + sq * 0.6));
+        ch.rotation.y += (Math.round(ch.rotation.y / (Math.PI * 2)) * Math.PI * 2 - ch.rotation.y) * Math.min(1, dt * 6);
+        if (settle > 0.8) { ch.scale.setScalar(SCALE); this.t = this.dur = 1; } } } }));
+    slot.tag.material.map = slot.tagNormal; slot.tag.material.needsUpdate = true; binMat.emissiveIntensity = 0.35;
+    setDisplay("TAKE YOUR", "CHONK BELOW");
+    return ch;
+  }
+  async function release(slot, ch) {                    // flap swings open, the Chonk tumbles out onto the floor
+    binMat.emissiveIntensity = 0;
+    if (outside) { const old = outside; outside = null; tween(0.35, (e) => old.scale.setScalar(SCALE * 2.2 * (1 - e))).then(() => machine.remove(old)); }
+    await tween(0.55, (e) => { flapPivot.rotation.x = -1.15 * Math.sin(e * Math.PI / 2); });
+    const start = ch.position.clone(), end = new THREE.Vector3(colX(2) + 0.6, 0, FRONT + 2.4), ctrl = new THREE.Vector3((start.x + end.x) / 2, 2.4, FRONT + 1.4);
+    await tween(1.0, (e) => { const kk = ease(e), a = 1 - kk;
+      ch.position.set(a * a * start.x + 2 * a * kk * ctrl.x + kk * kk * end.x, a * a * start.y + 2 * a * kk * ctrl.y + kk * kk * end.y, a * a * start.z + 2 * a * kk * ctrl.z + kk * kk * end.z);
+      ch.scale.setScalar(SCALE * (1 + 1.2 * kk)); ch.rotation.y = kk * Math.PI * 2; });
+    outside = ch; shake = 0.08;
+    tween(0.5, (e) => { flapPivot.rotation.x = -1.15 * (1 - ease(e)); });
+    setDisplay("ENJOY", "#" + slot.id);
+    restock(slot);
+  }
+  function restock(slot) {                              // reset: a fresh Chonk winds forward into the empty slot
+    const ch = makeChonk(slot.id); ch.position.set(slot.x, slot.y, Z_REST - PITCH * 2); ch.scale.setScalar(0.0001); machine.add(ch); slot.chonk = ch;
+    tween(1.6, (e) => { const kk = ease(e); slot.coil.rotation.z = -Math.PI * 4 * (1 + kk); ch.position.z = Z_REST - PITCH * 2 * (1 - kk); ch.scale.setScalar(SCALE * Math.min(1, e * 3)); })
+      .then(() => { slot.coil.rotation.z = 0; setTimeout(() => { if (VM.m?.root === root && !VM.scene) setDisplay("SELECT", "A1 - F5"); }, 2200); });
+  }
+  k.every((t, dt) => {
+    for (let i = anims.length - 1; i >= 0; i--) { const a = anims[i]; a.t += dt; a.step(Math.min(1, a.t / a.dur), dt); if (a.t >= a.dur) { anims.splice(i, 1); a.done?.(); } }
+    if (outside) { outside.position.y = Math.abs(Math.sin(t * 2.2)) * 0.06; outside.rotation.y = Math.sin(t * 0.7) * 0.5; }
+    if (shake > 0) { machine.position.x = -0.25 + (Math.random() - 0.5) * shake * 0.3; shake = Math.max(0, shake - dt * 0.5); if (!shake) machine.position.x = -0.25; }
+    updateVendNear();
+  });
+  // world positions from machine-local ones
+  root.updateMatrixWorld(true);
+  const W = (x, y, z) => machine.localToWorld(new THREE.Vector3(x, y, z));
+  const a = W(LEFT, 0, BACK), b = W(RIGHT, 0, FRONT + 0.1);
+  k.solidBox(Math.min(a.x, b.x), Math.max(a.x, b.x), Math.min(a.z, b.z), Math.max(a.z, b.z), 0, 99);
+  VM.m = { root, W, tween, press, vend, release, slots, ready: () => !!geo, setDisplay, keyX: PX, front: FRONT, colX, busy: false };
+}
+
+// ---- the "Press E to use" prompt and the cutscene ----
+function updateVendNear() {
+  const m = VM.m; let near = false;
+  if (m && sel && mode === "walk" && camMode === "follow" && !VM.scene && m.ready()) {
+    const p = m.W(0.3, 0, m.front + 3.2);              // a spot just in front of the machine
+    near = Math.hypot(sel.pos.x - p.x, sel.pos.z - p.z) < 1.7 && Math.abs(sel.pos.y) < 0.6;
+  }
+  if (near !== VM.near) { VM.near = near; document.getElementById("vendPrompt").hidden = !near; }
+}
+async function useVendingMachine() {
+  const m = VM.m;
+  if (!m || VM.scene || !sel || !VM.near || m.busy) return;
+  m.busy = true; VM.scene = true; VM.near = false; document.getElementById("vendPrompt").hidden = true;
+  keys.clear(); joy.active = false; setSettings(false);
+  document.body.classList.add("cutscene");
+  const me = sel, root = m.root, alive = () => VM.m?.root === root && VM.scene;
+  // cut to the shot: a little to the side, looking at the keypad and the bin
+  VM.cam = { pos: m.W(-4.6, 5.6, 17.5), at: m.W(0.6, 4.2, 1.6) };
+  const at = m.W(m.keyX - 0.25, 0, m.front + 2.0), from = m.W(m.keyX + 1.2, 0, m.front + 6.5);
+  me.pos.set(from.x, 0, from.z); me.vy = 0; me.onGround = true;
+  me.yaw = Math.atan2(at.x - from.x, at.z - from.z); me.moveAnim = "walk";
+  await m.tween(1.25, (e) => { me.pos.set(from.x + (at.x - from.x) * e, 0, from.z + (at.z - from.z) * e); });
+  if (!alive()) return;
+  const face = m.W(m.keyX, 0, 0); me.yaw = Math.atan2(face.x - me.pos.x, face.z - me.pos.z); me.moveAnim = "wave";
+  const slot = m.slots.filter((s) => s.chonk)[Math.floor(Math.random() * m.slots.filter((s) => s.chonk).length)];
+  m.setDisplay(slot.code[0] + "_", "PICK 1-5"); await m.press(slot.code[0]); await m.tween(0.35, () => {});
+  m.setDisplay(slot.code, ""); await m.press(slot.code[1]); await m.tween(0.3, () => {});
+  if (!alive()) return;
+  me.moveAnim = "idle";
+  const ch = await m.vend(slot);
+  if (!alive()) return;
+  await m.tween(0.35, () => {});
+  await m.release(slot, ch);
+  if (!alive()) return;
+  me.moveAnim = "wave"; await m.tween(1.2, () => {}); me.moveAnim = "idle";
+  endVendScene();
+}
+function endVendScene() {
+  if (VM.m) VM.m.busy = false;
+  VM.scene = false; VM.cam = null; document.body.classList.remove("cutscene");
+  if (sel) { cam.yaw = sel.yaw + Math.PI; cam.pitch = 0.3; cam.dist = Math.max(cam.dist, 4.2); }
+  snapCamera = true;
+}
+addEventListener("keydown", (e) => { if (e.code === "KeyE" && !e.repeat && VM.near && !isTyping()) { e.preventDefault(); useVendingMachine(); } });
+document.getElementById("vendUse").addEventListener("click", (e) => { useVendingMachine(); e.currentTarget.blur(); });
 
 /* the gold statue: any Chonk you like, remembered in this browser */
 const STATUE_KEY = "chonkit-gallery-statue";
@@ -1681,7 +1953,7 @@ let snapCamera = true;
 // First-person view: see the gallery through your Chonk's eyes (walk mode, follow camera only)
 const FP_EYE = 0.86;                                   // a Chonk's eye height
 let firstPerson = false, fpFov = 62, fpWas = false, fpSel = null;
-const fpOn = () => firstPerson && mode === "walk" && camMode === "follow" && !!sel;
+const fpOn = () => firstPerson && mode === "walk" && camMode === "follow" && !!sel && !VM.scene;
 function setFirstPerson(on) {
   if (on === firstPerson) return;
   firstPerson = on;
@@ -1728,6 +2000,7 @@ function updateCamera(dt) {
     if (fp) camera.fov = fpFov; else if (mode === "walk") camera.fov = WALK_FOV;
     camera.updateProjectionMatrix(); fpWas = fp; fpSel = fp ? sel : null;
   }
+  if (VM.scene && VM.cam) { camera.position.copy(VM.cam.pos); camera.lookAt(VM.cam.at); cam.target.copy(VM.cam.at); return; }   // Chonk-O-Mat cutscene
   if (camMode === "free") { updateFreeCam(dt); return; }
   if (!sel) return;
   if (fp) {
@@ -1758,7 +2031,7 @@ function updateCamera(dt) {
    Simulation
    =================================================================== */
 function stepSelected(dt) {
-  const c = sel; if (!c) return;
+  const c = sel; if (!c || VM.scene) return;              // the Chonk-O-Mat cutscene moves your Chonk itself
   let ix = 0, iz = 0;
   if (mode === "walk" && camMode === "follow") {
     if (keys.has("KeyW") || keys.has("ArrowUp")) iz += 1; if (keys.has("KeyS") || keys.has("ArrowDown")) iz -= 1;
@@ -2746,7 +3019,7 @@ function onLocationBuilt({ keepProps = false } = {}) {
 /* walk up to a mosaic -> "Download …? Yes / No" at the top */
 let nearSpot = null, dismissed = null;
 function spotNear() {
-  if (!sel || mode !== "walk") return null;
+  if (!sel || mode !== "walk" || VM.scene) return null;
   let best = null, bestD = Infinity;
   for (const sp of GALLERY.spots) {
     const dx = sel.pos.x - sp.x, dz = sel.pos.z - sp.z;
