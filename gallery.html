@@ -22,7 +22,7 @@ button, a, label, input, select { touch-action: manipulation; }
 <title>Chonkit Gallery</title>
 <meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
 <link rel="icon" href="apple-touch-icon.png">
-<script src="gallery-store.js?v=4"></script>
+<script src="gallery-store.js?v=5"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
@@ -1052,7 +1052,7 @@ const LOCATIONS = [
       // artworks + labels
       let seed = 1;
       const label = (x, y, z, facing, item) => { const t = textTex(item
-          ? [{ text: shortTitle(item.title), size: 34, font: "Sora" }, { text: `${item.tiles.toLocaleString()} Chonks · ${new Date(item.created).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`, size: 22, font: "Sora" }]
+          ? [{ text: shortTitle(item.title), size: 34, font: "Sora" }, { text: `${item.anim ? "ASCII art" : item.tiles.toLocaleString() + " Chonks"} · ${new Date(item.created).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`, size: 22, font: "Sora" }]
           : [{ text: "Your next mosaic", size: 34, font: "Sora" }, { text: "chonkit.xyz", size: 22, font: "Sora" }], { w: 384, h: 128, bg: "#ffffff", fg: "#222", align: "left" });
         const ry = { "+z": 0, "-z": PI, "+x": PI / 2, "-x": -PI / 2 }[facing]; plane(k, t, 0.3, 0.1, x, y, z, ry); };
       // each frame shows one of your mosaics (newest first); spare frames invite you to add more
@@ -1060,7 +1060,13 @@ const LOCATIONS = [
         let w = w0, h = h0, tex, frameCol = rand() > .5 ? 0x1a1a1a : 0xfafafa;
         if (item) {
           const asp = item.w / item.h; w = Math.min(MOSAIC_MAX_W, MOSAIC_MAX_H * asp); h = w / asp;
-          tex = new THREE.Texture(item.img); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16; tex.needsUpdate = true; frameCol = 0x1a1a1a;
+          if (item.anim && item.sheetImg) {                 // spinning ASCII Chonk: step through the frames of its sprite sheet
+            const A = item.anim, sw = item.sheetImg.width, sh = item.sheetImg.height, ix = 0.5 / sw, iy = 0.5 / sh;
+            tex = new THREE.Texture(item.sheetImg); tex.repeat.set(1 / A.cols - 2 * ix, 1 / A.rows - 2 * iy);
+            const show = (f) => tex.offset.set((f % A.cols) / A.cols + ix, 1 - (Math.floor(f / A.cols) + 1) / A.rows + iy);
+            show(0); k.every((t) => show(Math.floor(t * 1000 / Math.max(20, A.delay)) % A.frames));
+          } else tex = new THREE.Texture(item.img);
+          tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 16; tex.needsUpdate = true; frameCol = 0x1a1a1a;
         } else tex = emptyFrameTex(Math.round(256 * h / w));
         k.picture(tex, w, h, x, item ? Math.max(1.75, h / 2 + 0.55) : 1.75, z, facing, frameCol, item ? 0.07 : 0.06);
         const nrm = { "+z": [0, 1], "-z": [0, -1], "+x": [1, 0], "-x": [-1, 0] }[facing];
@@ -1078,10 +1084,18 @@ const LOCATIONS = [
       // plinths + sculptures
       const plinth = (x, z, h = 1.0) => { k.box(white, 0.8, h, 0.8, x, 0, z, { solid: true }); return h; };
       const goldM = new THREE.MeshStandardMaterial({ color: 0xe0ac3c, metalness: 0.35, roughness: 0.38, emissive: 0x3a2400, emissiveIntensity: 0.6 });
-      let ph = plinth(-10, 4); const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.22, 0.07, 96, 12), goldM); knot.position.set(-10, ph + 0.35, 4); knot.castShadow = true; g.add(knot); k.every((t) => { knot.rotation.y = t * 0.4; });
-      ph = plinth(10, 4); const sph = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16), new THREE.MeshStandardMaterial({ color: 0xdfe3ea, metalness: 1, roughness: 0.08 })); sph.position.set(10, ph + 0.3, 4); sph.castShadow = true; g.add(sph);
-      ph = plinth(-10, -6.5, 0.8); const cols = [0xe76f51, 0x2a9d8f, 0xe9c46a, 0x264653, 0xf4a261];
-      for (let q = 0; q < 9; q++) k.box(mat(cols[q % 5]), 0.18, 0.18, 0.18, -10 + ((q % 3) - 1) * 0.12, ph + Math.floor(q / 3) * 0.18 + (q % 2) * 0.02, -6.5 + ((q % 3) - 1) * 0.1, { ry: q * 0.4 });
+      // sculptures on plinths. Saved ASCII Chonks take these stands over as holograms (newest on the chrome sphere's stand)
+      const holo = GALLERY.ascii;
+      let ph = plinth(-10, 4);
+      if (holo[1]) buildHologram(k, -10, 4, ph, holo[1]);
+      else { const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.22, 0.07, 96, 12), goldM); knot.position.set(-10, ph + 0.35, 4); knot.castShadow = true; g.add(knot); k.every((t) => { knot.rotation.y = t * 0.4; }); }
+      ph = plinth(10, 4);
+      if (holo[0]) buildHologram(k, 10, 4, ph, holo[0]);
+      else { const sph = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16), new THREE.MeshStandardMaterial({ color: 0xdfe3ea, metalness: 1, roughness: 0.08 })); sph.position.set(10, ph + 0.3, 4); sph.castShadow = true; g.add(sph); }
+      ph = plinth(-10, -6.5, 0.8);
+      if (holo[2]) buildHologram(k, -10, -6.5, ph, holo[2]);
+      else { const cols = [0xe76f51, 0x2a9d8f, 0xe9c46a, 0x264653, 0xf4a261];
+        for (let q = 0; q < 9; q++) k.box(mat(cols[q % 5]), 0.18, 0.18, 0.18, -10 + ((q % 3) - 1) * 0.12, ph + Math.floor(q / 3) * 0.18 + (q % 2) * 0.02, -6.5 + ((q % 3) - 1) * 0.1, { ry: q * 0.4 }); }
       // the gold Chonk statue (centre piece) built from Chonk #1
       k.box(mat(0x2b2b2b, { r: .5 }), 3.6, 0.5, 2.4, 0, 0, 8.6, { solid: true, walk: true });
       STATUE.label = plane(k, statueLabelTex(STATUE.id), 1.2, 0.4, 0, 0.25, 7.39, PI, { transparent: true });
@@ -1200,7 +1214,7 @@ const LOCATIONS = [
 /* Chonkit Gallery: only the Art Gallery scene */
 for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
 const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
-const GALLERY = { all: [], shown: [], spots: [], views: [] };
+const GALLERY = { all: [], shown: [], ascii: [], spots: [], views: [] };
 /* an easel with a blank canvas that opens the Chonkit Studio */
 function easelCanvasTex() {
   return canvasTex(256, 320, (c, w, h) => {
@@ -1317,6 +1331,64 @@ function buildVitrine(k, x, z, ry = 0) {
   });
 }
 
+/* A saved ASCII Chonk as a hologram over a sculpture plinth: its spinning frames (one sprite sheet) on a plane that
+   always turns to face you, tinted cyan with scan lines, flicker and the odd glitch, above a glowing projector and a
+   soft beam. Driven by the scene clock, so the Tour recorder films it too. */
+function buildHologram(k, x, z, top, item) {
+  const A = item.anim, g = new THREE.Group(); g.position.set(x, top, z); k.g.add(g);
+  const asp = item.w / item.h, H = Math.min(1.45, 1.7 / asp), W = H * asp, BASE = 0.14;
+  const tex = new THREE.Texture(item.sheetImg); tex.colorSpace = THREE.SRGBColorSpace; tex.generateMipmaps = false; tex.minFilter = THREE.LinearFilter; tex.needsUpdate = true;
+  const U = { map: { value: tex }, rep: { value: new THREE.Vector2(1 / A.cols, 1 / A.rows) }, off: { value: new THREE.Vector2() }, time: { value: 0 }, bg: { value: new THREE.Color(A.bg || "#14111c") } };
+  const holoMat = new THREE.ShaderMaterial({
+    uniforms: U, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false,
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `uniform sampler2D map; uniform vec2 rep; uniform vec2 off; uniform float time; uniform vec3 bg; varying vec2 vUv;
+      void main(){
+        float glitch = step(.975, fract(sin(floor(time * 8.) * 12.9898) * 43758.5453)) * sin(vUv.y * 70. + time * 40.) * .015;
+        vec2 uv = off + vec2(clamp(vUv.x + glitch, .002, .998), clamp(vUv.y, .002, .998)) * rep;
+        vec3 c = texture2D(map, uv).rgb;
+        float ink = smoothstep(.03, .16, distance(c, bg));                     // the ASCII characters, not the background
+        float lum = max(c.r, max(c.g, c.b));
+        vec3 col = mix(c, vec3(.05, .62, .78) * (.55 + lum * .9), .6);       // the Chonk's colours pulled towards hologram cyan
+        float scan = .62 + .38 * step(.5, fract(vUv.y * 150. - time * 1.5));    // scan lines rolling upwards
+        float flick = .88 + .12 * sin(time * 29.) * sin(time * 7.3);
+        float edge = smoothstep(0., .07, vUv.y) * smoothstep(1., .9, vUv.y) * smoothstep(0., .04, vUv.x) * smoothstep(1., .96, vUv.x);
+        float haze = .035 * edge * edge * (.6 + .4 * sin(vUv.y * 9. + time));            // faint light field the figure floats in
+        gl_FragColor = vec4(col, clamp(ink * .92 * scan * flick * edge + haze, 0., 1.));
+        #include <colorspace_fragment>
+      }`,
+  });
+  const panel = new THREE.Mesh(new THREE.PlaneGeometry(W, H), holoMat); panel.position.y = BASE + H / 2; g.add(panel);
+  // projector: dark lens on the plinth top with a glowing ring
+  const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 0.04, 40), new THREE.MeshStandardMaterial({ color: 0x10161c, roughness: 0.3, metalness: 0.6, emissive: 0x0b3a44, emissiveIntensity: 0.8 }));
+  lens.position.y = 0.02; g.add(lens);
+  const glow = (r0, r1, op) => { const m = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 48), new THREE.MeshBasicMaterial({ color: 0x19c6e6, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide, toneMapped: false }));
+    m.rotation.x = -Math.PI / 2; m.position.y = 0.045; g.add(m); return m; };
+  const ring = glow(0.19, 0.24, 0.9); glow(0.08, 0.12, 0.6);
+  // the beam: an open cone, brightest at the lens and fading upwards
+  const BU = { time: { value: 0 } };
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(W * 0.5, 0.22, BASE + H, 48, 1, true), new THREE.ShaderMaterial({
+    uniforms: BU, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: false, toneMapped: false,
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
+    fragmentShader: `uniform float time; varying vec2 vUv;
+      void main(){ float a = pow(1. - vUv.y, 1.8) * (.13 + .03 * sin(time * 3. + vUv.x * 40.)); gl_FragColor = vec4(vec3(.1, .72, .88), a);
+        #include <colorspace_fragment>
+      }`,
+  }));
+  beam.position.y = (BASE + H) / 2 + 0.04; g.add(beam);
+  const delay = Math.max(20, A.delay || 60);
+  k.every((t) => {
+    const f = Math.floor(t * 1000 / delay) % A.frames;
+    U.off.value.set((f % A.cols) / A.cols, 1 - (Math.floor(f / A.cols) + 1) / A.rows);
+    U.time.value = t; BU.time.value = t;
+    panel.position.y = BASE + H / 2 + Math.sin(t * 1.3) * 0.025;
+    panel.rotation.y = Math.atan2(camera.position.x - x, camera.position.z - z);   // always faces you
+    ring.material.opacity = 0.75 + 0.2 * Math.sin(t * 4);
+  });
+  GALLERY.spots.push({ item, x, z, nx: 0, nz: 1, w: 1, round: true });
+  GALLERY.views.push({ x, z, nx: x > 0 ? -1 : 1, nz: 0, w: W, weight: 2, dist: 2.6 });
+}
+
 /* the gold statue: any Chonk you like, remembered in this browser */
 const STATUE_KEY = "chonkit-gallery-statue";
 const STATUE = { id: 1, style: "gold", vox: null, group: null, label: null, parent: null, mat: null };
@@ -1376,10 +1448,16 @@ async function loadGallery() {
   try { items = window.ChonkitGallery ? await ChonkitGallery.list() : []; } catch {}
   await Promise.all(items.map((it) => new Promise((res) => {
     it.url = URL.createObjectURL(it.blob); const img = new Image();
-    img.onload = () => { it.img = img; res(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
+    const sheet = () => {                               // ASCII pieces: every frame in one image, played on the wall
+      if (!it.anim?.sheet) return res();
+      const su = URL.createObjectURL(it.anim.sheet), si = new Image();
+      si.onload = () => { it.sheetImg = si; URL.revokeObjectURL(su); res(); }; si.onerror = () => { URL.revokeObjectURL(su); res(); }; si.src = su;
+    };
+    img.onload = () => { it.img = img; sheet(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
   })));
   GALLERY.all = items.filter((it) => it.img);
-  GALLERY.shown = GALLERY.all.slice(0, FRAMES);
+  GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg).slice(0, 3);   // up to three holograms on the sculpture stands
+  GALLERY.shown = GALLERY.all.filter((it) => !GALLERY.ascii.includes(it)).slice(0, FRAMES);
   renderGalleryList();
 }
 function renderGalleryList() {
@@ -1463,7 +1541,8 @@ function applyLocation(id, { keepPositions = false } = {}) {
   const L = LOCATIONS.find(l => l.id === id);
   if (locGroup) { scene.remove(locGroup); locGroup.traverse(o => {
     if (o.geometry && o.geometry !== BOX) o.geometry.dispose();
-    for (const m of [].concat(o.material || [])) { if (m === colourMat) continue; m.map?.dispose(); m.emissiveMap?.dispose(); m.dispose(); }
+    if (o.isSkinnedMesh) o.skeleton?.dispose();                    // the vitrine Chonks' bone data
+    for (const m of [].concat(o.material || [])) { if (m === colourMat) continue; m.map?.dispose(); m.emissiveMap?.dispose(); m.uniforms?.map?.value?.dispose?.(); m.dispose(); }
   }); }
   locGroup = new THREE.Group(); scene.add(locGroup);
   kit = new Kit(locGroup); loc = L;
@@ -2671,6 +2750,7 @@ function spotNear() {
   let best = null, bestD = Infinity;
   for (const sp of GALLERY.spots) {
     const dx = sel.pos.x - sp.x, dz = sel.pos.z - sp.z;
+    if (sp.round) { const d = Math.hypot(dx, dz); if (d > 0.4 && d < 2.6 && d < bestD) { bestD = d; best = sp; } continue; }   // a hologram stand: any side
     const along = dx * sp.nx + dz * sp.nz;                      // distance out from the wall
     const side = Math.abs(dx * sp.nz - dz * sp.nx);             // distance along the wall
     if (along < 0.2 || along > 3.2 || side > sp.w / 2 + 0.7) continue;
@@ -2702,7 +2782,7 @@ function updateDlPrompt(clear = false) {
 function fileName(title, ext = "jpg") { return "chonkit-" + (String(title || "mosaic").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "mosaic") + "." + ext; }
 async function downloadItem(item) {
   // the full-quality PNG saved with the mosaic (same as the mosaic maker's download); older entries only have the wall copy
-  const blob = item.full || item.blob, name = fileName(item.title, item.full ? "png" : "jpg");
+  const blob = item.full || item.blob, ext = /gif/.test(blob.type) ? "gif" : item.full ? "png" : "jpg", name = fileName(item.title, ext);
   const file = new File([blob], name, { type: blob.type || (item.full ? "image/png" : "image/jpeg") });
   if (document.body.classList.contains("touch") && navigator.canShare?.({ files: [file] })) {
     try { await navigator.share({ files: [file], title: shortTitle(item.title) }); return; } catch (e) { if (e?.name === "AbortError") return; }

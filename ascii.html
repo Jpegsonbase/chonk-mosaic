@@ -212,6 +212,8 @@ button,a,label,input,select{touch-action:manipulation}
 
       <h2>Export</h2>
       <button class="btn" id="gif">Download GIF</button>
+      <button class="btn ghost" id="toGallery">Add to Gallery as a hologram</button>
+      <p class="hint" id="galNote" hidden></p>
       <label class="f" for="frames"><span class="row">GIF frames per spin <b id="framesV">36</b></span>
         <input type="range" id="frames" min="12" max="72" step="6" value="36"></label>
       <div class="gifout" id="gifOut" hidden><img id="gifImg" alt="Spinning ASCII GIF of the current model"><p class="hint">Right-click or long-press the GIF to save it.</p></div>
@@ -746,7 +748,7 @@ const POSES = [
   const hexToRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
   const tick = () => new Promise(r => setTimeout(r, 0));
 
-  async function makeGif() {
+  async function makeGif(opts = {}) {
     if (!window.GifWriter) throw new Error('GIF encoder failed to load. Reload and try again.');
     const { cols, rows } = gridSize();
     const fc = document.createElement('canvas'), fx = fc.getContext('2d', { willReadFrequently: true });
@@ -796,6 +798,7 @@ const POSES = [
         else idx[j] = 1 + Math.round(r / 51) * 36 + Math.round(g / 51) * 6 + Math.round(b / 51);
       }
       gw.addFrame(0, 0, W, H, idx, { delay: delayCs });
+      if (opts.onFrame) opts.onFrame(fc, f, N, W, H, delayCs);
       setStatus(`Rendering GIF… frame ${f + 1} of ${N}`);
       await tick();
     }
@@ -804,6 +807,40 @@ const POSES = [
     if (rp) rig.pose(rigPose, rT0);
     return buf.slice(0, gw.end());
   }
+
+  // ---- Add to Gallery: the same spin, saved with every frame packed into one image so the 3D gallery
+  //      can play it as a hologram on a sculpture stand (and offer the GIF as its download) ----
+  $('toGallery').onclick = async () => {
+    const btn = $('toGallery'), note = $('galNote');
+    if (!window.ChonkitGallery || !ChonkitGallery.supported) { setStatus('This browser can’t keep a gallery.', true); return; }
+    btn.disabled = $('gif').disabled = true; busy = true; note.hidden = true;
+    try {
+      let sheet, sx, cols, rows, fw, fh, poster, delayMs = 60;
+      const bytes = await makeGif({ onFrame: (fc, f, N, W, H, delayCs) => {
+        if (!sheet) {
+          cols = Math.ceil(Math.sqrt(N)); rows = Math.ceil(N / cols);
+          const k = Math.min(1, 480 / W, 4096 / (cols * W), 4096 / (rows * H));     // each frame up to 480 px wide, sheet within 4096 px
+          fw = Math.max(1, Math.round(W * k)); fh = Math.max(1, Math.round(H * k));
+          sheet = document.createElement('canvas'); sheet.width = cols * fw; sheet.height = rows * fh; sx = sheet.getContext('2d');
+          sx.imageSmoothingQuality = 'high';
+          poster = document.createElement('canvas'); poster.width = W; poster.height = H; poster.getContext('2d').drawImage(fc, 0, 0);
+          delayMs = delayCs * 10;
+        }
+        sx.drawImage(fc, (f % cols) * fw, Math.floor(f / cols) * fh, fw, fh);
+      } });
+      setStatus('Hanging it in your gallery…');
+      const sheetBlob = await new Promise((res, rej) => sheet.toBlob(b => b ? res(b) : rej(new Error('Couldn’t pack the frames.')), 'image/png'));
+      const id = (current.name.match(/^chonk-(\d+)$/) || [])[1];
+      const title = id ? `Chonk #${id} ASCII` : `${current.name} ASCII`;
+      await ChonkitGallery.addCanvas(poster, { title, tiles: 0, full: new Blob([bytes], { type: 'image/gif' }),
+        anim: { sheet: sheetBlob, frames: ctl.frames, cols, rows, delay: delayMs, bg: ctl.bg } });
+      setStatus('');
+      note.innerHTML = 'Added to your gallery. It’s floating over a sculpture stand as a hologram. <a href="gallery.html">Go and see it →</a>';
+      note.hidden = false;
+    } catch (e) {
+      setStatus(e.message || 'Couldn’t add it to the gallery.', true);
+    } finally { btn.disabled = $('gif').disabled = false; busy = false; }
+  };
 
   let downloads = null;
   if (window.claude && claude.use) claude.use('downloads').then(d => downloads = d).catch(() => {});
@@ -831,6 +868,7 @@ const POSES = [
   };
 })();
 </script>
+<script src="gallery-store.js?v=5"></script>
 
 <footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="./">chonkit.xyz</a></footer>
 </body>
