@@ -1090,6 +1090,8 @@ const LOCATIONS = [
       k.solidBox(-1.8, 1.8, 7.4, 9.8, 0, 99);
       // the studio easel: "Paint me" -> Chonkit Studio
       buildEasel(k, 10.2, -1.6, -0.55);
+      // centre piece of the aisle: Three Chonks Divided
+      buildVitrine(k, VITRINE.x, VITRINE.z);
       // benches
       const benchTop = mat(0xa87b4f, { r: .7 }), steel = mat(0x8b939e, { m: .7, r: .35 });
       for (const [x, z] of [[-3.2, -6.2], [3.2, -6.2], [-9.5, 6.5], [9.5, 6.5]]) { k.box(benchTop, 2.2, 0.08, 0.5, x, 0.4, z, { solid: true, walk: true }); for (const dx of [-0.9, 0.9]) k.box(steel, 0.06, 0.4, 0.45, x + dx, 0, z); k.solidBox(x - 1.1, x + 1.1, z - 0.25, z + 0.25, 0, 0.48); }
@@ -1229,6 +1231,88 @@ function buildEasel(k, x, z, ry) {
   k.solidCircle(x, z, 0.55);
   GALLERY.spots.push({ kind: "easel", x, z, nx: Math.sin(ry), nz: Math.cos(ry), w: 1.1 });
   GALLERY.views.push({ x, z, nx: Math.sin(ry), nz: Math.cos(ry), w: 1.0, weight: 1.2, dist: 1.8 });
+}
+
+/* "Three Chonks Divided": a Hirst-style vitrine (after Jack Butcher's 1988) with three
+   Chonks floating in teal liquid, idling and drifting, with a few rising bubbles.
+   The Chonk model is models/chonk.glb (same rig and 0.075 voxel scale as the gallery's Chonks). */
+const VITRINE = { x: 0, z: -3.6 };
+let vitrineGLB = null;
+function buildVitrine(k, x, z) {
+  const S = 1.4;                                          // scale of the whole piece
+  const CELL_W = 1.0 * S, CELL_H = 1.32 * S, DEPTH = 0.9 * S, POST = 0.12 * S, BASE_H = 0.2 * S, RIM = 0.06 * S, N = 3;
+  const TOTAL_W = N * CELL_W + (N + 1) * POST, TOTAL_H = BASE_H + CELL_H + RIM;
+  const g = new THREE.Group(); g.position.set(x, 0, z); k.g.add(g);
+  const white = mat(0xfbfbfa, { r: 0.4 });
+  const box = (w, h, d, bx, by, bz) => { const m = new THREE.Mesh(BOX, white); m.scale.set(w, h, d); m.position.set(bx, by + h / 2, bz); m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
+  box(TOTAL_W, BASE_H, DEPTH, 0, 0, 0);                   // plinth
+  const cellX = [];
+  for (let i = 0; i <= N; i++) {
+    const px = -TOTAL_W / 2 + POST / 2 + i * (CELL_W + POST);
+    if (i === 0 || i === N) {                             // glass ends: slim corner posts and a top rail
+      const cp = 0.06 * S, ex = px + (i === 0 ? -1 : 1) * (POST - cp) / 2;
+      for (const sz of [1, -1]) box(cp, CELL_H + RIM, cp, ex, BASE_H, sz * (DEPTH / 2 - cp / 2));
+      box(cp, RIM, DEPTH, ex, TOTAL_H - RIM, 0);
+    } else box(POST, CELL_H + RIM, DEPTH, px, BASE_H, 0);  // white dividers
+    if (i < N) cellX.push(px + POST / 2 + CELL_W / 2);
+  }
+  const RIM_D = 0.05 * S;
+  box(TOTAL_W, RIM, RIM_D, 0, TOTAL_H - RIM, DEPTH / 2 - RIM_D / 2);
+  box(TOTAL_W, RIM, RIM_D, 0, TOTAL_H - RIM, -DEPTH / 2 + RIM_D / 2);
+  // liquid: lifted clear of the plinth (no z-fighting), inside faces drawn before outside faces
+  const LIFT = 0.012 * S, LIQ_H = CELL_H - 0.06 * S - LIFT, LIQ_D = DEPTH - 0.01;
+  const front = new THREE.MeshStandardMaterial({ color: 0x3fb29e, transparent: true, opacity: 0.55, depthWrite: false, roughness: 0.12 });
+  const back = new THREE.MeshLambertMaterial({ color: 0x3fb29e, transparent: true, opacity: 0.55, depthWrite: false, side: THREE.BackSide });
+  cellX.forEach((cx, i) => {
+    const ext = (i === 0 || i === N - 1) ? POST - 0.06 * S : 0;
+    const geo = new THREE.BoxGeometry(CELL_W - 0.005 + ext, LIQ_H, LIQ_D);
+    const px = cx + (i === 0 ? -ext / 2 : i === N - 1 ? ext / 2 : 0), py = BASE_H + LIFT + LIQ_H / 2;
+    for (const [m, ro] of [[back, 1], [front, 2]]) { const l = new THREE.Mesh(geo, m); l.position.set(px, py, 0); l.renderOrder = ro; g.add(l); }
+  });
+  // bubbles
+  const bMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, roughness: 0.05, depthWrite: false });
+  const bGeo = new THREE.SphereGeometry(1, 10, 8), bubbles = [], br = rng(11);
+  cellX.forEach((cx) => { for (let j = 0; j < 7; j++) {
+    const m = new THREE.Mesh(bGeo, bMat); m.scale.setScalar((0.008 + br() * 0.014) * S); m.renderOrder = 1.5; g.add(m);
+    bubbles.push({ m, x: cx + (br() - 0.5) * (CELL_W - 0.2 * S), z: (br() - 0.5) * (LIQ_D - 0.2 * S), off: br(), cycles: 1 + Math.floor(br() * 3), wob: br() * 6.28 });
+  } });
+  // label on the plinth front
+  plane(k, textTex([{ text: "Three Chonks Divided", size: 40, font: "Sora" }, { text: "after 1988 · glass, steel, Chonks, liquid", size: 24, font: "Sora" }],
+    { w: 768, h: 128, fg: "#3a3a3a" }), 1.5, 0.25, x, BASE_H / 2, z + DEPTH / 2 + 0.003, 0, { transparent: true });
+  k.solidBox(x - TOTAL_W / 2, x + TOTAL_W / 2, z - DEPTH / 2, z + DEPTH / 2, 0, TOTAL_H);
+  GALLERY.views.push({ x, z, nx: 0, nz: 1, w: TOTAL_W, weight: 2.5, dist: 4.2 });
+
+  // the three Chonks (shared model, loaded once)
+  const chonks = [];
+  vitrineGLB ||= Promise.all([import("three/addons/loaders/GLTFLoader.js"), import("three/addons/utils/SkeletonUtils.js")])
+    .then(([{ GLTFLoader }, SU]) => new Promise((res, rej) => new GLTFLoader().load("models/chonk.glb?v=1", (gl) => res({ gl, SU }), undefined, rej)));
+  vitrineGLB.then(({ gl, SU }) => {
+    const proto = gl.scene; proto.updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(proto, true), size = bb.getSize(new THREE.Vector3());
+    const targetH = CELL_H * 0.56, s = targetH / size.y, clip = gl.animations[0] || null;
+    cellX.forEach((cx, i) => {
+      const holder = new THREE.Group(), c = SU.clone(proto);
+      c.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+      c.scale.multiplyScalar(s);
+      c.position.set(-(bb.min.x + bb.max.x) / 2 * s, -bb.min.y * s - targetH / 2, -(bb.min.z + bb.max.z) / 2 * s);
+      holder.add(c); holder.position.set(cx, BASE_H + LIFT + LIQ_H / 2, 0); g.add(holder);
+      const e = { holder, baseY: holder.position.y, phase: i * Math.PI * 2 / 3, offset: i / N };
+      if (clip) { e.mixer = new THREE.AnimationMixer(c); e.action = e.mixer.clipAction(clip); e.action.play(); e.clip = clip; }
+      chonks.push(e);
+    });
+  }).catch((err) => console.warn("vitrine chonk model failed to load", err));
+
+  // driven by the scene clock, so the Tour recorder's frames stay in sync
+  const LOOP = 12;
+  k.every((t) => {
+    const u = (t / LOOP) % 1, lo = BASE_H + LIFT + 0.03 * S, span = LIQ_H - 0.08 * S;
+    for (const b of bubbles) { const p = (u * b.cycles * 2 + b.off) % 1; b.m.position.set(b.x + Math.sin(p * 12 + b.wob) * 0.012 * S, lo + p * span, b.z); b.m.visible = p < 0.97; }
+    for (const c of chonks) {
+      const a = u * Math.PI * 2 + c.phase;
+      c.holder.position.y = c.baseY + Math.sin(a) * 0.025 * S; c.holder.rotation.y = Math.sin(a) * 0.12;
+      if (c.mixer) { const d = c.clip.duration, n = Math.max(1, Math.round(LOOP / d)); c.mixer.setTime((((u + c.offset) % 1) * n * d) % d); }
+    }
+  });
 }
 
 /* the gold statue: any Chonk you like, remembered in this browser */
@@ -1960,8 +2044,8 @@ const TOUR_PATH = [
   [2.5, 2.0, -7.6], [-5.0, 2.0, -7.6], [-7.6, 2.0, -6.6], [-8.2, 2.0, -4.0],    // along the back wall, round the back-left corner
   [-8.2, 2.0, 2.6], [-7.6, 2.0, 4.6], [-5.0, 2.0, 5.2],                         // up the left side
   [5.0, 2.0, 5.2], [7.6, 2.0, 4.6], [8.2, 2.0, 2.6],                            // across the front, past the statue
-  [8.2, 2.0, -4.0], [7.6, 2.0, -6.6], [5.0, 2.0, -7.4], [1.8, 1.9, -7.0],       // down the right side and back along the back wall
-  [0, 1.8, -4.6], [0, 1.6, 0.5], [0, 1.35, 4.6],                                 // turn into the centre aisle and glide up to the statue
+  [8.2, 2.0, -4.0], [7.6, 2.0, -6.6], [5.0, 2.0, -7.4], [3.6, 1.95, -6.4],      // down the right side and back along the back wall
+  [3.5, 1.85, -3.4], [1.4, 1.65, 0.6], [0, 1.35, 4.6],                           // past the vitrine, into the centre aisle and up to the statue
 ];
 const TOUR_STATUE = [0, 3.3, 8.6];                    // where the camera ends up looking: the statue's head
 const TOUR_SECONDS = window.__tourSeconds || 20;      // (the override is only used by automated tests)
@@ -2662,7 +2746,7 @@ function syncVisitorVisibility() { const hide = visitorsHidden(); for (const v o
 const L = (x, z, lx, lz, t = [4, 9]) => ({ x, z, look: [lx, lz], t });
 const W = (x, z) => ({ x, z });
 const ROUTE_MIDDLE = [                      // between the partitions: the two inner paintings and the statue
-  L(-3.9, -1.5, -5.8, -1.5), L(3.9, -1.5, 5.8, -1.5), L(1.5, 5.9, 0, 8.6, [3, 6]),
+  L(-3.9, -1.5, -5.8, -1.5), L(-0.9, -2.0, -0.5, -3.6, [4, 8]), L(3.9, -1.5, 5.8, -1.5), L(1.5, 5.9, 0, 8.6, [3, 6]),
 ];
 const ROUTE_OUTER = [                       // clockwise around the outside, every painting + statue + easel
   L(-1.3, 5.5, 0, 8.6, [3, 6]), W(-6, 5.4), W(-11.4, 5.2),
