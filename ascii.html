@@ -96,6 +96,9 @@ select,input[type=text]{width:100%;font:inherit;padding:9px 11px;border-radius:1
 .left{display:grid;gap:18px;min-width:0}
 .look{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 24px;font-size:14px}
 .look .col{display:grid;gap:12px;align-content:start;min-width:0}
+.look-foot{grid-column:1/-1;display:flex;justify-content:flex-end}
+.look-foot .btn{width:auto;padding:9px 16px}
+@media (max-width:760px){.look-foot .btn{width:100%}}
 .look h2{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 0}
 @media (max-width:1060px){.look{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:760px){
@@ -186,6 +189,7 @@ button,a,label,input,select{touch-action:manipulation}
             <button class="pre" data-bg="#2a1f6b" data-ink="#ffd84a" style="--b:#2a1f6b;--i:#ffd84a">Chonk</button>
           </div>
         </div>
+        <div class="look-foot"><button class="btn ghost" id="reset" type="button">Reset to default settings</button></div>
       </section>
     </div>
     <aside class="rail">
@@ -626,6 +630,20 @@ const POSES = [
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)');
   if (reduce.matches) { ctl.spin = false; $('spin').checked = false; }
+
+  // ---- reset to default settings: a snapshot of every control as the page loaded ----
+  const DEF_IDS = ['pan', 'zoom', 'cols', 'ramp', 'custom', 'contrast', 'light', 'mode', 'ink', 'bg', 'frames', 'spin', 'reverse', 'invert'];
+  const defaults = Object.fromEntries(DEF_IDS.map(id => { const el = $(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
+  $('reset').onclick = () => {
+    for (const id of DEF_IDS) {
+      const el = $(id);
+      if (el.type === 'checkbox') { el.checked = defaults[id]; ctl[id] = el.checked; } else el.value = defaults[id];
+      el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change'));
+    }
+    syncRamp(); syncColours();
+    pivot.rotation.set(0.12, 0.6, 0);                      // straighten the view too
+    setStatus('Settings reset to default.');
+  };
 
   // ---- ASCII grid: render the model at one pixel per character ----
   function gridSize() {
