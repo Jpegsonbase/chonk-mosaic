@@ -1123,6 +1123,10 @@ const LOCATIONS = [
       buildEasel(k, 10.2, -1.6, -0.55);
       // Three Chonks Divided: against the end wall, beside the gold statue, facing into the room
       buildVitrine(k, VITRINE.x, VITRINE.z, VITRINE.ry);
+      // its plaque, on the wall just to the statue side of the vitrine (its left as you face it)
+      k.box(mat(0x2a2620, { m: .55, r: .35 }), 0.8, 0.38, 0.025, -4.86, 1.16, 9.985);
+      plane(k, textTex([{ text: "Inspired by Jack Butcher", size: 46, font: "Sora", weight: 600 }, { text: "1988", size: 34, font: "Sora" }],
+        { w: 768, h: 320, bg: "#2a2620", fg: "#e9c27c" }), 0.74, 0.32, -4.86, 1.35, 9.97, PI, { r: 0.5 });
       // ...and the Chonk-O-Mat on the other side of the statue
       buildVendingMachine(k);
       // its plaque, on the wall just to the statue side of the machine
