@@ -705,6 +705,7 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
 /* the empty wall's Chonk face, built from real Chonks (home.js) */
 .empty .face { grid-template-columns: repeat(11, 26px); gap: 3px; }
 .empty .face b { width: 26px; height: 26px; border-radius: 5px; }
+.empty .face { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .empty .face b.chonk {
   background-image: url("img/face-chonks.webp"); background-size: 1100% 700%;
   image-rendering: pixelated;
@@ -757,7 +758,7 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
 @media (pointer: coarse) { input[type=text], input[type=number], input[type=search], input:not([type]), select, textarea { font-size: 16px !important; } }
 </style>
 <link rel="stylesheet" href="theme-halloween.css?v=6">
-<script src="halloween.js?v=1"></script>
+<script src="halloween.js?v=2"></script>
 </head>
 <body>
 <div class="wrap">
@@ -1098,6 +1099,6 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
 <script src="gif.js?v=42"></script>
 <script src="gallery-store.js?v=5"></script>
 <script src="app.js?v=43"></script>
-<script src="home.js?v=4"></script>
+<script src="home.js?v=5"></script>
 </body>
 </html>

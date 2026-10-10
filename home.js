@@ -4,11 +4,11 @@
 // A seasonal script can swap the artwork by setting window.CHONKIT_HERO_ART first.
 (() => {
   const ART = window.CHONKIT_HERO_ART || [
-    { src: "img/hero/chonk-15064.webp", big: "img/hero/chonk-15064-big.webp", w: 1024, h: 1024,
+    { src: "img/hero/chonk-15064.webp", sm: "img/hero/chonk-15064-640.webp", mid: "img/hero/chonk-15064-mid.webp", big: "img/hero/chonk-15064-big.webp", w: 1024, h: 1024,
       title: "Chonk #15064", line: "4,096 Chonks, 274 different", focus: [0.4, 0.43], across: 64, down: 64, unique: 274, file: "chonk-15064.png" },
-    { src: "img/hero/chonk-13.webp", big: "img/hero/chonk-13-big.webp", w: 1024, h: 1024,
+    { src: "img/hero/chonk-13.webp", sm: "img/hero/chonk-13-640.webp", mid: "img/hero/chonk-13-mid.webp", big: "img/hero/chonk-13-big.webp", w: 1024, h: 1024,
       title: "Chonk #13", line: "4,096 Chonks, 435 different", focus: [0.42, 0.32], across: 64, down: 64, unique: 435, file: "chonk-13.png" },
-    { src: "img/hero/chonk-1.webp", big: "img/hero/chonk-1-big.webp", w: 1024, h: 1024,
+    { src: "img/hero/chonk-1.webp", sm: "img/hero/chonk-1-640.webp", mid: "img/hero/chonk-1-mid.webp", big: "img/hero/chonk-1-big.webp", w: 1024, h: 1024,
       title: "Chonk #1", line: "4,096 Chonks, 341 different", focus: [0.42, 0.46], across: 64, down: 64, unique: 341, file: "chonk-1.png" },
   ];
   const ZOOM = 4;   // how much closer the window looks than the picture
@@ -20,6 +20,10 @@
   const art = ART[Math.floor(Math.random() * ART.length)];
   pic.width = art.w; pic.height = art.h;
   pic.alt = art.alt || `${art.title}, rebuilt from Chonks`;
+  if (art.sm) {
+    pic.srcset = `${art.sm} ${art.smW || 640}w, ${art.src} ${art.w}w`;
+    pic.sizes = "(max-width: 900px) 90vw, 45vw";
+  }
   pic.src = art.src;
   canvas.style.aspectRatio = `${art.w} / ${art.h}`;
   $("heroTitle").textContent = art.title;
@@ -28,14 +32,20 @@
   if (hint) hint.textContent = matchMedia("(hover: hover)").matches
     ? "Move over the picture to look closer" : "Tap the picture to look closer";
 
+  // Phones get a lighter close-up picture (about half the size).
+  const small = matchMedia("(max-width: 700px)").matches;
+  const touch = matchMedia("(hover: none)").matches;
+  const closeUp = (small && art.mid) || art.big;
+  const shown = () => pic.currentSrc || art.src;
   view.style.backgroundImage = `url("${art.src}")`;
+  pic.addEventListener("load", () => { if (!bigLoaded) view.style.backgroundImage = `url("${shown()}")`; });
   let bigLoaded = false;
   function loadBig() {
-    if (bigLoaded || !art.big) return;
+    if (bigLoaded || !closeUp) return;
     bigLoaded = true;
     const im = new Image();
-    im.onload = () => { view.style.backgroundImage = `url("${art.big}"), url("${art.src}")`; };
-    im.src = art.big;
+    im.onload = () => { view.style.backgroundImage = `url("${closeUp}"), url("${shown()}")`; };
+    im.src = closeUp;
   }
 
   let fx = art.focus ? art.focus[0] : 0.5, fy = art.focus ? art.focus[1] : 0.5;
@@ -73,7 +83,7 @@
   addEventListener("resize", draw);
   if (pic.complete) draw(); else pic.addEventListener("load", draw);
   // Fetch the sharp close-up once the page has settled.
-  addEventListener("load", () => setTimeout(loadBig, 1500), { once: true });
+  addEventListener("load", () => setTimeout(loadBig, touch ? 2500 : 1500), { once: true });
 
   // Script console: types out the real matching code from mosaic-core.js,
   // then replays how the framed picture was built.
@@ -226,5 +236,11 @@
   }, { threshold: [0, 0.6] }).observe(face);
   sprite.addEventListener("load", () => { if (onScreen && !lastFlip) go(); });
   setInterval(() => { if (Date.now() - lastFlip >= EVERY - 500) go(); }, 1000);
+  // Tap or click the face to flip it straight away.
+  face.addEventListener("click", () => {
+    if (!ready || busy) return;
+    lastFlip = Date.now();
+    flip(!showing);
+  });
   window.__chonkFaceFlip = flip;   // for testing
 })();
