@@ -100,7 +100,7 @@
 
 /* Halloween title font: BatFont by J.F.Y. Daniel Gauthier (GautFonts), freeware */
 @font-face { font-family: "BatFont"; src: url("fonts/batfont.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
-:root { --display: "BatFont", "Sangyo", "Arial Black", sans-serif; }
+:root { --display: "BatFont", "Type Light Sans", "Arial Black", sans-serif; }
 
 /* Orange "Chonks." in the homepage headline */
 .hero h1 .hl { color: var(--blue); }
