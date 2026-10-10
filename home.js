@@ -105,8 +105,9 @@
   setTimeout(update, 500);   // after saved settings are restored
 })();
 
-// Empty wall: the Chonk face. Every 30 seconds its squares flip over in a
-// wave and turn into real Chonks of the same colours, then flip back.
+// Empty wall: the Chonk face. When it scrolls into view its squares flip over
+// in a wave and turn into real Chonks of the same colours, then flip back
+// after 6 seconds, and again every 30 seconds while it stays on screen.
 (() => {
   const face = document.getElementById("emptyFace");
   if (!face) return;
@@ -142,13 +143,21 @@
     });
     showing = toChonks;
   }
-  // Only flip while the face is on screen and the tab is open.
-  let onScreen = false;
-  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }).observe(face);
-  setInterval(() => {
+  // Flip as soon as the face scrolls into view, show the Chonks for 6 seconds,
+  // flip back, then again every 30 seconds while it stays on screen.
+  let onScreen = false, lastFlip = 0;
+  function go() {
     if (!ready || busy || showing || !onScreen || document.hidden || !face.offsetParent) return;
+    lastFlip = Date.now();
     flip(true);
     setTimeout(() => { if (showing) flip(false); }, SHOW);
-  }, EVERY);
+  }
+  new IntersectionObserver(([e]) => {
+    const was = onScreen;
+    onScreen = e.isIntersecting && e.intersectionRatio >= 0.6;
+    if (onScreen && !was && Date.now() - lastFlip > SHOW + 4000) go();
+  }, { threshold: [0, 0.6] }).observe(face);
+  sprite.addEventListener("load", () => { if (onScreen && !lastFlip) go(); });
+  setInterval(() => { if (Date.now() - lastFlip >= EVERY - 500) go(); }, 1000);
   window.__chonkFaceFlip = flip;   // for testing
 })();
