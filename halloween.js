@@ -3,12 +3,16 @@
 // Switches itself off at midnight on 1 November (visitor's own time): the
 // Halloween stylesheet is disabled and the pumpkin and bats are skipped, so
 // the normal look comes back without anyone editing the site.
-// Add ?halloween=on or ?halloween=off to the address to preview either look.
+// Add ?halloween=on or ?halloween=off to the address to preview either look;
+// it sticks for the rest of that tab.
 (() => {
   const ENDS = new Date(2026, 10, 1);   // 1 November 2026, 00:00
   let on = new Date() < ENDS;
+  // The choice is remembered while you click around in the same tab.
   try {
-    const q = new URLSearchParams(location.search).get("halloween");
+    let q = new URLSearchParams(location.search).get("halloween");
+    if (q === "on" || q === "off") sessionStorage.setItem("chonkit-halloween", q);
+    else q = sessionStorage.getItem("chonkit-halloween");
     if (q === "on") on = true;
     if (q === "off") on = false;
   } catch (_) {}
