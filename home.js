@@ -165,15 +165,16 @@
   if (!sum) return;
   const on = (id) => document.querySelector(`#${id} button.on`)?.textContent.trim();
   function update() {
-    const gap = on("gap"), src = on("source");
+    const gap = on("gap"), pool = on("pool");
     const parts = [
       document.getElementById("varOut")?.textContent.trim() + " variety",
       gap === "None" ? "no gaps" : gap,
-      src === "Fast" ? "saved art" : src,
+      pool,
     ].filter(Boolean);
-    sum.textContent = parts.map((p, i) => i ? p.toLowerCase() : p[0].toUpperCase() + p.slice(1)).join(", ");
+    const soft = (p) => p.replace(/^(\w)(\w*)/, (m, a, b) => a.toLowerCase() + b);   // "From a wallet" -> "from a wallet", keeps "Chonks"
+    sum.textContent = parts.map((p, i) => i ? soft(p) : p[0].toUpperCase() + p.slice(1)).join(", ");
   }
-  ["variety", "gap", "source"].forEach((id) => {
+  ["variety", "gap", "pool"].forEach((id) => {
     const n = document.getElementById(id);
     n?.addEventListener("input", () => setTimeout(update));
     n?.addEventListener("click", () => setTimeout(update));

@@ -849,22 +849,16 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: #C9A8FF">5</span>Chonks to use</div>
-        <div class="seg" id="pool">
-          <button data-v="all" class="on">All Chonks</button>
-          <button data-v="wallet">From a wallet</button>
+        <div class="step-head"><span class="n" style="--c: #C9A8FF">5</span>Art source</div>
+        <div class="seg" id="source">
+          <button data-v="atlas" class="on">Fast</button>
+          <button data-v="chain">Onchain live</button>
         </div>
-        <div class="wallet-row" id="walletRow" hidden>
-          <div class="row">
-            <input type="text" id="wallet" placeholder="0x… address, name.eth or name.base.eth" aria-label="Wallet address or ENS name" autocomplete="off" spellcheck="false">
-            <button class="btn quiet" id="walletGo" type="button">Load</button>
-          </div>
-        </div>
-        <div class="note" id="poolNote">Picks from the whole collection.</div>
+        <div class="note" id="sourceNote">Uses saved Chonk images. Instant.</div>
       </div>
 
       <details class="more" id="styleOpts">
-        <summary>Style options<span class="sum-val" id="styleSum">Variety, spacing, art source</span></summary>
+        <summary>Style options<span class="sum-val" id="styleSum">Variety, spacing, Chonks to use</span></summary>
         <div class="more-body">
       <div>
         <div class="step-head">Variety<span class="val" id="varOut">balanced</span></div>
@@ -881,12 +875,18 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
         <div class="note" id="gapNote">Chonks sit edge to edge.</div>
       </div>
       <div>
-        <div class="step-head">Art source</div>
-        <div class="seg" id="source">
-          <button data-v="atlas" class="on">Fast</button>
-          <button data-v="chain">Onchain live</button>
+        <div class="step-head">Chonks to use</div>
+        <div class="seg" id="pool">
+          <button data-v="all" class="on">All Chonks</button>
+          <button data-v="wallet">From a wallet</button>
         </div>
-        <div class="note" id="sourceNote">Uses saved Chonk images. Instant.</div>
+        <div class="wallet-row" id="walletRow" hidden>
+          <div class="row">
+            <input type="text" id="wallet" placeholder="0x… address, name.eth or name.base.eth" aria-label="Wallet address or ENS name" autocomplete="off" spellcheck="false">
+            <button class="btn quiet" id="walletGo" type="button">Load</button>
+          </div>
+        </div>
+        <div class="note" id="poolNote">Picks from the whole collection.</div>
       </div>        </div>
       </details>
 
@@ -1086,6 +1086,6 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
 <script src="gif.js?v=42"></script>
 <script src="gallery-store.js?v=5"></script>
 <script src="app.js?v=43"></script>
-<script src="home.js?v=5"></script>
+<script src="home.js?v=6"></script>
 </body>
 </html>
