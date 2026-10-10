@@ -180,9 +180,6 @@
     font-size: clamp(36px, 5.4vw, 72px); line-height: 1.02; margin: 0 0 22px;
   }
   .hero p { font-size: 19px; color: var(--muted); max-width: 46ch; margin: 0 0 28px; }
-  .hero-facts { display: flex; gap: 28px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
-  .hero-facts span { display: inline-flex; align-items: center; gap: 8px; }
-  .hero-facts span::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
   @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding-bottom: 40px; } }
 
   /* ---------- studio ---------- */
@@ -489,7 +486,6 @@
     .viewport:not([hidden]) { margin-bottom: 56px; }
   }
   @media (max-width: 700px) {
-    .hero-facts { flex-direction: column; gap: 8px; }
     .wall { min-height: 0; padding: 14px; border-radius: 20px; }
     .viewer { grid-template-columns: 96px 1fr; gap: 14px; }
     .viewer .art { width: 96px; height: 96px; border-radius: 14px; font-size: 13px; }
@@ -561,13 +557,6 @@
 .hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
 .hero-cta .btn { width: auto; padding: 15px 26px; font-size: 17px; }
 .hero-cta a.btn { display: inline-flex; align-items: center; text-decoration: none; color: #fff; }
-.hero-facts { list-style: none; margin: 0; padding: 0; gap: 10px; }
-.hero-facts li {
-  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px;
-  border: 2px solid var(--edge); border-radius: 999px; background: var(--surface);
-  font-size: 14px; font-weight: 600; color: var(--ink);
-}
-.hero-facts li::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); box-shadow: inset 0 0 0 2px var(--edge); }
 
 /* the framed artwork */
 .art-frame { position: relative; margin: 0 28px 0 0; transform: rotate(1.4deg); }
@@ -608,7 +597,6 @@
   .placard { left: -6px; bottom: -40px; }
 }
 @media (max-width: 700px) {
-  .hero-facts { flex-direction: row; }
   .hero h1 { font-size: clamp(42px, 13vw, 60px); }
   .hero p { font-size: 17px; }
   .hero-cta .btn { flex: 1 1 auto; justify-content: center; text-align: center; }
@@ -754,6 +742,9 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
 @media (max-width: 640px) { .term-out { font-size: 11.5px; padding: 12px; } .term-btn { left: -8px; top: -14px; } }
 @media (prefers-reduced-motion: reduce) { .term-out .cur { animation: none; } }
 
+.hero .hero-note { display: flex; align-items: center; gap: 10px; margin: 0; font-size: 15px; font-weight: 600; color: var(--muted); }
+.hero .hero-note::before { content: ""; flex: none; width: 12px; height: 12px; border-radius: 3px; background: var(--yellow); box-shadow: inset 0 0 0 2px var(--edge); }
+
 /* iPhone: stop Safari zooming in on text boxes (it left people stuck zoomed in) and on double-taps */
 @media (pointer: coarse) { input[type=text], input[type=number], input[type=search], input:not([type]), select, textarea { font-size: 16px !important; } }
 </style>
@@ -787,11 +778,7 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
         <a class="btn" href="#studio">Make a mosaic</a>
         <button class="btn quiet" id="heroTry" type="button">Try an example</button>
       </div>
-      <ul class="hero-facts">
-        <li style="--c: var(--yellow)">Art read from the contract</li>
-        <li style="--c: var(--pink)">Runs in your browser</li>
-        <li style="--c: var(--mint)">Free, no wallet needed</li>
-      </ul>
+      <p class="hero-note">Art read from the contract</p>
     </div>
     <figure class="art-frame">
       <div class="art-mat">
