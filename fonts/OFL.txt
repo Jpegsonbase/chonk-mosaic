@@ -1,0 +1,7 @@
+Sangyo — Copyright (c) 2024 GGBotNet (https://ggbot.net)
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This license is available with a FAQ at: https://scripts.sil.org/OFL
+
+sangyo.woff2 is a subset of the original Sangyo font (Latin characters only),
+converted to WOFF2 for the web. It is used unmodified otherwise.

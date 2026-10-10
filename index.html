@@ -34,7 +34,9 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:ital,wght@0,400;0,500;0,700;1,500&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/sangyo.woff2" as="font" type="font/woff2" crossorigin>
+<style>@font-face { font-family: "Sangyo"; src: url("fonts/sangyo.woff2") format("woff2"); font-weight: 400 900; font-display: swap; } html { font-synthesis-weight: none; }</style>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:ital,wght@0,400;0,500;0,700;1,500&display=swap" rel="stylesheet">
 <style>
   :root {
     --paper: #FAFBFF;
@@ -61,7 +63,7 @@
     --shadow: rgba(14, 18, 48, .35);
     --shadow-soft: rgba(14, 18, 48, .14);
     --chip1: #E5EDFF; --chip2: #FFE3F1; --chip3: #FFF3D1; --chip4: #D9F8EE;
-    --display: "Unbounded", "Arial Black", sans-serif;
+    --display: "Sangyo", "Arial Black", sans-serif;
     --body: "Manrope", system-ui, sans-serif;
     color-scheme: light;
   }
@@ -127,7 +129,7 @@
   /* ---------- nav ---------- */
   nav { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 0; }
   @media (max-width: 440px) { .logo .logo-text { display: none; } }
-  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; font-size: 18px; text-decoration: none; color: var(--ink); }
+  .logo { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; font-size: 22px; text-decoration: none; color: var(--ink); }
   .logo i { display: grid; grid-template-columns: repeat(11, 4px); gap: 0; }
   .logo i b { width: 4px; height: 4px; }
   .logo i .y { background: #FDCB58; }

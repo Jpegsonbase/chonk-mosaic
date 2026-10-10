@@ -14,7 +14,9 @@
 <link rel="manifest" href="site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="preload" href="fonts/sangyo.woff2" as="font" type="font/woff2" crossorigin>
+<style>@font-face { font-family: "Sangyo"; src: url("fonts/sangyo.woff2") format("woff2"); font-weight: 400 900; font-display: swap; } html { font-synthesis-weight: none; }</style>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script>
   try { var t = localStorage.getItem("chonk-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
 </script>
@@ -23,7 +25,7 @@
 :root{
   --paper:#FAFBFF; --surface:#FFFFFF; --ink:#0E1230; --muted:#5B6185; --line:#E3E6F2; --soft:#F1F3FB; --quiet-hover:#E4E8F7;
   --blue:#0052FF; --yellow:#FFC93C;
-  --display:"Unbounded","Arial Black",sans-serif; --body:"Manrope",system-ui,sans-serif;
+  --display:"Sangyo","Arial Black",sans-serif; --body:"Manrope",system-ui,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
   /* names the tool below uses */
   --bg:var(--paper); --panel:var(--surface); --fg:var(--ink); --accent:var(--blue); --accent-ink:#ffffff; --stage:#14111c;
@@ -38,7 +40,7 @@
 html,body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--body)}
 a{color:var(--blue)}
 header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px clamp(16px,3vw,32px)}
-.logo{display:flex;align-items:center;gap:10px;font:800 18px var(--display);color:var(--ink);text-decoration:none}
+.logo{display:flex;align-items:center;gap:10px;font:800 22px var(--display);color:var(--ink);text-decoration:none}
 .logo .sq{width:22px;height:22px;border-radius:6px;background:var(--yellow);box-shadow:inset -4px -4px 0 #E8A91F}
 .logo small{font:500 13px var(--body);color:var(--muted)}
 @media (max-width:440px){.logo .logo-text{display:none}}
