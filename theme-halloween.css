@@ -121,3 +121,16 @@
   .hero-art .hero-zoom img { border-radius: 7px; }
   .hero-art .hero-zoom span { font-size: 11px; padding-top: 5px; }
 }
+
+/* Bats that fly across the homepage on load (halloween-bats.js) */
+:root { --bat: #2A1B3D; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bat: #7E5DB8; } }
+:root[data-theme="dark"] { --bat: #7E5DB8; }
+.bat-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; overflow: hidden; }
+.bat { position: absolute; left: 0; top: 0; will-change: transform; }
+.bat svg { display: block; width: 100%; height: auto; fill: var(--bat); overflow: visible; }
+.bat .bat-wing { animation: bat-flap var(--flap, .2s) ease-in-out infinite alternate; }
+@keyframes bat-flap {
+  from { transform: rotate(28deg) scaleY(1); }
+  to { transform: rotate(-22deg) scaleY(.55); }
+}
