@@ -105,44 +105,50 @@
   setTimeout(update, 500);   // after saved settings are restored
 })();
 
-// Empty wall: the Chonk face is made of real Chonks. They start as a jumbled
-// mess and fly into place as you scroll down to the wall.
+// Empty wall: the Chonk face. Every 30 seconds its squares flip over in a
+// wave and turn into real Chonks of the same colours, then flip back.
 (() => {
   const face = document.getElementById("emptyFace");
   if (!face) return;
   const cells = [...face.children].filter((b) => !b.classList.contains("o"));
-  const COLS = 11;
+  const COLS = 11, EVERY = 30000, SHOW = 6000;
+  const cols = [...face.children].map((b, i) => i % COLS);
+  const rowsOf = [...face.children].map((b, i) => Math.floor(i / COLS));
+  const order = [...face.children].map((b, i) => (b.classList.contains("o") ? -1 : cols[i] + rowsOf[i]));
   cells.forEach((b, k) => {
     b.style.backgroundPosition = `${(k % COLS) * 10}% ${Math.floor(k / COLS) * (100 / 6)}%`;
   });
+  let ready = false;
   const sprite = new Image();
-  sprite.onload = () => face.classList.add("chonked");
+  sprite.onload = () => { ready = true; };
   sprite.src = "img/face-chonks.webp";
 
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-  const rnd = (a, b) => a + Math.random() * (b - a);
-  const bits = cells.map(() => ({
-    dx: rnd(-1, 1), dy: rnd(-0.5, 1), rot: rnd(-140, 140), s: rnd(0.5, 1.1), delay: rnd(0, 0.35),
-  }));
-  const ease = (t) => 1 - Math.pow(1 - t, 3);
-  let last = -1, queued = false;
-  function frame() {
-    queued = false;
-    if (!face.offsetParent) return;                 // the wall is showing a mosaic
-    const r = face.getBoundingClientRect(), vh = innerHeight;
-    // 0 when the face peeks in at the bottom, 1 once it reaches the middle of the screen
-    const p = Math.min(Math.max((vh - r.top) / (vh * 0.5 + r.height / 2), 0), 1);
-    if (Math.abs(p - last) < 0.002) return;
-    last = p;
-    const spread = Math.max(140, r.width * 0.8);
-    cells.forEach((b, i) => {
-      const t = bits[i], e = ease(Math.min(Math.max((p - t.delay) / 0.65, 0), 1)), k = 1 - e;
-      b.style.transform = k < 0.001 ? "" :
-        `translate(${t.dx * spread * k}px, ${t.dy * spread * k}px) rotate(${t.rot * k}deg) scale(${1 + (t.s - 1) * k})`;
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let showing = false, busy = false;
+  function flip(toChonks) {
+    busy = true;
+    const kids = [...face.children];
+    let left = cells.length;
+    kids.forEach((b, i) => {
+      if (order[i] < 0) return;
+      const delay = order[i] * 55;
+      if (still) { setTimeout(() => { b.classList.toggle("chonk", toChonks); if (--left === 0) busy = false; }, delay); return; }
+      const half = { duration: 160, delay, easing: "ease-in", fill: "forwards" };
+      b.animate([{ transform: "perspective(200px) rotateY(0deg)" }, { transform: "perspective(200px) rotateY(90deg)" }], half).onfinish = () => {
+        b.classList.toggle("chonk", toChonks);
+        b.animate([{ transform: "perspective(200px) rotateY(-90deg)" }, { transform: "perspective(200px) rotateY(0deg)" }],
+          { duration: 200, easing: "ease-out", fill: "forwards" }).onfinish = () => { if (--left === 0) busy = false; };
+      };
     });
+    showing = toChonks;
   }
-  const queue = () => { if (!queued) { queued = true; requestAnimationFrame(frame); } };
-  addEventListener("scroll", queue, { passive: true });
-  addEventListener("resize", queue);
-  frame();
+  // Only flip while the face is on screen and the tab is open.
+  let onScreen = false;
+  new IntersectionObserver(([e]) => { onScreen = e.isIntersecting; }).observe(face);
+  setInterval(() => {
+    if (!ready || busy || showing || !onScreen || document.hidden || !face.offsetParent) return;
+    flip(true);
+    setTimeout(() => { if (showing) flip(false); }, SHOW);
+  }, EVERY);
+  window.__chonkFaceFlip = flip;   // for testing
 })();
