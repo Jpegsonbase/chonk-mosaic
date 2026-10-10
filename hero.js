@@ -6,8 +6,8 @@
   const ART = window.CHONKIT_HERO_ART || [
     { src: "img/hero/chonk-15064.webp", big: "img/hero/chonk-15064-big.webp", w: 1024, h: 1024,
       title: "Chonk #15064", line: "4,096 Chonks, 274 different", focus: [0.4, 0.43] },
-    { src: "img/hero/chonk-75190.webp", big: "img/hero/chonk-75190-big.webp", w: 1024, h: 1024,
-      title: "Chonk #75190", line: "4,096 Chonks, 1,084 different", focus: [0.42, 0.43] },
+    { src: "img/hero/chonk-13.webp", big: "img/hero/chonk-13-big.webp", w: 1024, h: 1024,
+      title: "Chonk #13", line: "4,096 Chonks, 435 different", focus: [0.42, 0.32] },
     { src: "img/hero/chonk-1.webp", big: "img/hero/chonk-1-big.webp", w: 1024, h: 1024,
       title: "Chonk #1", line: "4,096 Chonks, 341 different", focus: [0.42, 0.46] },
   ];
