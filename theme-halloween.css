@@ -100,3 +100,7 @@
 
 /* Pumpkin mosaic in the homepage hero */
 .hero-art .hero-pic { width: 100%; height: 100%; display: block; object-fit: cover; }
+
+/* Halloween title font: BatFont by J.F.Y. Daniel Gauthier (GautFonts), freeware */
+@font-face { font-family: "BatFont"; src: url("fonts/batfont.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
+:root { --display: "BatFont", "Sangyo", "Arial Black", sans-serif; }
