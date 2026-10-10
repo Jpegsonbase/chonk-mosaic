@@ -134,3 +134,12 @@
   from { transform: rotate(28deg) scaleY(1); }
   to { transform: rotate(-22deg) scaleY(.55); }
 }
+
+/* Daily Chonk promo card: purple instead of blue */
+.promo {
+  background: radial-gradient(120% 140% at 0% 0%, #6A2FD0 0%, #170B28 58%), #170B28;
+  box-shadow: 0 20px 40px -24px rgba(23, 11, 40, .6);
+}
+.promo::after { background: conic-gradient(from 0deg, #9B5CFF, #FF8A1F, #B48CFF, #7B3FE4, #9B5CFF); }
+.promo:hover { box-shadow: 0 26px 48px -22px rgba(123, 63, 228, .6); }
+.promo .promo-cta { color: #170B28; }
