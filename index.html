@@ -35,7 +35,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" href="fonts/sangyo.woff2" as="font" type="font/woff2" crossorigin>
-<style>@font-face { font-family: "Sangyo"; src: url("fonts/sangyo.woff2") format("woff2"); font-weight: 400 900; font-display: swap; } html { font-synthesis-weight: none; }</style>
+<style>@font-face { font-family: "Sangyo"; src: url("fonts/sangyo.woff2") format("woff2"); font-weight: 400 900; font-display: swap; } html { font-synthesis-weight: none; }  .logo .logo-mark { display: block; flex: none; width: 44px; height: 28px; }
+  .logo .logo-mark.hat { display: none; width: 40px; height: 44px; }
+</style>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:ital,wght@0,400;0,500;0,700;1,500&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -181,16 +183,6 @@
   .hero-facts { display: flex; gap: 28px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
   .hero-facts span { display: inline-flex; align-items: center; gap: 8px; }
   .hero-facts span::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
-  .hero-art {
-    position: relative; border-radius: 28px; overflow: hidden; aspect-ratio: 4 / 3;
-    background: var(--soft); box-shadow: 0 30px 60px -30px var(--shadow);
-  }
-  #hero { width: 100%; height: 100%; display: block; image-rendering: pixelated; opacity: 0; transition: opacity .9s ease; }
-  #hero.on { opacity: 1; }
-  .hero-art figcaption {
-    position: absolute; left: 16px; bottom: 16px; background: var(--glass); backdrop-filter: blur(8px);
-    padding: 8px 14px; border-radius: 999px; font-size: 13px; font-weight: 500;
-  }
   @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding-bottom: 40px; } }
 
   /* ---------- studio ---------- */
@@ -525,16 +517,201 @@
   dialog#nameDialog label.f { font-size: 14px; font-weight: 600; color: var(--muted); gap: 6px; }
   dialog#nameDialog input[type=text] { font-size: 16px; }
 
+/* =====================================================================
+   Chonky refresh: thick outlines and solid shadows, like the 1px outlines
+   in the Chonk art itself. Buttons are keys you press down. The mosaic
+   hangs in a real frame with a museum placard.
+   ===================================================================== */
+:root {
+  --paper: #F1F3FA; --wall: #E3E7F3;
+  --edge: #12142B; --pop: #12142B; --frame: #12142B;
+  --line: #D9DDEC;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1024; --wall: #12152C;
+  --edge: #3A427A; --pop: #262C58; --frame: #05060F;
+} }
+:root[data-theme="dark"] {
+  --paper: #0D1024; --wall: #12152C;
+  --edge: #3A427A; --pop: #262C58; --frame: #05060F;
+}
+
+/* nav */
+.site-nav, .chain-pill, .theme-btn { border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--pop); }
+.site-nav a[aria-current="page"] { background: var(--yellow); color: #12142B; }
+.theme-btn { width: 42px; height: 42px; }
+.logo { font-size: 24px; }
+
+/* buttons: chunky keys */
+.btn {
+  border: 2px solid var(--edge); border-radius: 14px; box-shadow: 0 4px 0 var(--pop);
+  transition: background .15s, transform .08s, box-shadow .08s;
+}
+.btn:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 var(--pop); }
+.btn:disabled { border-color: var(--line); box-shadow: none; }
+.btn.quiet { background: var(--surface); box-shadow: 0 3px 0 var(--pop); }
+.btn.quiet:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--pop); }
+.btn.quiet:disabled { background: var(--soft); border-color: var(--line); box-shadow: none; }
+.mobile-go { box-shadow: 0 5px 0 var(--pop); }
+
+/* hero */
+.hero { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(32px, 5vw, 72px); padding: 36px 0 88px; }
+.hero h1 { font-size: clamp(46px, 6.6vw, 96px); line-height: .94; letter-spacing: -0.01em; margin-bottom: 24px; }
+.hero p { font-size: 19px; line-height: 1.55; margin-bottom: 30px; }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 30px; }
+.hero-cta .btn { width: auto; padding: 15px 26px; font-size: 17px; }
+.hero-cta a.btn { display: inline-flex; align-items: center; text-decoration: none; color: #fff; }
+.hero-facts { list-style: none; margin: 0; padding: 0; gap: 10px; }
+.hero-facts li {
+  display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px;
+  border: 2px solid var(--edge); border-radius: 999px; background: var(--surface);
+  font-size: 14px; font-weight: 600; color: var(--ink);
+}
+.hero-facts li::before { content: ""; width: 12px; height: 12px; border-radius: 3px; background: var(--c); box-shadow: inset 0 0 0 2px var(--edge); }
+
+/* the framed artwork */
+.art-frame { position: relative; margin: 0 28px 0 0; transform: rotate(1.4deg); }
+.art-mat {
+  background: var(--surface); padding: clamp(14px, 2.2vw, 26px);
+  border: clamp(10px, 1.2vw, 14px) solid var(--frame); border-radius: 6px;
+  box-shadow: 10px 10px 0 var(--pop);
+}
+.art-canvas { position: relative; overflow: hidden; background: var(--soft); cursor: crosshair; touch-action: pan-y; aspect-ratio: 1 / 1; }
+.art-canvas img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.art-canvas:focus-visible { outline: 3px solid var(--blue); outline-offset: 4px; border-radius: 0; }
+.lens {
+  position: absolute; left: 0; top: 0; pointer-events: none;
+  border: 2px solid #fff; box-shadow: 0 0 0 2px #12142B, 0 0 0 999px rgba(18, 20, 43, .18);
+}
+.placard {
+  position: absolute; left: -22px; bottom: -34px; transform: rotate(-2.4deg);
+  display: flex; flex-direction: column; gap: 1px; max-width: min(300px, 70%);
+  padding: 12px 16px; background: var(--surface); color: var(--ink);
+  border: 2px solid var(--edge); border-radius: 4px; box-shadow: 4px 4px 0 var(--pop);
+}
+.placard b { font: 400 20px/1.15 var(--display); }
+.placard span { font-size: 14px; font-style: italic; }
+.placard small { font-size: 12.5px; color: var(--muted); margin-top: 4px; }
+.placard small:empty { display: none; }
+.hero-zoom {
+  position: absolute; right: -28px; top: 18%; width: clamp(132px, 13vw, 190px); transform: rotate(-3deg);
+  background: var(--surface); border: 2px solid var(--edge); border-radius: 12px; padding: 7px;
+  box-shadow: 5px 5px 0 var(--pop);
+}
+.hero-zoom-view { aspect-ratio: 1 / 1; border-radius: 6px; background-color: var(--soft); background-repeat: no-repeat; image-rendering: pixelated; }
+.hero-zoom span { display: block; padding: 6px 2px 0; font: 400 15px var(--display); text-align: center; }
+@media (max-width: 900px) {
+  .hero { grid-template-columns: minmax(0, 1fr); padding-bottom: 72px; }
+  .art-frame { margin: 0 14px 0 0; transform: rotate(1deg); }
+  .hero-zoom { right: -14px; top: -18px; width: 118px; padding: 5px; }
+  .hero-zoom span { font-size: 13px; padding-top: 4px; }
+  .placard { left: -6px; bottom: -40px; }
+}
+@media (max-width: 700px) {
+  .hero-facts { flex-direction: row; }
+  .hero h1 { font-size: clamp(42px, 13vw, 60px); }
+  .hero p { font-size: 17px; }
+  .hero-cta .btn { flex: 1 1 auto; justify-content: center; text-align: center; }
+}
+
+/* settings panel */
+.panel { border: 2px solid var(--edge); box-shadow: 6px 6px 0 var(--pop); border-radius: 20px; }
+.controls h2 { font-size: 26px; font-weight: 400; }
+.step-head { font-size: 16px; font-weight: 800; }
+.step-head .n {
+  width: 30px; height: 30px; border-radius: 9px; font-size: 15px; font-weight: 400; color: #12142B;
+  border: 2px solid var(--edge); box-shadow: 2px 2px 0 var(--pop);
+}
+.drop { border: 3px dashed var(--drop-line); border-radius: 16px; }
+.drop:hover, .drop.over { border-color: var(--blue); border-style: solid; }
+.seg { border: 2px solid var(--edge); border-radius: 14px; background: var(--soft); }
+.seg button { font-weight: 700; }
+.seg button.on { background: var(--yellow); color: #12142B; box-shadow: inset 0 0 0 2px var(--edge); }
+input[type=number], input[type=text] { border: 2px solid var(--line); }
+input[type=number]:focus, input[type=text]:focus { border-color: var(--edge); }
+
+/* chunky sliders */
+input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; height: 32px; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 12px; border-radius: 999px; background: var(--soft); border: 2px solid var(--edge); }
+input[type=range]::-moz-range-track { height: 8px; border-radius: 999px; background: var(--soft); border: 2px solid var(--edge); }
+input[type=range]::-moz-range-progress { height: 8px; border-radius: 999px; background: var(--blue); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 26px; height: 26px; margin-top: -9px; border-radius: 8px;
+  background: var(--yellow); border: 2px solid var(--edge); box-shadow: 2px 2px 0 var(--pop);
+}
+input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 8px; background: var(--yellow); border: 2px solid var(--edge); box-shadow: 2px 2px 0 var(--pop); }
+input[type=range]:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+input[type=range]:disabled { opacity: .5; cursor: default; }
+
+/* folded sections */
+details summary { align-items: center; gap: 12px; }
+details summary::after { font-size: 22px; line-height: 1; }
+details summary::-webkit-details-marker { display: none; }
+details summary { white-space: nowrap; }
+details .sum-val { white-space: normal; margin-left: auto; font-weight: 500; font-size: 13.5px; color: var(--muted); text-align: right; }
+details.more { border-top: 2px solid var(--line); }
+details.more .more-body { display: flex; flex-direction: column; gap: 22px; margin-top: 18px; }
+
+/* the wall and the frame */
+.wall { background: var(--wall); border: 2px solid var(--edge); border-radius: 22px; box-shadow: 6px 6px 0 var(--pop); }
+.output { border: clamp(8px, 1.2vw, 14px) solid var(--frame); border-radius: 4px; box-shadow: 8px 8px 0 var(--pop); }
+.empty .big { font-size: 26px; font-weight: 400; }
+
+/* the label next to the art */
+.label-card { border: 2px solid var(--edge); border-radius: 12px; box-shadow: 5px 5px 0 var(--pop); }
+.label-card .title { font-size: 22px; }
+.bar { height: 10px; border: 2px solid var(--line); }
+.stat { border: 2px solid var(--edge); border-radius: 12px; background: var(--surface); }
+.stat:nth-child(1) { background: var(--chip3); }
+.stat:nth-child(2) { background: var(--chip2); }
+.stat:nth-child(3) { background: var(--chip1); }
+.stat:nth-child(4) { background: var(--chip4); }
+.stat b { font-size: 26px; font-weight: 400; }
+#stats { gap: 10px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.actions .btn { flex: 1 1 140px; width: auto; }
+@media (max-width: 640px) { .actions .btn { flex-basis: 120px; } }
+#addGallery:not(:disabled) { border: 2px solid var(--edge); background: var(--yellow); color: #12142B; }
+#openGallery { border: 2px solid var(--edge); }
+
+/* inspect a Chonk */
+.side h2 { font-size: 22px; font-weight: 400; }
+.viewer .art { border: 2px dashed var(--drop-line); background: var(--soft); font: 600 13px var(--body); text-align: center; padding: 10px; }
+.viewer .art:has(img) { border: 2px solid var(--edge); padding: 0; }
+.traits > * { border: 1.5px solid var(--edge); }
+
+/* Daily Chonk */
+.promo { border: 2px solid var(--edge); box-shadow: 6px 6px 0 var(--pop); background: #0B3BD6; }
+.promo::after { display: none; }
+.promo:hover { transform: translate(-2px, -2px); box-shadow: 8px 8px 0 var(--pop); }
+.promo-art { border: 2px solid rgba(255, 255, 255, .35); }
+.promo-eyebrow { text-transform: none; letter-spacing: 0; font-size: 14px; color: #FFE08A; }
+.promo-title { font-weight: 400; font-size: 34px; }
+.promo-cta { background: var(--yellow); color: #12142B; border: 2px solid #12142B; box-shadow: 0 3px 0 #12142B; font-weight: 800; }
+@media (max-width: 640px) { .promo-title { font-size: 26px; } .promo-eyebrow { font-size: 12.5px; } }
+
+/* dialogs, zoom bar, footer */
+dialog#fullDialog, dialog#readyDialog, dialog#holdDialog, dialog#gifDialog, dialog#nameDialog { border: 2px solid var(--edge); box-shadow: 8px 8px 0 var(--pop); }
+.zoombar { border: 2px solid var(--edge); }
+.dlg-warn { border: 2px solid var(--edge); }
+footer .credit { border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--pop); }
+footer .credit:hover { background: var(--yellow); color: #12142B; border-color: var(--edge); }
+
+@media (prefers-reduced-motion: reduce) {
+  .art-frame, .placard, .hero-zoom { transform: none; }
+  .btn:active:not(:disabled), .promo:hover { transform: none; }
+}
+
 /* iPhone: stop Safari zooming in on text boxes (it left people stuck zoomed in) and on double-taps */
 @media (pointer: coarse) { input[type=text], input[type=number], input[type=search], input:not([type]), select, textarea { font-size: 16px !important; } }
 </style>
 <link rel="stylesheet" href="theme-halloween.css?v=6">
-<script src="halloween-bats.js?v=1" defer></script>
+<script src="halloween.js?v=1"></script>
 </head>
 <body>
 <div class="wrap">
   <nav>
-    <a class="logo" href="./"><svg class="logo-mark" viewBox="0 0 11 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#7B3FE4" d="M6 0h1v1h-1zM5 1h2v1h-2zM4 2h4v1h-4zM3 3h1v1h-1zM7 3h1v1h-1zM0 4h11v1h-11z"/><path fill="#FF8A1F" d="M4 3h3v1h-3z"/><path fill="#FDCB58" d="M2 5h8v1h-8zM1 6h10v5h-10zM2 11h8v1h-8z"/><path fill="#F4900C" d="M0 8h1v2h-1zM5 9h3v1h-3z"/><path fill="#E6E7E8" d="M3 8h1v2h-1zM8 8h1v2h-1z"/><path fill="#31373D" d="M4 8h1v2h-1zM9 8h1v2h-1z"/></svg><span class="logo-text">Chonkit</span></a>
+    <a class="logo" href="./"><svg class="logo-mark plain" viewBox="0 0 11 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#FDCB58" d="M2 0h8v1h-8zM1 1h10v5h-10zM2 6h8v1h-8z"/><path fill="#F4900C" d="M0 3h1v2h-1zM5 4h3v1h-3z"/><path fill="#E6E7E8" d="M3 3h1v2h-1zM8 3h1v2h-1z"/><path fill="#31373D" d="M4 3h1v2h-1zM9 3h1v2h-1z"/></svg><svg class="logo-mark hat" viewBox="0 0 11 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#7B3FE4" d="M6 0h1v1h-1zM5 1h2v1h-2zM4 2h4v1h-4zM3 3h1v1h-1zM7 3h1v1h-1zM0 4h11v1h-11z"/><path fill="#FF8A1F" d="M4 3h3v1h-3z"/><path fill="#FDCB58" d="M2 5h8v1h-8zM1 6h10v5h-10zM2 11h8v1h-8z"/><path fill="#F4900C" d="M0 8h1v2h-1zM5 9h3v1h-3z"/><path fill="#E6E7E8" d="M3 8h1v2h-1zM8 8h1v2h-1z"/><path fill="#31373D" d="M4 8h1v2h-1zM9 8h1v2h-1z"/></svg><span class="logo-text">Chonkit</span></a>
     <div class="nav-right">
       <nav class="site-nav" aria-label="Chonkit">
         <a href="./" aria-current="page"><span class="long">Mosaic maker</span><span class="short">Mosaic</span></a>
@@ -551,19 +728,32 @@
   </nav>
 
   <section class="hero">
-    <div>
+    <div class="hero-copy">
       <h1>Your picture, rebuilt from <span class="hl">Chonks.</span></h1>
       <p>Drop in any image and every pixel block gets swapped for the Chonk that matches it best, picked from the whole collection.</p>
-      <div class="hero-facts">
-        <span style="--c: var(--blue)">Art read from the contract</span>
-        <span style="--c: var(--pink)">Runs in your browser</span>
-        <span style="--c: var(--mint)">Free, no wallet needed</span>
+      <div class="hero-cta">
+        <a class="btn" href="#studio">Make a mosaic</a>
+        <button class="btn quiet" id="heroTry" type="button">Try an example</button>
       </div>
+      <ul class="hero-facts">
+        <li style="--c: var(--yellow)">Art read from the contract</li>
+        <li style="--c: var(--pink)">Runs in your browser</li>
+        <li style="--c: var(--mint)">Free, no wallet needed</li>
+      </ul>
     </div>
-    <figure class="hero-art" style="margin:0">
-      <img class="hero-pic" src="img/halloween-hero.webp" width="1280" height="960" alt="A jack-o'-lantern under a crescent moon, made of Chonks" fetchpriority="high">
-      <figcaption>A jack-o'-lantern made of 4,800 Chonks</figcaption>
-      <div class="hero-zoom"><img src="img/halloween-zoom.webp" width="600" height="450" alt="Close-up: the pumpkin is made of individual Chonks" loading="lazy"><span>Look closer</span></div>
+    <figure class="art-frame">
+      <div class="art-mat">
+        <div class="art-canvas" id="heroCanvas" tabindex="0" aria-label="Framed mosaic. Use the arrow keys to move the Look closer window.">
+          <img id="heroPic" alt="" fetchpriority="high" decoding="async">
+          <div class="lens" id="heroLens" aria-hidden="true"></div>
+        </div>
+      </div>
+      <figcaption class="placard">
+        <b id="heroTitle">Chonk mosaic</b>
+        <span id="heroLine">Chonks on canvas</span>
+        <small id="heroHint"></small>
+      </figcaption>
+      <div class="hero-zoom" aria-hidden="true"><div class="hero-zoom-view" id="heroZoom"></div><span>Look closer</span></div>
     </figure>
   </section>
 
@@ -612,29 +802,14 @@
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: #B9D0FF">4</span>Chonk size<span class="val" id="tileOut">60 px</span></div>
+        <div class="step-head"><span class="n" style="--c: #8FB4FF">4</span>Chonk size<span class="val" id="tileOut">60 px</span></div>
         <input type="range" id="tile" min="0" max="4" step="1" value="2" aria-label="Chonk size">
         <div class="note" id="sizeNote"></div>
         <button class="link-btn reset-btn" id="resetSize" type="button" hidden>&#8634; Reset detail &amp; size to default</button>
       </div>
 
       <div>
-        <div class="step-head"><span class="n" style="--c: #D8C8FF">5</span>Art source</div>
-        <div class="seg" id="source">
-          <button data-v="atlas" class="on">Fast</button>
-          <button data-v="chain">Onchain live</button>
-        </div>
-        <div class="note" id="sourceNote">Uses saved Chonk images. Instant.</div>
-      </div>
-
-      <div>
-        <div class="step-head"><span class="n" style="--c: #FFD3B5">6</span>Variety<span class="val" id="varOut">balanced</span></div>
-        <input type="range" id="variety" min="0" max="100" value="30" aria-label="Variety">
-        <div class="note">Lower keeps the closest colour match. Higher uses more different Chonks.</div>
-      </div>
-
-      <div>
-        <div class="step-head"><span class="n" style="--c: #BDEFD9">7</span>Chonks to use</div>
+        <div class="step-head"><span class="n" style="--c: #C9A8FF">5</span>Chonks to use</div>
         <div class="seg" id="pool">
           <button data-v="all" class="on">All Chonks</button>
           <button data-v="wallet">From a wallet</button>
@@ -648,8 +823,16 @@
         <div class="note" id="poolNote">Picks from the whole collection.</div>
       </div>
 
+      <details class="more" id="styleOpts">
+        <summary>Style options<span class="sum-val" id="styleSum">Variety, spacing, art source</span></summary>
+        <div class="more-body">
       <div>
-        <div class="step-head"><span class="n" style="--c: #FFE08A">8</span>Spacing</div>
+        <div class="step-head">Variety<span class="val" id="varOut">balanced</span></div>
+        <input type="range" id="variety" min="0" max="100" value="30" aria-label="Variety">
+        <div class="note">Lower keeps the closest colour match. Higher uses more different Chonks.</div>
+      </div>
+      <div>
+        <div class="step-head">Spacing</div>
         <div class="seg seg3" id="gap">
           <button data-v="none" class="on">None</button>
           <button data-v="white">White gaps</button>
@@ -657,6 +840,15 @@
         </div>
         <div class="note" id="gapNote">Chonks sit edge to edge.</div>
       </div>
+      <div>
+        <div class="step-head">Art source</div>
+        <div class="seg" id="source">
+          <button data-v="atlas" class="on">Fast</button>
+          <button data-v="chain">Onchain live</button>
+        </div>
+        <div class="note" id="sourceNote">Uses saved Chonk images. Instant.</div>
+      </div>        </div>
+      </details>
 
       <details>
         <summary>Advanced settings</summary>
@@ -716,7 +908,7 @@
           <button class="btn quiet" id="dlFull" disabled>Download full size</button>
           <button class="btn quiet" id="makeGif" disabled>Make GIF</button>
           <button class="btn quiet" id="addGallery" disabled>Add to Gallery</button>
-          <a class="btn quiet" id="openGallery" href="gallery.html" hidden>In Gallery · Open &rarr;</a>
+          <a class="btn quiet" id="openGallery" href="gallery.html" hidden>Open in Gallery</a>
           <a class="btn quiet share" id="share" target="_blank" rel="noopener" role="button" aria-disabled="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.24 2.25h3.31l-7.23 8.26 8.5 11.24h-6.66l-5.21-6.82-5.97 6.82H1.67l7.73-8.84L1.25 2.25h6.83l4.71 6.23 5.45-6.23zm-1.16 17.52h1.83L7.08 4.13H5.12l11.96 15.64z"/></svg>Share on X</a>
         </div>
         <div class="bar"><div id="progress"></div></div>
@@ -730,7 +922,7 @@
 
       <div class="panel side">
         <div class="viewer">
-          <div class="art" id="vArt">#?</div>
+          <div class="art" id="vArt"><span>Pick a Chonk</span></div>
           <div>
             <h2>Inspect a Chonk</h2>
             <div class="note">Click any Chonk in your mosaic, or enter an ID. It loads live from the contract on Base.</div>
@@ -750,7 +942,7 @@
           <span class="promo-eyebrow">Also by @jpegsonbase</span>
           <strong class="promo-title">Daily Chonk</strong>
           <span class="promo-line">One Chonk. A brand new onchain fit every day, live on Base. Rate today's look.</span>
-          <span class="promo-cta">See today's fit <i aria-hidden="true">&rarr;</i></span>
+          <span class="promo-cta">See today's fit</span>
         </div>
       </a>
     </div>
@@ -844,6 +1036,7 @@
 <script src="vendor/gifenc.js?v=42"></script>
 <script src="gif.js?v=42"></script>
 <script src="gallery-store.js?v=5"></script>
-<script src="app.js?v=42"></script>
+<script src="app.js?v=43"></script>
+<script src="hero.js?v=1"></script>
 </body>
 </html>

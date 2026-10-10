@@ -95,11 +95,8 @@
 :root[data-theme="dark"] .primary { color: #1A0F05; }
 
 /* Witch-hat Chonk logo */
-.logo .logo-mark { display: block; flex: none; width: 40px; height: 44px; }
-.logo .logo-mark.sm { width: 30px; height: 33px; }
-
-/* Pumpkin mosaic in the homepage hero */
-.hero-art .hero-pic { width: 100%; height: 100%; display: block; object-fit: cover; }
+.logo .logo-mark.plain { display: none; }
+.logo .logo-mark.hat { display: block; }
 
 /* Halloween title font: BatFont by J.F.Y. Daniel Gauthier (GautFonts), freeware */
 @font-face { font-family: "BatFont"; src: url("fonts/batfont.woff2") format("woff2"); font-weight: 100 900; font-display: swap; }
@@ -108,21 +105,7 @@
 /* Orange "Chonks." in the homepage headline */
 .hero h1 .hl { color: var(--blue); }
 
-/* "Look closer" inset on the hero mosaic */
-.hero-art .hero-zoom {
-  position: absolute; right: 16px; bottom: 16px; width: 176px; padding: 8px;
-  background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-  border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 18px 40px -12px var(--shadow);
-}
-.hero-art .hero-zoom img { display: block; width: 100%; height: auto; aspect-ratio: 4 / 3; border-radius: 10px; image-rendering: pixelated; }
-.hero-art .hero-zoom span { display: block; padding: 7px 4px 1px; font-size: 12px; font-weight: 700; }
-@media (max-width: 600px) {
-  .hero-art .hero-zoom { top: 12px; right: 12px; bottom: auto; width: 116px; padding: 6px; border-radius: 12px; }
-  .hero-art .hero-zoom img { border-radius: 7px; }
-  .hero-art .hero-zoom span { font-size: 11px; padding-top: 5px; }
-}
-
-/* Bats that fly across the homepage on load (halloween-bats.js) */
+/* Bats that fly across the homepage on load (halloween.js) */
 :root { --bat: #2A1B3D; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bat: #7E5DB8; } }
 :root[data-theme="dark"] { --bat: #7E5DB8; }
@@ -143,3 +126,8 @@
 .promo::after { background: conic-gradient(from 0deg, #9B5CFF, #FF8A1F, #B48CFF, #7B3FE4, #9B5CFF); }
 .promo:hover { box-shadow: 0 26px 48px -22px rgba(123, 63, 228, .6); }
 .promo .promo-cta { color: #170B28; }
+
+/* Chunky outlines on the homepage, in Halloween colours */
+:root { --edge: #1E1030; --pop: #1E1030; --frame: #1E1030; --wall: #ECE3F6; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --edge: #4A3A63; --pop: #2F2442; --frame: #07040C; --wall: #150F20; } }
+:root[data-theme="dark"] { --edge: #4A3A63; --pop: #2F2442; --frame: #07040C; --wall: #150F20; }

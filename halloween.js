@@ -1,4 +1,13 @@
-// Halloween: a flock of bats flies across the screen once when the page loads.
+// Halloween extras for the homepage.
+
+// The framed hero shows the jack-o'-lantern mosaic (read by hero.js).
+window.CHONKIT_HERO_ART = [{
+  src: "img/halloween-hero.webp", big: "img/halloween-hero-big.webp", w: 1280, h: 960,
+  title: "Jack-o'-lantern", line: "4,800 Chonks on canvas",
+  alt: "A jack-o'-lantern under a crescent moon, rebuilt from Chonks", focus: [0.5, 0.62],
+}];
+
+// A flock of bats flies across the screen once when the page loads.
 // Purely decorative: never blocks clicks, skipped when the visitor prefers reduced motion.
 (() => {
   try {
