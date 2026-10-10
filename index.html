@@ -711,6 +711,48 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
 }
 @media (max-width: 400px) { .empty .face { grid-template-columns: repeat(11, 21px); gap: 2px; } .empty .face b { width: 21px; height: 21px; border-radius: 4px; } }
 
+/* Script console on the hero */
+.term-btn {
+  position: absolute; left: -14px; top: -16px; z-index: 3; transform: rotate(-4deg);
+  display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px 8px 9px; cursor: pointer;
+  font: 800 14px var(--body); color: #FDCB58; background: #12142B;
+  border: 2px solid var(--edge); border-radius: 10px; box-shadow: 3px 3px 0 var(--pop);
+}
+.term-btn svg { width: 18px; height: 18px; }
+.term-btn:hover { background: #22264A; }
+.term-btn:active { transform: rotate(-4deg) translate(2px, 2px); box-shadow: 1px 1px 0 var(--pop); }
+.term-btn:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+dialog#termDialog {
+  width: min(820px, calc(100% - 24px)); max-width: none; height: min(640px, calc(100vh - 48px)); padding: 0;
+  border: 2px solid #12142B; border-radius: 14px; box-shadow: 8px 8px 0 var(--pop);
+  background: #0B0D1A; color: #E8EAF6; overflow: hidden;
+}
+dialog#termDialog[open] { display: flex; flex-direction: column; }
+dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter: blur(3px); }
+.term-bar { display: flex; align-items: center; gap: 12px; padding: 10px 12px 10px 16px; background: #171A33; border-bottom: 2px solid #12142B; }
+.term-dots { display: flex; gap: 6px; }
+.term-dots i { width: 12px; height: 12px; border-radius: 3px; background: #FF5F57; }
+.term-dots i:nth-child(2) { background: #FDCB58; }
+.term-dots i:nth-child(3) { background: #28C840; }
+.term-bar h2 { margin: 0; flex: 1; min-width: 0; font: 600 13px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #9BA2C8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.term-skip, .term-close { border: 0; cursor: pointer; border-radius: 8px; font: 700 13px var(--body); color: #E8EAF6; background: #262B4D; min-height: 32px; padding: 0 12px; }
+.term-close { width: 32px; padding: 0; font-size: 20px; line-height: 1; }
+.term-skip:hover, .term-close:hover { background: #343A66; }
+.term-skip[hidden] { display: none; }
+.term-out {
+  flex: 1; margin: 0; padding: 16px 18px 24px; overflow: auto; white-space: pre; tab-size: 2;
+  font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.term-out .p { color: #FDCB58; }
+.term-out .c { color: #6F7AB0; }
+.term-out .k { color: #FF8AC9; }
+.term-out .n { color: #7FD6A4; }
+.term-out .ok { color: #7FD6A4; font-weight: 700; }
+.term-out .cur { display: inline-block; width: .6em; height: 1.1em; vertical-align: -0.2em; background: #FDCB58; animation: term-blink 1s steps(1) infinite; }
+@keyframes term-blink { 50% { opacity: 0; } }
+@media (max-width: 640px) { .term-out { font-size: 11.5px; padding: 12px; } .term-btn { left: -8px; top: -14px; } }
+@media (prefers-reduced-motion: reduce) { .term-out .cur { animation: none; } }
+
 /* iPhone: stop Safari zooming in on text boxes (it left people stuck zoomed in) and on double-taps */
 @media (pointer: coarse) { input[type=text], input[type=number], input[type=search], input:not([type]), select, textarea { font-size: 16px !important; } }
 </style>
@@ -762,6 +804,7 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
         <span id="heroLine">Chonks on canvas</span>
         <small id="heroHint"></small>
       </figcaption>
+      <button class="term-btn" id="termOpen" type="button" aria-label="Show the script that made this picture"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6l6 6-6 6M12 19h8" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="square"/></svg><span>Script</span></button>
       <div class="hero-zoom" aria-hidden="true"><div class="hero-zoom-view" id="heroZoom"></div><span>Look closer</span></div>
     </figure>
   </section>
@@ -976,6 +1019,15 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
 
 <div id="tip"></div>
 <button class="btn mobile-go" id="mobileGo" type="button">Chonk it</button>
+<dialog id="termDialog" aria-labelledby="termTitle">
+  <div class="term-bar">
+    <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+    <h2 id="termTitle">mosaic-core.js</h2>
+    <button class="term-skip" id="termSkip" type="button">Skip</button>
+    <button class="term-close" id="termClose" type="button" aria-label="Close the console">&times;</button>
+  </div>
+  <pre class="term-out" id="termOut" tabindex="0" aria-live="off"></pre>
+</dialog>
 <dialog id="fullDialog" aria-labelledby="fullTitle">
   <form method="dialog">
     <div class="dlg-warn" aria-hidden="true">!</div>
@@ -1046,6 +1098,6 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
 <script src="gif.js?v=42"></script>
 <script src="gallery-store.js?v=5"></script>
 <script src="app.js?v=43"></script>
-<script src="home.js?v=3"></script>
+<script src="home.js?v=4"></script>
 </body>
 </html>

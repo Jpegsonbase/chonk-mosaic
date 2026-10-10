@@ -5,6 +5,7 @@ window.CHONKIT_HERO_ART = [{
   src: "img/halloween-hero.webp", big: "img/halloween-hero-big.webp", w: 1280, h: 960,
   title: "Jack-o'-lantern", line: "4,800 Chonks on canvas",
   alt: "A jack-o'-lantern under a crescent moon, rebuilt from Chonks", focus: [0.5, 0.62],
+  across: 80, down: 60, file: "pumpkin.png",
 }];
 
 // A flock of bats flies across the screen once when the page loads.

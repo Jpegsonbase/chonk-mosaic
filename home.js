@@ -5,11 +5,11 @@
 (() => {
   const ART = window.CHONKIT_HERO_ART || [
     { src: "img/hero/chonk-15064.webp", big: "img/hero/chonk-15064-big.webp", w: 1024, h: 1024,
-      title: "Chonk #15064", line: "4,096 Chonks, 274 different", focus: [0.4, 0.43] },
+      title: "Chonk #15064", line: "4,096 Chonks, 274 different", focus: [0.4, 0.43], across: 64, down: 64, unique: 274, file: "chonk-15064.png" },
     { src: "img/hero/chonk-13.webp", big: "img/hero/chonk-13-big.webp", w: 1024, h: 1024,
-      title: "Chonk #13", line: "4,096 Chonks, 435 different", focus: [0.42, 0.32] },
+      title: "Chonk #13", line: "4,096 Chonks, 435 different", focus: [0.42, 0.32], across: 64, down: 64, unique: 435, file: "chonk-13.png" },
     { src: "img/hero/chonk-1.webp", big: "img/hero/chonk-1-big.webp", w: 1024, h: 1024,
-      title: "Chonk #1", line: "4,096 Chonks, 341 different", focus: [0.42, 0.46] },
+      title: "Chonk #1", line: "4,096 Chonks, 341 different", focus: [0.42, 0.46], across: 64, down: 64, unique: 341, file: "chonk-1.png" },
   ];
   const ZOOM = 4;   // how much closer the window looks than the picture
 
@@ -74,6 +74,73 @@
   if (pic.complete) draw(); else pic.addEventListener("load", draw);
   // Fetch the sharp close-up once the page has settled.
   addEventListener("load", () => setTimeout(loadBig, 1500), { once: true });
+
+  // Script console: types out the real matching code from mosaic-core.js,
+  // then replays how the framed picture was built.
+  const dlg = $("termDialog"), out = $("termOut"), skip = $("termSkip");
+  if (dlg && out && $("termOpen")) {
+    const esc = (t) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const KW = /\b(function|const|let|for|if|continue|break|return|new|of|else)\b/g;
+    const paint = (line) => {
+      const i = line.indexOf("//");
+      const code = i >= 0 ? line.slice(0, i) : line, note = i >= 0 ? line.slice(i) : "";
+      return esc(code).replace(KW, '<span class="k">$1</span>').replace(/\b(\d+(\.\d+)?)\b/g, '<span class="n">$1</span>')
+        + (note ? `<span class="c">${esc(note)}</span>` : "");
+    };
+    let source = null, run = 0, skipping = false;
+    async function getSource() {
+      if (source) return source;
+      try {
+        const txt = await (await fetch("mosaic-core.js")).text();
+        const a = txt.indexOf("  function buildMosaic"), b = txt.indexOf("\n  }\n", a);
+        source = txt.slice(a, b + 4).split("\n").map((l) => l.replace(/^  /, ""));
+      } catch (_) { source = ["// Couldn't load the script. Check your connection and try again."]; }
+      return source;
+    }
+    const still = () => skipping || matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const wait = (ms) => new Promise((r) => setTimeout(r, still() ? 0 : ms));
+    const add = (html) => { out.insertAdjacentHTML("beforeend", html); out.scrollTop = out.scrollHeight; };
+    async function type(text, id) {
+      const span = document.createElement("span"); out.appendChild(span);
+      for (let i = 0; i < text.length; i++) {
+        if (id !== run) return;
+        span.textContent += text[i];
+        if (!still()) await wait(28);
+      }
+    }
+    const fmt = (n) => n.toLocaleString("en-GB");
+    async function play() {
+      const id = ++run; skipping = false; skip.hidden = false; out.innerHTML = "";
+      const lines = await getSource();
+      add('<span class="p">$ </span>'); await type("cat mosaic-core.js", id); add("\n");
+      for (let i = 0; i < lines.length; i++) {
+        if (id !== run) return;
+        add(paint(lines[i]) + "\n");
+        if (i % 3 === 2) await wait(16);
+      }
+      const across = art.across || 64, down = art.down || 64, file = art.file || "picture.png";
+      add('\n<span class="p">$ </span>'); await type(`chonkit build ${file} --across ${across}`, id); add("\n");
+      await wait(350); add("  loading the Chonks collection ... "); await wait(500); add('<span class="ok">done</span>\n');
+      add(`  reading ${esc(art.title)}: ${across} × ${down} squares\n`);
+      add("  placing Chonks from the centre out\n  ");
+      const bar = document.createElement("span"); out.appendChild(bar);
+      for (let k = 0; k <= 24; k++) {
+        if (id !== run) return;
+        bar.textContent = "[" + "#".repeat(k) + ".".repeat(24 - k) + "] " + Math.round((k / 24) * 100) + "%";
+        await wait(70);
+      }
+      add("\n");
+      const tiles = across * down;
+      add(`  <span class="ok">done</span>: ${fmt(tiles)} Chonks placed` + (art.unique ? `, ${fmt(art.unique)} different` : "") + "\n\n");
+      add('<span class="p">$ </span><span class="cur"></span>');
+      skip.hidden = true;
+    }
+    $("termOpen").addEventListener("click", () => { dlg.showModal(); play(); out.focus(); });
+    $("termClose").addEventListener("click", () => dlg.close());
+    skip.addEventListener("click", () => { skipping = true; });
+    dlg.addEventListener("close", () => { run++; });
+    dlg.addEventListener("click", (e) => { if (e.target === dlg) dlg.close(); });
+  }
 
   // "Try an example" in the hero: run the maker's example and jump to it.
   $("heroTry")?.addEventListener("click", () => {
