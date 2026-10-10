@@ -1,0 +1,102 @@
+/* Halloween theme: purple and pumpkin orange.
+   Loaded last on index, studio and ascii so it overrides each page's colours.
+   To switch it off after Halloween, remove the <link> to this file from those pages. */
+
+:root {
+  --paper: #FAF6FF;
+  --surface: #FFFFFF;
+  --ink: #1E1030;
+  --muted: #625577;
+  --line: #E8E0F2;
+  --soft: #F3ECFA;
+  --blue: #C2410C;          /* the site's main accent, now pumpkin */
+  --blue-press: #9A3412;
+  --pink: #7B3FE4;
+  --yellow: #FF8A1F;
+  --mint: #A77BF3;
+  --violet: #7B3FE4;
+  --wall: #F1EAF8;
+  --drop-line: #D9CCEB;
+  --drop-hover: #F5EDFF;
+  --btn-disabled: #D8C7E8;
+  --btn-disabled-ink: #FFFFFF;
+  --quiet-hover: #EDE3F7;
+  --quiet-disabled-ink: #B3A6C4;
+  --glass: rgba(255, 255, 255, .93);
+  --shadow: rgba(30, 16, 48, .35);
+  --shadow-soft: rgba(30, 16, 48, .14);
+  --chip1: #FFE8D6; --chip2: #EFE4FF; --chip3: #FFF0DC; --chip4: #EEE6FA;
+  --cell-empty: #F6F1FB; --cell-line: #EAE2F3;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #120C1C;
+    --surface: #1C1428;
+    --ink: #F3EBDD;
+    --muted: #A99DBB;
+    --line: #2F2442;
+    --soft: #241A33;
+    --blue: #FF7A1A;
+    --blue-press: #E8650A;
+    --pink: #9B5CFF;
+    --yellow: #FF8A1F;
+    --mint: #B48CFF;
+    --violet: #9B5CFF;
+    --wall: #150F20;
+    --drop-line: #4A3A63;
+    --drop-hover: #2A1C35;
+    --warn: #FF8FB0;
+    --btn-disabled: #3A2D4F;
+    --btn-disabled-ink: #8E80A3;
+    --quiet-hover: #2F2442;
+    --quiet-disabled-ink: #64587A;
+    --glass: rgba(28, 20, 40, .9);
+    --shadow: rgba(0, 0, 0, .6);
+    --shadow-soft: rgba(0, 0, 0, .35);
+    --chip1: #3D2414; --chip2: #2E1E4A; --chip3: #3D2A10; --chip4: #2A1F45;
+    --cell-empty: #1F1730; --cell-line: #2A2039;
+    --accent-ink: #1A0F05;
+  }
+  :root:not([data-theme="light"]) .btn:not(.quiet):not(:disabled),
+  :root:not([data-theme="light"]) .zoombar button[aria-pressed="true"],
+  :root:not([data-theme="light"]) .primary { color: #1A0F05; }
+}
+:root[data-theme="dark"] {
+  --paper: #120C1C;
+  --surface: #1C1428;
+  --ink: #F3EBDD;
+  --muted: #A99DBB;
+  --line: #2F2442;
+  --soft: #241A33;
+  --blue: #FF7A1A;
+  --blue-press: #E8650A;
+  --pink: #9B5CFF;
+  --yellow: #FF8A1F;
+  --mint: #B48CFF;
+  --violet: #9B5CFF;
+  --wall: #150F20;
+  --drop-line: #4A3A63;
+  --drop-hover: #2A1C35;
+  --warn: #FF8FB0;
+  --btn-disabled: #3A2D4F;
+  --btn-disabled-ink: #8E80A3;
+  --quiet-hover: #2F2442;
+  --quiet-disabled-ink: #64587A;
+  --glass: rgba(28, 20, 40, .9);
+  --shadow: rgba(0, 0, 0, .6);
+  --shadow-soft: rgba(0, 0, 0, .35);
+  --chip1: #3D2414; --chip2: #2E1E4A; --chip3: #3D2A10; --chip4: #2A1F45;
+  --cell-empty: #1F1730; --cell-line: #2A2039;
+  --accent-ink: #1A0F05;
+}
+:root[data-theme="dark"] .btn:not(.quiet):not(:disabled),
+:root[data-theme="dark"] .zoombar button[aria-pressed="true"],
+:root[data-theme="dark"] .primary { color: #1A0F05; }
+
+/* Witch-hat Chonk logo */
+.logo .logo-mark { display: block; flex: none; width: 40px; height: 44px; }
+.logo .logo-mark.sm { width: 30px; height: 33px; }
+
+/* Pumpkin mosaic in the homepage hero */
+.hero-art .hero-pic { width: 100%; height: 100%; display: block; object-fit: cover; }
