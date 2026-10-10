@@ -1,0 +1,73 @@
+/* Chonky look for Studio and ASCII: the same thick outlines, solid shadows,
+   press-down buttons and yellow selections as the mosaic maker.
+   Loaded after each page's own styles; a seasonal theme loads after this. */
+
+:root {
+  --paper: #F1F3FA;
+  --edge: #12142B; --pop: #12142B; --frame: #12142B;
+  --line: #D9DDEC;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #0D1024; --edge: #3A427A; --pop: #262C58; --frame: #05060F;
+} }
+:root[data-theme="dark"] { --paper: #0D1024; --edge: #3A427A; --pop: #262C58; --frame: #05060F; }
+
+/* header */
+.site-nav { border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--pop); }
+.site-nav a[aria-current="page"] { background: var(--yellow); color: #12142B; }
+.logo { font-size: 24px; }
+
+/* panels */
+.panel, .board, .rail, .look {
+  border: 2px solid var(--edge); border-radius: 20px; box-shadow: 6px 6px 0 var(--pop);
+}
+.panel h2, .rail h2, .look h2 {
+  font: 400 17px var(--display); text-transform: none; letter-spacing: 0; color: var(--ink);
+}
+
+/* buttons are keys you press down */
+.tool, .btn, .pre {
+  border: 2px solid var(--edge); box-shadow: 0 3px 0 var(--pop);
+  transition: transform .08s, box-shadow .08s, background .15s;
+}
+.tool, .btn.ghost, .studio .btn:not(.primary):not(.gold) { background: var(--surface); }
+.tool:active, .btn:active:not(:disabled), .pre:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--pop); }
+.btn.ghost { border: 2px solid var(--edge); }
+.btn:disabled { box-shadow: none; border-color: var(--line); }
+.tool[aria-pressed="true"] { background: var(--yellow); color: #12142B; border-color: var(--edge); }
+.primary { background: var(--blue); color: #fff; }
+.gold { background: var(--yellow); color: #12142B; }
+
+/* segmented choices and chips */
+.seg { border: 2px solid var(--edge); background: var(--soft); }
+.seg button[aria-pressed="true"] { background: var(--yellow); color: #12142B; box-shadow: inset 0 0 0 2px var(--edge); }
+.tags button, .chip, .sw { border: 2px solid var(--edge); }
+.tags button[aria-pressed="true"] { background: var(--yellow); color: #12142B; border-color: var(--edge); }
+.tags button:hover { border-color: var(--edge); color: var(--fg, var(--ink)); background: var(--soft); }
+.swatches .sw[aria-pressed="true"] { border-color: var(--edge); box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--edge); transform: none; }
+
+/* text boxes */
+input[type=number], input[type=text], select { border: 2px solid var(--line); }
+input[type=number]:focus, input[type=text]:focus, .inrow input:focus { border-color: var(--edge); }
+
+/* the art: a proper frame */
+.viewport { border: 10px solid var(--frame); border-radius: 4px; box-shadow: 6px 6px 0 var(--pop); }
+.stage { border: 2px solid var(--edge); box-shadow: 6px 6px 0 var(--pop); }
+.zoom { border: 2px solid var(--edge); }
+.board-top .title { font-weight: 400; font-size: 20px; }
+
+/* chunky sliders */
+input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; height: 30px; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 12px; border-radius: 999px; background: var(--soft); border: 2px solid var(--edge); }
+input[type=range]::-moz-range-track { height: 8px; border-radius: 999px; background: var(--soft); border: 2px solid var(--edge); }
+input[type=range]::-moz-range-progress { height: 8px; border-radius: 999px; background: var(--blue); }
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 24px; height: 24px; margin-top: -8px; border-radius: 8px;
+  background: var(--yellow); border: 2px solid var(--edge); box-shadow: 2px 2px 0 var(--pop);
+}
+input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 8px; background: var(--yellow); border: 2px solid var(--edge); }
+input[type=range]:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tool:active, .btn:active:not(:disabled), .pre:active { transform: none; }
+}

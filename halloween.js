@@ -1,6 +1,39 @@
-// Halloween: a flock of bats flies across the screen once when the page loads.
+// Halloween extras. Loaded on the mosaic maker, Studio and ASCII pages.
+//
+// Switches itself off at midnight on 1 November (visitor's own time): the
+// Halloween stylesheet is disabled and the pumpkin and bats are skipped, so
+// the normal look comes back without anyone editing the site.
+// Add ?halloween=on or ?halloween=off to the address to preview either look;
+// it sticks for the rest of that tab.
+(() => {
+  const ENDS = new Date(2026, 10, 1);   // 1 November 2026, 00:00
+  let on = new Date() < ENDS;
+  // The choice is remembered while you click around in the same tab.
+  try {
+    let q = new URLSearchParams(location.search).get("halloween");
+    if (q === "on" || q === "off") sessionStorage.setItem("chonkit-halloween", q);
+    else q = sessionStorage.getItem("chonkit-halloween");
+    if (q === "on") on = true;
+    if (q === "off") on = false;
+  } catch (_) {}
+  window.CHONKIT_HALLOWEEN = on;
+  if (!on) {
+    document.querySelectorAll('link[href*="theme-halloween"]').forEach((l) => { l.disabled = true; });
+  }
+})();
+
+// The framed hero shows the jack-o'-lantern mosaic (read by home.js).
+if (window.CHONKIT_HALLOWEEN) window.CHONKIT_HERO_ART = [{
+  src: "img/halloween-hero.webp", sm: "img/halloween-hero-800.webp", smW: 800, mid: "img/halloween-hero-mid.webp", big: "img/halloween-hero-big.webp", w: 1280, h: 960,
+  title: "Jack-o'-lantern", line: "4,800 Chonks on canvas",
+  alt: "A jack-o'-lantern under a crescent moon, rebuilt from Chonks", focus: [0.5, 0.62],
+  across: 80, down: 60, file: "pumpkin.png",
+}];
+
+// A flock of bats flies across the screen once when the page loads.
 // Purely decorative: never blocks clicks, skipped when the visitor prefers reduced motion.
 (() => {
+  if (!window.CHONKIT_HALLOWEEN) return;
   try {
     if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   } catch (_) {}
@@ -13,6 +46,7 @@
   </svg>`;
 
   function fly() {
+    if (!document.getElementById("heroCanvas")) return;   // the bats only fly on the mosaic maker
     const W = innerWidth, H = innerHeight;
     const layer = document.createElement("div");
     layer.className = "bat-layer";

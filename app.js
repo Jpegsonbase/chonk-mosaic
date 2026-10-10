@@ -1565,7 +1565,9 @@
   function syncTheme() {
     const t = currentTheme();
     if (themeBtn) themeBtn.setAttribute("aria-label", t === "dark" ? "Switch to light mode" : "Switch to dark mode");
-    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", t === "dark" ? "#0D1024" : "#FAFBFF"));
+    // The browser bar matches the page background, including any seasonal theme.
+    const paper = getComputedStyle(root).getPropertyValue("--paper").trim() || (t === "dark" ? "#0D1024" : "#F3F5FC");
+    document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute("content", paper));
   }
   if (themeBtn) themeBtn.addEventListener("click", () => {
     const next = currentTheme() === "dark" ? "light" : "dark";
