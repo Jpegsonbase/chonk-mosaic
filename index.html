@@ -702,6 +702,15 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
   .btn:active:not(:disabled), .promo:hover { transform: none; }
 }
 
+/* the empty wall's Chonk face, built from real Chonks (home.js) */
+.empty .face { grid-template-columns: repeat(11, 26px); gap: 3px; }
+.empty .face b { width: 26px; height: 26px; border-radius: 5px; will-change: transform; }
+.empty .face.chonked b:not(.o) {
+  background-image: url("img/face-chonks.webp"); background-size: 1100% 700%;
+  image-rendering: pixelated;
+}
+@media (max-width: 400px) { .empty .face { grid-template-columns: repeat(11, 21px); gap: 2px; } .empty .face b { width: 21px; height: 21px; border-radius: 4px; } }
+
 /* iPhone: stop Safari zooming in on text boxes (it left people stuck zoomed in) and on double-taps */
 @media (pointer: coarse) { input[type=text], input[type=number], input[type=search], input:not([type]), select, textarea { font-size: 16px !important; } }
 </style>
@@ -876,7 +885,7 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
       <div class="wall">
         <div class="output" id="output">
           <div class="empty" id="empty">
-            <div class="face" aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></div>
+            <div class="face" id="emptyFace" aria-hidden="true"><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="r"></b><b class="y"></b><b class="y"></b><b class="w"></b><b class="k"></b><b class="r"></b><b class="r"></b><b class="r"></b><b class="w"></b><b class="k"></b><b class="y"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b><b class="o"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="y"></b><b class="o"></b></div>
             <div class="big">Your mosaic hangs here</div>
             <span id="emptyText">Choose a picture to get started.</span>
             <div><button class="btn quiet try" id="tryExample" type="button">Try an example</button></div>
@@ -1037,6 +1046,6 @@ footer .credit:hover { background: var(--yellow); color: #12142B; border-color: 
 <script src="gif.js?v=42"></script>
 <script src="gallery-store.js?v=5"></script>
 <script src="app.js?v=43"></script>
-<script src="hero.js?v=2"></script>
+<script src="home.js?v=1"></script>
 </body>
 </html>
