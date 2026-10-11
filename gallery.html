@@ -1133,8 +1133,6 @@ const LOCATIONS = [
       GALLERY.views.push({ x: 0, z: 8.6, nx: 0, nz: -1, w: 2.4, weight: 1.5, dist: 3.0 });
       if (STATUE.vox) placeStatue(STATUE.vox, STATUE.id); else restoreStatue();
       k.solidBox(-1.8, 1.8, 7.4, 9.8, 0, 99);
-      // the studio easel: "Paint me" -> Chonkit Studio
-      buildEasel(k, 10.2, -1.6, -0.55);
       // Three Chonks Divided: against the end wall, beside the gold statue, facing into the room
       buildVitrine(k, VITRINE.x, VITRINE.z, VITRINE.ry);
       // its plaque, on the wall just to the statue side of the vitrine (its left as you face it)
@@ -1414,6 +1412,7 @@ function buildZenGarden(k, cx, cz) {
   k.solidBox(cx + 0.45, cx + 4.3, cz - 0.34, cz + 2.14);
   k.solidCircle(cx + 3.45, cz + 2.75, 0.45); k.solidCircle(cx - 4.85, cz + 3.25, 0.45); k.solidCircle(cx + 1.05, cz + 2.68, 0.3);
   buildZenWoods(k, cx, cz);
+  buildEasel(k, cx - 7.5, 11.3, Math.PI / 4);           // the studio easel ("Paint me" -> Chonkit Studio), in the corner by the gallery wall, facing into the garden
   const lamp = new THREE.PointLight(0xff9a48, 4, 7, 1.6); lamp.position.set(cx + 1.05, 0.8, cz + 2.7); k.g.add(lamp);
   GALLERY.views.push({ x: cx, z: cz, nx: 0, nz: -1, w: 6, weight: 2, dist: 6 });
   zenGLB ||= Promise.all([import("three/addons/loaders/GLTFLoader.js"), import("three/addons/libs/meshopt_decoder.module.js")])
