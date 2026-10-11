@@ -1413,6 +1413,7 @@ function buildZenGarden(k, cx, cz) {
   // things you walk round: pond, the two cherry trunks, the lantern
   k.solidBox(cx + 0.45, cx + 4.3, cz - 0.34, cz + 2.14);
   k.solidCircle(cx + 3.45, cz + 2.75, 0.45); k.solidCircle(cx - 4.85, cz + 3.25, 0.45); k.solidCircle(cx + 1.05, cz + 2.68, 0.3);
+  buildZenWoods(k, cx, cz);
   const lamp = new THREE.PointLight(0xff9a48, 4, 7, 1.6); lamp.position.set(cx + 1.05, 0.8, cz + 2.7); k.g.add(lamp);
   GALLERY.views.push({ x: cx, z: cz, nx: 0, nz: -1, w: 6, weight: 2, dist: 6 });
   zenGLB ||= Promise.all([import("three/addons/loaders/GLTFLoader.js"), import("three/addons/libs/meshopt_decoder.module.js")])
@@ -1438,6 +1439,55 @@ function buildZenGarden(k, cx, cz) {
     const dur = Math.max(...gl.animations.map((c) => c.duration), 1);
     k.every((t) => { mixer.setTime(t % dur); });          // koi swim, petals drift (on the scene clock, so the Tour films it too)
   }).catch((e) => console.warn("zen garden failed to load", e));
+}
+
+/* Dense voxel woodland on the outside of the garden's side fences (and round the back corners), so you can't see
+   past the fence: tall trees of mixed heights with low shrubs packed underneath. All the cubes are two
+   InstancedMeshes (leaves + trunks), so thousands of blocks cost two draw calls. */
+function buildZenWoods(k, cx, cz) {
+  const rand = rng(7000), V = 0.4;                                   // voxel grid
+  const snap = (v) => Math.round(v / V) * V;
+  const greens = [0x2b5427, 0x34622c, 0x3f7034, 0x24491f, 0x4a7d3a, 0x2f5a2a].map((c) => new THREE.Color(c));
+  const pinks = [0xe7a3b8, 0xf1bccb, 0xd9879f].map((c) => new THREE.Color(c));
+  const leaves = [], trunks = [];
+  const cube = (list, x, y, z, s, col) => list.push({ x, y, z, s, col });
+  const tree = (x, z, h, r, blossom) => {
+    for (let y = 0; y < h * 0.55; y += V) cube(trunks, snap(x), y + V / 2, snap(z), V * (r > 1.6 ? 1.5 : 1), null);
+    const cy = h * 0.62, pal = blossom ? pinks : greens;
+    for (let i = 0, n = Math.round(r * r * 26); i < n; i++) {   // a lumpy ball of leaf cubes
+      const a = rand() * Math.PI * 2, u = rand() * 2 - 1, d = Math.cbrt(rand()) * r;
+      const px = x + Math.sqrt(1 - u * u) * Math.cos(a) * d, pz = z + Math.sqrt(1 - u * u) * Math.sin(a) * d, py = cy + u * d * 0.85;
+      cube(leaves, snap(px), snap(py), snap(pz), V * (rand() > 0.7 ? 2 : 1), pal[Math.floor(rand() * pal.length)]);
+    }
+  };
+  const shrub = (x, z, r) => {
+    for (let i = 0, n = Math.round(r * r * 22); i < n; i++) {
+      const px = x + (rand() * 2 - 1) * r, pz = z + (rand() * 2 - 1) * r, py = V / 2 + rand() * r * 0.9;
+      cube(leaves, snap(px), snap(py), snap(pz), V, greens[Math.floor(rand() * greens.length)]);
+    }
+  };
+  // bands outside the side fences (fences at cx +/- 8.6), from the gallery wall to past the back fence
+  const band = (x0, x1, z0, z1) => {
+    for (let z = z0; z < z1; z += 1.5) for (let x = x0; x < x1; x += 1.7) {
+      const jx = x + (rand() - 0.5) * 1.0, jz = z + (rand() - 0.5) * 1.0;
+      tree(jx, jz, 3.6 + rand() * 3.2, 1.2 + rand() * 0.9, rand() < 0.08);
+      shrub(jx + (rand() - 0.5) * 1.4, jz + (rand() - 0.5) * 1.2, 0.7 + rand() * 0.5);
+    }
+  };
+  band(cx - 15.6, cx - 9.2, 10.7, cz + 12);          // left (x < fence), between the building and the far woods
+  band(cx + 9.4, cx + 15.8, 10.7, cz + 12);          // right
+  band(cx - 9.2, cx - 5.4, cz + 5.6, cz + 12);       // back corners, where the file's tree line ends
+  band(cx + 5.4, cx + 9.4, cz + 5.6, cz + 12);
+  // shrubs hugging the outside of each side fence so there are no gaps at ground level
+  for (let z = 10.6; z < cz + 6; z += 0.9) for (const sx of [-1, 1]) shrub(cx + sx * 9.3, z, 0.6 + rand() * 0.3);
+  const make = (list, geoMat) => {
+    const m = new THREE.InstancedMesh(BOX, geoMat, list.length), o = new THREE.Object3D();
+    list.forEach((c, i) => { o.position.set(c.x, c.y, c.z); o.scale.setScalar(c.s); o.updateMatrix(); m.setMatrixAt(i, o.matrix); if (c.col) m.setColorAt(i, c.col); });
+    m.instanceMatrix.needsUpdate = true; if (m.instanceColor) m.instanceColor.needsUpdate = true;
+    m.castShadow = true; m.receiveShadow = true; m.computeBoundingSphere(); k.g.add(m); return m;
+  };
+  make(leaves, new THREE.MeshStandardMaterial({ roughness: 0.9 }));
+  make(trunks, new THREE.MeshStandardMaterial({ color: 0x4a3222, roughness: 0.9 }));
 }
 
 /* A saved ASCII Chonk as a hologram over a sculpture plinth: its spinning frames (one sprite sheet) on a plane that
