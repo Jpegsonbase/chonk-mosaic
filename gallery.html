@@ -325,7 +325,7 @@ body.cutscene .hud-top, body.cutscene .keys, body.cutscene #joy, body.cutscene .
   <button id="tJump">Jump</button>
 </div>
 <div class="vend-prompt" id="holoPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to look at the </span>holo card</span><button type="button" id="holoUse">Look</button></div>
-<div class="holo-hint" id="holoHint" hidden><span><span class="vp-desk">Move the mouse</span><span class="vp-touch">Drag</span> to tilt the card<span class="vp-desk"> · <b>E</b> or <b>Esc</b> to step back</span></span><button type="button" id="holoBack">Back</button></div>
+<div class="holo-hint" id="holoHint" hidden><span><span class="vp-desk">Move the mouse to tilt · click the card to flip it · <b>E</b> or <b>Esc</b> to step back</span><span class="vp-touch">Drag to tilt · tap to flip</span></span><button type="button" id="holoBack">Back</button></div>
 <div class="vend-prompt" id="vendPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to use the </span>Chonk-O-Mat</span><button type="button" id="vendUse">Use</button></div>
 <div class="cine-bars" aria-hidden="true"><i></i><i></i></div>
 <div class="toast" id="toast" hidden></div>
@@ -1542,8 +1542,8 @@ async function buildHoloCard(k, x, z, top) {
   edge.castShadow = true; card.add(edge);
   const front = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), holoFoilMaterial(cv.front, cv.fmask)); front.position.z = 0.0034; card.add(front);
   const back = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), holoFoilMaterial(cv.back, cv.bmask)); back.position.z = -0.0034; back.rotation.y = Math.PI; card.add(back);
-  const st = { spin: 0, faceYaw: 0, tx: 0, ty: 0, rx: 0, ry: 0, lastInput: 0 };
-  HOLO.card = { g, card, st, centre: () => card.getWorldPosition(new THREE.Vector3()) };
+  const st = { spin: 0, faceYaw: 0, tx: 0, ty: 0, rx: 0, ry: 0, lastInput: 0, flip: 0, flipTo: 0 };
+  HOLO.card = { g, card, st, hit: [edge, front, back], centre: () => card.getWorldPosition(new THREE.Vector3()) };
   k.every((t, dt) => {
     if (HOLO.view) {
       // first-person close-up: hide your own Chonk and anyone else standing near the card so nothing blocks the view
@@ -1556,7 +1556,8 @@ async function buildHoloCard(k, x, z, top) {
       const e = 1 - Math.exp(-dt * 10);
       st.rx += (st.tx - st.rx) * e; st.ry += (st.ty - st.ry) * e;
       let d = st.faceYaw - st.spin; d = Math.atan2(Math.sin(d), Math.cos(d)); st.spin += d * (1 - Math.exp(-dt * 6));
-      card.rotation.set(st.rx, st.spin + st.ry, 0);
+      st.flip += (st.flipTo - st.flip) * (1 - Math.exp(-dt * 6));      // click/tap: spin round to the other side
+      card.rotation.set(st.rx, st.spin + st.ry + st.flip, 0);
       card.position.y = LIFT + CH / 2;
     } else {
       st.spin += dt * 0.5; st.rx *= 0.9; st.ry *= 0.9;
@@ -1597,6 +1598,7 @@ function enterHoloCard() {
 }
 function exitHoloCard() {
   if (!HOLO.view) return;
+  if (HOLO.card) { const st = HOLO.card.st; st.spin += st.flip; st.flip = st.flipTo = 0; }
   for (const ch of HOLO.hidden || []) ch.holder.visible = true;   // bring back the Chonks we moved out of the shot
   HOLO.hidden = []; if (typeof syncVisitorVisibility === "function") syncVisitorVisibility();
   HOLO.view = false; VM.scene = false; VM.cam = null;
@@ -1611,6 +1613,17 @@ function setupHoloInput() {
     const st = HOLO.card.st, nx = e.clientX / innerWidth, ny = e.clientY / innerHeight;
     st.tx = (ny - 0.5) * 0.9; st.ty = (nx - 0.5) * 1.1; st.lastInput = performance.now(); };
   el.addEventListener("pointermove", aim); el.addEventListener("pointerdown", aim);
+  // a click or tap on the card (not a drag) spins it round to show the other side
+  let press = null;
+  el.addEventListener("pointerdown", (e) => { press = HOLO.view ? { x: e.clientX, y: e.clientY, t: performance.now() } : null; });
+  el.addEventListener("pointerup", (e) => {
+    if (!press || !HOLO.view || !HOLO.card) return;
+    const moved = Math.hypot(e.clientX - press.x, e.clientY - press.y), quick = performance.now() - press.t < 450; press = null;
+    if (moved > 10 || !quick) return;
+    const r = el.getBoundingClientRect(), ray = new THREE.Raycaster();
+    ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    if (ray.intersectObjects(HOLO.card.hit, false).length) { HOLO.card.st.flipTo += Math.PI; HOLO.card.st.lastInput = performance.now(); }
+  });
   addEventListener("keydown", (e) => {
     if (isTyping()) return;
     if (e.code === "KeyE" && !e.repeat) { if (HOLO.view) { e.preventDefault(); exitHoloCard(); } else if (HOLO.near) { e.preventDefault(); enterHoloCard(); } }
