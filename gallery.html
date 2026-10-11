@@ -324,6 +324,7 @@ body.cutscene .hud-top, body.cutscene .keys, body.cutscene #joy, body.cutscene .
   <button class="small" id="tWave">Wave</button>
   <button id="tJump">Jump</button>
 </div>
+<div class="vend-prompt" id="laptopPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to </span>make ASCII Chonks</span><button type="button" id="laptopUse">Open</button></div>
 <div class="vend-prompt" id="holoPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to look at the </span>holo card</span><button type="button" id="holoUse">Look</button></div>
 <div class="holo-hint" id="holoHint" hidden><span><span class="vp-desk">Move the mouse to tilt · click the card to flip it · <b>E</b> or <b>Esc</b> to step back</span><span class="vp-touch">Drag to tilt · tap to flip</span></span><button type="button" id="holoBack">Back</button></div>
 <div class="vend-prompt" id="vendPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to use the </span>Chonk-O-Mat</span><button type="button" id="vendUse">Use</button></div>
@@ -1123,9 +1124,7 @@ const LOCATIONS = [
       if (holo[0]) buildHologram(k, 10, 4, ph, holo[0]);
       else { const sph = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16), new THREE.MeshStandardMaterial({ color: 0xdfe3ea, metalness: 1, roughness: 0.08 })); sph.position.set(10, ph + 0.3, 4); sph.castShadow = true; g.add(sph); }
       ph = plinth(-10, -6.5, 0.8);
-      if (holo[1]) buildHologram(k, -10, -6.5, ph, holo[1]);
-      else { const cols = [0xe76f51, 0x2a9d8f, 0xe9c46a, 0x264653, 0xf4a261];
-        for (let q = 0; q < 9; q++) k.box(mat(cols[q % 5]), 0.18, 0.18, 0.18, -10 + ((q % 3) - 1) * 0.12, ph + Math.floor(q / 3) * 0.18 + (q % 2) * 0.02, -6.5 + ((q % 3) - 1) * 0.1, { ry: q * 0.4 }); }
+      buildAsciiLaptop(k, -10, -6.5, ph);                   // a laptop typing out an ASCII Chonk (press E beside it -> Chonk ASCII)
       // the gold Chonk statue (centre piece) built from Chonk #1
       k.box(mat(0x2b2b2b, { r: .5 }), 3.6, 0.5, 2.4, 0, 0, 8.6, { solid: true, walk: true });
       STATUE.label = plane(k, statueLabelTex(STATUE.id), 1.2, 0.4, 0, 0.25, 7.39, PI, { transparent: true });
@@ -1490,6 +1489,53 @@ function buildZenWoods(k, cx, cz) {
   make(trunks, new THREE.MeshStandardMaterial({ color: 0x4a3222, roughness: 0.9 }));
 }
 
+/* A laptop on the stand by the back-left wall, its screen a green terminal typing out an ASCII Chonk on a loop.
+   Walk up and press E (or Open) to make your own in Chonk ASCII. */
+const LAPTOP = { x: -10, z: -6.5, near: false };
+function buildAsciiLaptop(k, x, z, top) {
+  const g = new THREE.Group(); g.position.set(x, top, z); g.rotation.y = Math.PI / 2; k.g.add(g);   // screen faces into the room (+x)
+  const shell = mat(0x2b2e36, { m: 0.6, r: 0.35 }), keys = mat(0x15171c, { r: 0.6 });
+  const base = new THREE.Mesh(BOX, shell); base.scale.set(0.52, 0.024, 0.36); base.position.y = 0.012; base.castShadow = true; g.add(base);
+  const kb = new THREE.Mesh(BOX, keys); kb.scale.set(0.44, 0.004, 0.16); kb.position.set(0, 0.026, -0.03); g.add(kb);
+  const pad = new THREE.Mesh(BOX, mat(0x3a3e48, { m: 0.5, r: 0.4 })); pad.scale.set(0.14, 0.003, 0.08); pad.position.set(0, 0.026, 0.11); g.add(pad);
+  const hinge = new THREE.Group(); hinge.position.set(0, 0.024, -0.18); hinge.rotation.x = -0.28; g.add(hinge);   // lid opened a little past upright
+  const lid = new THREE.Mesh(BOX, shell); lid.scale.set(0.52, 0.34, 0.014); lid.position.set(0, 0.17, -0.007); lid.castShadow = true; hinge.add(lid);
+  // the screen: a canvas we redraw as the text types out
+  const cv = document.createElement("canvas"); cv.width = 512; cv.height = 320; const c = cv.getContext("2d");
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace;
+  const screen = new THREE.Mesh(new THREE.PlaneGeometry(0.48, 0.3), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+  screen.position.set(0, 0.17, 0.001); hinge.add(screen);
+  const FACE = ["  @@@@@@@@  ", " @@@@@@@@@@ ", " @@@@@@@@@@ ", "#@@.:@@@.:@ ", "#@@.:###.:@ ", " @@@@@@@@@@ ", "  @@@@@@@@  "];
+  const LINES = ["$ chonk --ascii 1", "", ...FACE.map((r) => "    " + [...r].map((ch) => ch + ch).join("")), "", "  chonkit.xyz/ascii"];
+  let shown = -1;
+  const draw = (n, blink) => {
+    c.fillStyle = "#07120b"; c.fillRect(0, 0, 512, 320);
+    c.font = "bold 22px 'DM Mono', ui-monospace, monospace"; c.textBaseline = "top";
+    for (let i = 0; i < Math.min(n, LINES.length); i++) { c.fillStyle = i === 0 ? "#9be8ff" : "#7CFF8A"; c.fillText(LINES[i], 18, 14 + i * 25); }
+    if (blink) { const row = Math.min(n, LINES.length - 1); c.fillStyle = "#7CFF8A"; c.fillRect(18 + (n >= LINES.length ? c.measureText(LINES[row]).width + 4 : 0), 14 + row * 25, 12, 22); }
+    for (let y = 0; y < 320; y += 4) { c.fillStyle = "rgba(0,0,0,.18)"; c.fillRect(0, y, 512, 2); }   // scan lines
+    tex.needsUpdate = true;
+  };
+  draw(0, true);
+  k.every((t) => {
+    const cyc = t % 9, n = Math.floor(cyc / 0.35), blink = Math.floor(t * 2) % 2 === 0, key = Math.min(n, LINES.length) * 2 + (blink ? 1 : 0);
+    if (key !== shown) { shown = key; draw(n, blink); }
+    updateLaptopNear();
+  });
+  const glow = new THREE.PointLight(0x7cff8a, 0.6, 1.6, 2); glow.position.set(0, 0.2, 0.15); g.add(glow);
+  GALLERY.views.push({ x, z, nx: 1, nz: 0, w: 0.6, weight: 1.2, dist: 1.8 });
+}
+function updateLaptopNear() {
+  let near = false;
+  if (sel && mode === "walk" && camMode === "follow" && !VM.scene) {
+    const d = Math.hypot(sel.pos.x - LAPTOP.x, sel.pos.z - LAPTOP.z);
+    near = d > 0.4 && d < 1.9 && Math.abs(sel.pos.y) < 0.6;
+  }
+  if (near !== LAPTOP.near) { LAPTOP.near = near; document.getElementById("laptopPrompt").hidden = !near; }
+}
+function useLaptop() { if (LAPTOP.near) location.href = "ascii.html"; }
+addEventListener("keydown", (e) => { if (e.code === "KeyE" && !e.repeat && LAPTOP.near && !isTyping()) { e.preventDefault(); useLaptop(); } });
+
 /* A saved ASCII Chonk as a hologram over a sculpture plinth: its spinning frames (one sprite sheet) on a plane that
    always turns to face you, tinted cyan with scan lines, flicker and the odd glitch, above a glowing projector and a
    soft beam. Driven by the scene clock, so the Tour recorder films it too. */
@@ -1753,6 +1799,7 @@ function setupHoloInput() {
     else if (e.key === "Escape" && HOLO.view) { e.preventDefault(); e.stopPropagation(); exitHoloCard(); }
   }, true);
   document.getElementById("holoUse").addEventListener("click", (e) => { enterHoloCard(); e.currentTarget.blur(); });
+  document.getElementById("laptopUse").addEventListener("click", useLaptop);
   document.getElementById("holoBack").addEventListener("click", (e) => { exitHoloCard(); e.currentTarget.blur(); });
 }
 
@@ -2092,7 +2139,7 @@ async function loadGallery() {
     img.onload = () => { it.img = img; sheet(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
   })));
   GALLERY.all = items.filter((it) => it.img);
-  GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg).slice(0, 2);   // up to two holograms on the sculpture stands (the third holds the holo card)
+  GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg).slice(0, 1);   // the newest ASCII Chonk as a hologram on the chrome sphere's stand (the others hold the holo card and the laptop)
   GALLERY.shown = GALLERY.all.filter((it) => !GALLERY.ascii.includes(it)).slice(0, FRAMES);
   renderGalleryList();
 }
@@ -2182,6 +2229,7 @@ function applyLocation(id, { keepPositions = false } = {}) {
   }); }
   if (HOLO.view) exitHoloCard();
   HOLO.card = null; HOLO.near = false; document.getElementById("holoPrompt").hidden = true;
+  LAPTOP.near = false; document.getElementById("laptopPrompt").hidden = true;
   locGroup = new THREE.Group(); scene.add(locGroup);
   kit = new Kit(locGroup); loc = L;
   GALLERY.spots = []; GALLERY.views = [];
