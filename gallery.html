@@ -1061,20 +1061,20 @@ const LOCATIONS = [
 
   /* ---------------- Art Gallery ---------------- */
   { id: "gallery", name: "Art Gallery", swatch: "linear-gradient(90deg,#f4f3ef 0 30%,#e76f51 30% 42%,#f4f3ef 42% 58%,#264653 58% 70%,#f4f3ef 70%)",
-    spawn: { x: 0, z: 1.6, yaw: PI }, bounds: [-21.4, 34.0, -9.7, 50.0],   // the main room plus the new hall behind the statue wall (walls do the rest)
+    spawn: { x: 0, z: 1.6, yaw: PI }, bounds: [-13.7, 14.6, -9.7, 21.5],   // the main room plus the zen garden behind the statue wall (walls and fences do the rest)
     build(k) {
       const g = k.g, rand = rng(88), H = 5;
       const conc = canvasTex(256, 256, (c, w, h) => { c.fillStyle = "#cfcdc8"; c.fillRect(0, 0, w, h); for (let i = 0; i < 3000; i++) { c.fillStyle = rand() > .5 ? "#c6c4be" : "#d8d6d1"; c.fillRect(rand() * w, rand() * h, 2, 2); }
         c.strokeStyle = "#bdbab4"; c.lineWidth = 2; c.strokeRect(0, 0, w, h); }, [7, 5]);
       k.box(new THREE.MeshStandardMaterial({ map: conc, roughness: 0.35, metalness: 0.05 }), 28, 0.02, 20, 0, -0.02, 0, { cast: false, walk: true });
-      k.box(mat(0xbdbab4), 400, 0.01, 400, 0, -0.05, 0, { cast: false });
+      k.box(mat(0xbdbab4), 400, 0.01, 400, 0, -0.6, 0, { cast: false });   // outdoor ground, below the zen garden's sunken koi pond
       const white = mat(0xf4f3ef, { r: .95 }), skirt = mat(0x3a3a3a);
       const Wl = (w, d, x, z) => k.box(white, w, H, d, x, 0, z, { solid: true, occ: true, cast: false });
       Wl(0.3, 20, -14.15, 0); Wl(0.3, 20, 14.15, 0); Wl(28.6, 0.3, 0, -10.15);
       // the statue wall, with a doorway through to the new hall between the statue and the Chonk-O-Mat corner
-      const DOOR = { x: 6.3, w: 2.2, h: 3.0 }, HALL = { x0: DOOR.x - 28, x1: DOOR.x + 28, z0: 10.3, z1: 50.3, h: 10 };
+      const DOOR = { x: 6.3, w: 2.2, h: 3.0 };
       const endWall = (x0, x1, y0, y1) => k.box(white, x1 - x0, y1 - y0, 0.3, (x0 + x1) / 2, y0, 10.15, { solid: y0 < 2, occ: true, cast: false });
-      endWall(HALL.x0 - 0.3, DOOR.x - DOOR.w / 2, 0, HALL.h); endWall(DOOR.x + DOOR.w / 2, HALL.x1 + 0.3, 0, HALL.h); endWall(DOOR.x - DOOR.w / 2, DOOR.x + DOOR.w / 2, DOOR.h, HALL.h);
+      endWall(-14.3, DOOR.x - DOOR.w / 2, 0, H); endWall(DOOR.x + DOOR.w / 2, 14.3, 0, H); endWall(DOOR.x - DOOR.w / 2, DOOR.x + DOOR.w / 2, DOOR.h, H);
       k.box(mat(0xffffff), 28.4, 0.15, 20.4, 0, H, 0, { cast: false, occ: true });
       for (const x of [-9, -3, 3, 9]) k.box(mat(0xffffff, { e: 0xffffff, ei: 1.3 }), 2.2, 0.04, 18, x, H - 0.04, 0, { cast: false });
       k.box(skirt, 28, 0.08, 0.04, 0, 0, -9.98, { cast: false }); k.box(skirt, 20.3 - 1.1, 0.08, 0.04, -14 + (20.3 - 1.1) / 2, 0, 9.98, { cast: false }); k.box(skirt, 14 - 7.4, 0.08, 0.04, 7.4 + (14 - 7.4) / 2, 0, 9.98, { cast: false }); k.box(skirt, 0.04, 0.08, 20, -13.98, 0, 0, { cast: false }); k.box(skirt, 0.04, 0.08, 20, 13.98, 0, 0, { cast: false });
@@ -1153,8 +1153,8 @@ const LOCATIONS = [
       for (const [x, z] of [[-3.2, -6.2], [3.2, -6.2]]) { k.box(benchTop, 2.2, 0.08, 0.5, x, 0.4, z, { solid: true, walk: true }); for (const dx of [-0.9, 0.9]) k.box(steel, 0.06, 0.4, 0.45, x + dx, 0, z); k.solidBox(x - 1.1, x + 1.1, z - 0.25, z + 0.25, 0, 0.48); }
       // ---- the doorway: a black frame with double doors swung open into the hall ----
       const frameM = mat(0x1a1a1a, { r: .5 }), doorM = mat(0xf4f3ef, { r: .8 }), brass = mat(0xc9a24a, { m: .8, r: .3 });
-      for (const sx of [-1, 1]) k.box(frameM, 0.12, DOOR.h, 0.42, DOOR.x + sx * (DOOR.w / 2 + 0.06), 0, 10.15, { solid: true });
-      k.box(frameM, DOOR.w + 0.36, 0.14, 0.42, DOOR.x, DOOR.h, 10.15);
+      for (const sx of [-1, 1]) k.box(frameM, 0.14, DOOR.h - 0.01, 0.42, DOOR.x + sx * (DOOR.w / 2 - 0.05), 0, 10.15, { solid: true });   // posts just inside the opening (no faces flush with the wall)
+      k.box(frameM, DOOR.w + 0.2, 0.16, 0.42, DOOR.x, DOOR.h - 0.15, 10.15);
       k.box(mat(0x2b2b2b, { r: .6 }), DOOR.w, 0.02, 0.42, DOOR.x, 0, 10.15, { cast: false, walk: true });   // threshold
       for (const sx of [-1, 1]) {                                 // each leaf hinged at its side of the frame, opened ~100 degrees into the hall
         const hinge = new THREE.Group(); hinge.position.set(DOOR.x + sx * DOOR.w / 2, 0, 10.36); hinge.rotation.y = sx * 1.75; g.add(hinge);
@@ -1162,18 +1162,9 @@ const LOCATIONS = [
         const knob = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), brass); knob.position.set(-sx * (DOOR.w / 2 - 0.1), 1.05, 0.05); hinge.add(knob);
         hinge.updateMatrixWorld(true); const b = new THREE.Box3().setFromObject(leaf); k.solidBox(b.min.x, b.max.x, b.min.z, b.max.z);
       }
-      // ---- the new hall: twice the main room in every direction (56 x 40 m, 10 m ceiling), empty for now ----
-      const HW = HALL.x1 - HALL.x0, HD = HALL.z1 - HALL.z0, HX = (HALL.x0 + HALL.x1) / 2, HZ = (HALL.z0 + HALL.z1) / 2;
-      const conc2 = conc.clone(); conc2.repeat.set(14, 10); conc2.needsUpdate = true;
-      k.box(new THREE.MeshStandardMaterial({ map: conc2, roughness: 0.35, metalness: 0.05 }), HW, 0.02, HD, HX, -0.02, HZ, { cast: false, walk: true });
-      const HWl = (w, d, x, z) => k.box(white, w, HALL.h, d, x, 0, z, { solid: true, occ: true, cast: false });
-      HWl(0.3, HD + 0.6, HALL.x0 - 0.15, HZ); HWl(0.3, HD + 0.6, HALL.x1 + 0.15, HZ); HWl(HW + 0.6, 0.3, HX, HALL.z1 + 0.15);
-      k.box(mat(0xffffff), HW + 0.6, 0.2, HD + 0.6, HX, HALL.h, HZ, { cast: false, occ: true });
-      for (let i = 0; i < 6; i++) k.box(mat(0xffffff, { e: 0xffffff, ei: 1.3 }), 3, 0.05, HD - 6, HALL.x0 + HW * (i + 0.5) / 6, HALL.h - 0.05, HZ, { cast: false });
-      k.box(skirt, HW, 0.08, 0.04, HX, 0, HALL.z1 - 0.02, { cast: false }); k.box(skirt, 0.04, 0.08, HD, HALL.x0 + 0.02, 0, HZ, { cast: false }); k.box(skirt, 0.04, 0.08, HD, HALL.x1 - 0.02, 0, HZ, { cast: false });
-      k.box(skirt, DOOR.x - DOOR.w / 2 - HALL.x0, 0.08, 0.04, (HALL.x0 + DOOR.x - DOOR.w / 2) / 2, 0, HALL.z0 + 0.02, { cast: false });
-      k.box(skirt, HALL.x1 - DOOR.x - DOOR.w / 2, 0.08, 0.04, (HALL.x1 + DOOR.x + DOOR.w / 2) / 2, 0, HALL.z0 + 0.02, { cast: false });
-      return { top: 0xdfe6ee, bottom: 0xf6f6f4, hemi: [0xffffff, 0xd9d6cf, 1.2], sun: [0xffffff, 1.3, [0.2, 0.95, 0.3]], fog: null, exposure: 1.0, fill: [0xffffff, 0.55] };
+      // ---- through the door: an open-air Japanese zen garden (models/zen-garden.glb, from chonk7000_zen_garden_wallpaper.blend) ----
+      buildZenGarden(k, DOOR.x, 16.8);
+      return { top: 0x8fb8e6, bottom: 0xe3ecf3, hemi: [0xffffff, 0xd9d6cf, 1.2], sun: [0xffffff, 1.3, [0.2, 0.95, 0.3]], fog: null, exposure: 1.0, fill: [0xffffff, 0.55] };   // blue sky over the garden (the gallery has a ceiling)
     } },
 
   /* ---------------- Snowy Pines ---------------- */
@@ -1391,6 +1382,62 @@ function buildVitrine(k, x, z, ry = 0) {
       if (c.mixer) { const d = c.clip.duration, n = Math.max(1, Math.round(LOOP / d)); c.mixer.setTime((((u + c.offset) % 1) * n * d) % d); }
     }
   });
+}
+
+/* The zen garden behind the gallery's statue wall: raked sand, a koi pond with lily pads, a stone lantern, cherry trees
+   shedding petals, rock islands, stepping stones and a bamboo fence with woods and a far mountain beyond. The model is
+   exported from chonk7000_zen_garden_wallpaper.blend (vertex colours + its koi and petal animations). In Blender the
+   garden faces -Y; here it is turned to face the doorway, centred on (cx, cz). */
+let zenGLB = null;
+function buildZenGarden(k, cx, cz) {
+  // open ground all around the sand (moss), walkable, so the garden feels outdoors rather than a box
+  // moss around the raked sand (not under it: the koi pond is sunk into the sand), plus an invisible floor over the sand to walk on
+  const moss = mat(0x7d8f5a, { r: 1 }), z0 = 10.3, z1 = cz + 6.3;
+  k.box(moss, 30, 0.02, cz - 5 - z0, cx, -0.03, (z0 + cz - 5) / 2, { cast: false, walk: true });
+  k.box(moss, 30, 0.02, z1 - (cz + 5), cx, -0.03, (cz + 5 + z1) / 2, { cast: false, walk: true });
+  for (const sx of [-1, 1]) k.box(moss, 7, 0.02, 10, cx + sx * 11.5, -0.03, cz, { cast: false, walk: true });
+  k.box(new THREE.MeshBasicMaterial({ visible: false }), 16, 0.02, 10, cx, -0.03, cz, { cast: false, walk: true }).visible = false;
+  // side fences (bamboo) and the back fence keep you in the garden
+  const bamboo = mat(0xb9a467, { r: .8 }), bambooDark = mat(0x8a7744, { r: .8 });
+  for (const sx of [-1, 1]) {
+    const x = cx + sx * 8.6;
+    for (let z = cz - 6.4; z < cz + 5.0; z += 0.16) k.box(z % 0.32 < 0.16 ? bamboo : bambooDark, 0.12, 1.6, 0.13, x, 0, z, { cast: true });
+    for (const y of [0.45, 1.25]) k.box(bambooDark, 0.06, 0.06, 11.4, x + sx * -0.09, y, cz - 0.7, { cast: false });
+    k.solidBox(x - 0.1, x + 0.1, cz - 6.5, cz + 5.2);
+  }
+  k.solidBox(cx - 8.7, cx + 8.7, cz + 4.9, cz + 5.3);                      // back bamboo fence
+  // invisible screens along the fences so the follow camera stays in the garden
+  const screen = new THREE.MeshBasicMaterial({ visible: false });
+  k.box(screen, 17.6, 4, 0.1, cx, 0, cz + 5.2, { occ: true, cast: false }).visible = false;
+  for (const sx of [-1, 1]) k.box(screen, 0.1, 4, 11.6, cx + sx * 8.7, 0, cz - 0.7, { occ: true, cast: false }).visible = false;
+  // things you walk round: pond, the two cherry trunks, the lantern
+  k.solidBox(cx + 0.45, cx + 4.3, cz - 0.34, cz + 2.14);
+  k.solidCircle(cx + 3.45, cz + 2.75, 0.45); k.solidCircle(cx - 4.85, cz + 3.25, 0.45); k.solidCircle(cx + 1.05, cz + 2.68, 0.3);
+  const lamp = new THREE.PointLight(0xff9a48, 4, 7, 1.6); lamp.position.set(cx + 1.05, 0.8, cz + 2.7); k.g.add(lamp);
+  GALLERY.views.push({ x: cx, z: cz, nx: 0, nz: -1, w: 6, weight: 2, dist: 6 });
+  zenGLB ||= Promise.all([import("three/addons/loaders/GLTFLoader.js"), import("three/addons/libs/meshopt_decoder.module.js")])
+    .then(([{ GLTFLoader }, { MeshoptDecoder }]) => new Promise((res, rej) => new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load("models/zen-garden.glb?v=1", res, undefined, rej)));
+  zenGLB.then((gl) => {
+    if (!k.g.parent) return;                              // the room was rebuilt meanwhile
+    const root = gl.scene.clone(true); root.position.set(cx, 0, cz); root.rotation.y = Math.PI; k.g.add(root);
+    const sand = new THREE.MeshStandardMaterial({ color: 0xe6d3aa, roughness: 1 });
+    const water = new THREE.MeshStandardMaterial({ color: 0x17504c, roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide });
+    const glow = new THREE.MeshBasicMaterial({ color: 0xffc06a, toneMapped: false });
+    root.traverse((o) => {
+      if (!o.isMesh) return;
+      let n = o.name; for (let p = o.parent; !n && p; p = p.parent) n = p.name;
+      if (/ZG_Sand/.test(n)) { o.material = sand; o.receiveShadow = true; return; }
+      if (/ZG_Water/.test(n)) { o.material = water; return; }
+      if (/ZG_LanternGlow/.test(n)) { o.material = glow; return; }
+      if (/ZG_(FarGround|Mountain|Backdrop)/.test(n)) { o.receiveShadow = true; return; }
+      o.castShadow = true; o.receiveShadow = true;
+      if (o.material) o.material.side = THREE.DoubleSide;      // petals are single quads
+    });
+    const mixer = new THREE.AnimationMixer(root);
+    for (const clip of gl.animations) mixer.clipAction(clip).play();
+    const dur = Math.max(...gl.animations.map((c) => c.duration), 1);
+    k.every((t) => { mixer.setTime(t % dur); });          // koi swim, petals drift (on the scene clock, so the Tour films it too)
+  }).catch((e) => console.warn("zen garden failed to load", e));
 }
 
 /* A saved ASCII Chonk as a hologram over a sculpture plinth: its spinning frames (one sprite sheet) on a plane that
