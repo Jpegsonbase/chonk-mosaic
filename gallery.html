@@ -1154,6 +1154,8 @@ const LOCATIONS = [
       for (const sx of [-1, 1]) k.box(frameM, 0.14, DOOR.h - 0.01, 0.42, DOOR.x + sx * (DOOR.w / 2 - 0.05), 0, 10.15, { solid: true });   // posts just inside the opening (no faces flush with the wall)
       k.box(frameM, DOOR.w + 0.2, 0.16, 0.42, DOOR.x, DOOR.h - 0.15, 10.15);
       k.box(mat(0x2b2b2b, { r: .6 }), DOOR.w, 0.02, 0.42, DOOR.x, 0, 10.15, { cast: false, walk: true });   // threshold
+      // the sign over the doorway (gallery side), in the same lettering as the CHONKIT GALLERY sign
+      plane(k, textTex([{ text: "Zen Garden", size: 104 }], { w: 640, h: 128, fg: "#1d1d1b" }), 2.6, 0.52, DOOR.x, 3.62, 9.97, PI, { transparent: true });
       for (const sx of [-1, 1]) {                                 // each leaf hinged at its side of the frame, opened ~100 degrees into the hall
         const hinge = new THREE.Group(); hinge.position.set(DOOR.x + sx * DOOR.w / 2, 0, 10.36); hinge.rotation.y = sx * 1.75; g.add(hinge);
         const leaf = new THREE.Mesh(new THREE.BoxGeometry(DOOR.w / 2, DOOR.h - 0.06, 0.05), doorM); leaf.position.set(-sx * DOOR.w / 4, (DOOR.h - 0.06) / 2, 0); leaf.castShadow = true; hinge.add(leaf);
