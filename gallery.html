@@ -1546,6 +1546,12 @@ async function buildHoloCard(k, x, z, top) {
   HOLO.card = { g, card, st, centre: () => card.getWorldPosition(new THREE.Vector3()) };
   k.every((t, dt) => {
     if (HOLO.view) {
+      // first-person close-up: hide your own Chonk and anyone else standing near the card so nothing blocks the view
+      for (const ch of [...chonks, ...visitors]) {
+        if (!ch.holder.visible) continue;
+        const p = ch.holder.position;
+        if (ch === sel || Math.hypot(p.x - x, p.z - z) < 2.6) { ch.holder.visible = false; HOLO.hidden.push(ch); }
+      }
       if (performance.now() - st.lastInput > 6000) { st.tx = Math.sin(t * 0.9) * 0.22; st.ty = Math.sin(t * 0.6) * 0.32; }   // gentle sway when you stop moving
       const e = 1 - Math.exp(-dt * 10);
       st.rx += (st.tx - st.rx) * e; st.ry += (st.ty - st.ry) * e;
@@ -1577,7 +1583,11 @@ function enterHoloCard() {
   const c = H.centre(), dir = new THREE.Vector3(sel.pos.x - HOLO.x, 0, sel.pos.z - HOLO.z);
   if (dir.lengthSq() < 1e-4) dir.set(1, 0, 0); dir.normalize();
   H.st.faceYaw = Math.atan2(dir.x, dir.z); H.st.lastInput = 0;
-  const to = c.clone().addScaledVector(dir, 1.3), from = camera.position.clone(), at = c.clone();
+  // stand back far enough that the whole card fits between the cinema bars, on wide screens and tall phones alike
+  const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2);
+  const dist = Math.max(1.0, (0.63 * 1.25) / (2 * tanH * 0.78), (0.45 * 1.2) / (2 * tanH * camera.aspect));
+  const to = c.clone().addScaledVector(dir, dist), from = camera.position.clone(), at = c.clone();
+  HOLO.hidden = [];
   VM.cam = { pos: from.clone(), at };
   let t0 = null;
   const fly = (now) => { if (!HOLO.view) return; if (t0 === null) t0 = now; const e = Math.min(1, (now - t0) / 750), s = e * e * (3 - 2 * e);
@@ -1587,6 +1597,8 @@ function enterHoloCard() {
 }
 function exitHoloCard() {
   if (!HOLO.view) return;
+  for (const ch of HOLO.hidden || []) ch.holder.visible = true;   // bring back the Chonks we moved out of the shot
+  HOLO.hidden = []; if (typeof syncVisitorVisibility === "function") syncVisitorVisibility();
   HOLO.view = false; VM.scene = false; VM.cam = null;
   document.body.classList.remove("cutscene", "holo-view"); document.getElementById("holoHint").hidden = true;
   if (sel) { cam.yaw = sel.yaw + Math.PI; cam.pitch = 0.3; cam.dist = Math.max(cam.dist, 3.2); }
