@@ -5,11 +5,11 @@
 (() => {
   const ART = window.CHONKIT_HERO_ART || [
     { src: "img/hero/chonk-15064.webp", sm: "img/hero/chonk-15064-640.webp", mid: "img/hero/chonk-15064-mid.webp", big: "img/hero/chonk-15064-big.webp", w: 1024, h: 1024,
-      title: "Chonk #15064", line: "4,096 Chonks, 274 different", focus: [0.4, 0.43], across: 64, down: 64, unique: 274, file: "chonk-15064.png" },
+      title: "Chonk #15064", line: "4,096 Chonks, 274 different", focus: [0.4, 0.43], tour: [[0.45, 0.43], [0.36, 0.27], [0.5, 0.55], [0.5, 0.67], [0.3, 0.76]], across: 64, down: 64, unique: 274, file: "chonk-15064.png" },
     { src: "img/hero/chonk-13.webp", sm: "img/hero/chonk-13-640.webp", mid: "img/hero/chonk-13-mid.webp", big: "img/hero/chonk-13-big.webp", w: 1024, h: 1024,
-      title: "Chonk #13", line: "4,096 Chonks, 435 different", focus: [0.42, 0.32], across: 64, down: 64, unique: 435, file: "chonk-13.png" },
+      title: "Chonk #13", line: "4,096 Chonks, 435 different", focus: [0.42, 0.32], tour: [[0.46, 0.2], [0.44, 0.44], [0.42, 0.66], [0.73, 0.73], [0.5, 0.3]], across: 64, down: 64, unique: 435, file: "chonk-13.png" },
     { src: "img/hero/chonk-1.webp", sm: "img/hero/chonk-1-640.webp", mid: "img/hero/chonk-1-mid.webp", big: "img/hero/chonk-1-big.webp", w: 1024, h: 1024,
-      title: "Chonk #1", line: "4,096 Chonks, 341 different", focus: [0.42, 0.46], across: 64, down: 64, unique: 341, file: "chonk-1.png" },
+      title: "Chonk #1", line: "4,096 Chonks, 341 different", focus: [0.42, 0.46], tour: [[0.42, 0.42], [0.42, 0.27], [0.45, 0.6], [0.4, 0.76], [0.55, 0.42]], across: 64, down: 64, unique: 341, file: "chonk-1.png" },
   ];
   const ZOOM = 4;   // how much closer the window looks than the picture
 
@@ -63,7 +63,9 @@
     view.style.backgroundSize = `${bw}px ${bh}px`;
     view.style.backgroundPosition = `${-lx * ZOOM}px ${-ly * ZOOM}px`;
   }
+  let userAt = 0;   // when the visitor last moved the lens (pauses the tour)
   function aim(e) {
+    userAt = performance.now();
     const r = canvas.getBoundingClientRect();
     fx = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
     fy = Math.min(Math.max((e.clientY - r.top) / r.height, 0), 1);
@@ -77,6 +79,7 @@
     const d = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] }[e.key];
     if (!d) return;
     e.preventDefault();
+    userAt = performance.now();
     fx = Math.min(Math.max(fx + d[0], 0), 1); fy = Math.min(Math.max(fy + d[1], 0), 1);
     loadBig(); draw();
   });
@@ -84,6 +87,81 @@
   if (pic.complete) draw(); else pic.addEventListener("load", draw);
   // Fetch the sharp close-up once the page has settled.
   addEventListener("load", () => setTimeout(loadBig, touch ? 2500 : 1500), { once: true });
+
+  const calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const frame = canvas.closest(".art-frame") || canvas.parentElement;
+
+  // Build-in: the picture assembles Chonk by Chonk from the centre out,
+  // like the mosaic maker placing tiles. Then the lens fades in.
+  let built = calm;
+  if (!calm) {
+    frame.classList.add("hero-building");
+    const cv = document.createElement("canvas");
+    cv.className = "hero-build"; cv.setAttribute("aria-hidden", "true");
+    canvas.appendChild(cv);
+    const N = art.across || 64, M = art.down || 64, DUR = 1500;
+    const cells = [];
+    for (let y = 0; y < M; y++) for (let x = 0; x < N; x++) {
+      const dx = (x + 0.5) / N - 0.5, dy = (y + 0.5) / M - 0.5;
+      cells.push([x, y, Math.hypot(dx, dy) / 0.7071 * 0.8 + Math.random() * 0.2]);
+    }
+    cells.sort((a, b) => a[2] - b[2]);
+    const ctx = cv.getContext("2d");
+    const cover = () => {
+      const d = Math.min(devicePixelRatio || 1, 2);
+      cv.width = Math.round(canvas.clientWidth * d); cv.height = Math.round(canvas.clientHeight * d);
+      ctx.fillStyle = getComputedStyle(canvas).backgroundColor || "#E8EBF5";
+      ctx.fillRect(0, 0, cv.width, cv.height);
+    };
+    cover();
+    const finish = () => {
+      cv.remove(); frame.classList.remove("hero-building"); built = true;
+      userAt = performance.now() - 2000;   // short pause before the tour starts
+    };
+    const play = () => {
+      cover();
+      const t0 = performance.now(); let i = 0;
+      const step = (now) => {
+        const p = Math.min((now - t0) / DUR, 1);
+        const upto = Math.floor(cells.length * (p * (2 - p)));   // ease-out
+        const cw = cv.width / N, ch = cv.height / M;
+        for (; i < upto; i++) {
+          const c = cells[i];
+          ctx.clearRect(Math.floor(c[0] * cw), Math.floor(c[1] * ch), Math.ceil(cw) + 1, Math.ceil(ch) + 1);
+        }
+        if (p < 1) requestAnimationFrame(step); else finish();
+      };
+      requestAnimationFrame(step);
+    };
+    const ready = () => (pic.decode ? pic.decode().catch(() => {}) : Promise.resolve()).then(() => setTimeout(play, 150));
+    if (pic.complete && pic.naturalWidth) ready(); else {
+      pic.addEventListener("load", ready, { once: true });
+      pic.addEventListener("error", finish, { once: true });
+    }
+  }
+
+  // Idle tour: when nobody is using it, the lens drifts between the best
+  // spots on the picture. Any mouse, touch or key takes over straight away.
+  const stops = art.tour && art.tour.length ? art.tour : [[fx, fy]];
+  let hovering = false, visible = true, stop = 0, leg = null;
+  canvas.addEventListener("pointerenter", (e) => { if (e.pointerType === "mouse") hovering = true; });
+  canvas.addEventListener("pointerleave", () => { hovering = false; userAt = performance.now(); });
+  if ("IntersectionObserver" in window) new IntersectionObserver((es) => { visible = es[0].isIntersecting; }).observe(canvas);
+  const ease = (t) => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  const GLIDE = 1700, HOLD = 1800, WAIT = 4000;
+  function tour(now) {
+    requestAnimationFrame(tour);
+    if (!built || hovering || !visible || document.hidden || now - userAt < WAIT) { leg = null; return; }
+    if (!leg) {
+      const [tx, ty] = stops[stop % stops.length]; stop++;
+      leg = { x0: fx, y0: fy, tx, ty, t0: now, dur: Math.max(600, GLIDE * Math.min(1, Math.hypot(tx - fx, ty - fy) / 0.25)) };
+    }
+    const p = Math.min((now - leg.t0) / leg.dur, 1), k = ease(p);
+    fx = leg.x0 + (leg.tx - leg.x0) * k; fy = leg.y0 + (leg.ty - leg.y0) * k;
+    draw();
+    if (now - leg.t0 > leg.dur + HOLD) leg = null;
+  }
+  if (!calm) requestAnimationFrame(tour);
 
   // Script console: types out the real matching code from mosaic-core.js,
   // then replays how the framed picture was built.
