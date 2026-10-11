@@ -247,6 +247,15 @@ body.freecam .follow-only, body:not(.freecam) .free-only { display: none !import
 #tour .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
 #tour .hint { margin: 0; }
 
+/* ---------- Holo card close-up ---------- */
+.holo-hint { position: fixed; left: 50%; bottom: calc(5.5vh - 21px); transform: translateX(-50%); z-index: 21; display: flex; align-items: center; gap: 10px;
+  padding: 6px 6px 6px 16px; border-radius: 999px; background: var(--panel-solid); border: 1px solid var(--skin); font-size: 13.5px; white-space: nowrap; }
+.holo-hint[hidden] { display: none; }
+.holo-hint b { color: var(--skin); font-family: var(--mono, monospace); }
+.holo-hint button { border-radius: 999px; padding: 7px 16px; font: 400 12px var(--display); background: var(--skin); color: var(--ink); border-color: var(--skin-deep); }
+.holo-hint .vp-touch { display: none; }
+body.touch .holo-hint .vp-desk { display: none; } body.touch .holo-hint .vp-touch { display: inline; }
+body.holo-view canvas { cursor: crosshair !important; }
 /* ---------- Chonk-O-Mat prompt and cutscene ---------- */
 .vend-prompt { position: fixed; left: 50%; bottom: calc(70px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); z-index: 9; display: flex; align-items: center; gap: 10px;
   padding: 6px 6px 6px 16px; border-radius: 999px; background: var(--panel-solid); border: 1px solid var(--skin); box-shadow: 0 8px 24px rgba(0,0,0,.3); font-size: 13.5px; white-space: nowrap; animation: dlIn .2s ease-out; }
@@ -315,6 +324,8 @@ body.cutscene .hud-top, body.cutscene .keys, body.cutscene #joy, body.cutscene .
   <button class="small" id="tWave">Wave</button>
   <button id="tJump">Jump</button>
 </div>
+<div class="vend-prompt" id="holoPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to look at the </span>holo card</span><button type="button" id="holoUse">Look</button></div>
+<div class="holo-hint" id="holoHint" hidden><span><span class="vp-desk">Move the mouse</span><span class="vp-touch">Drag</span> to tilt the card<span class="vp-desk"> · <b>E</b> or <b>Esc</b> to step back</span></span><button type="button" id="holoBack">Back</button></div>
 <div class="vend-prompt" id="vendPrompt" hidden><span class="vp-txt"><span class="vp-desk">Press <b>E</b> to use the </span>Chonk-O-Mat</span><button type="button" id="vendUse">Use</button></div>
 <div class="cine-bars" aria-hidden="true"><i></i><i></i></div>
 <div class="toast" id="toast" hidden></div>
@@ -1103,13 +1114,12 @@ const LOCATIONS = [
       // sculptures on plinths. Saved ASCII Chonks take these stands over as holograms (newest on the chrome sphere's stand)
       const holo = GALLERY.ascii;
       let ph = plinth(-10, 4);
-      if (holo[1]) buildHologram(k, -10, 4, ph, holo[1]);
-      else { const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(0.22, 0.07, 96, 12), goldM); knot.position.set(-10, ph + 0.35, 4); knot.castShadow = true; g.add(knot); k.every((t) => { knot.rotation.y = t * 0.4; }); }
+      buildHoloCard(k, -10, 4, ph);                         // the Chonk #18 holo card (press E beside it to look closer)
       ph = plinth(10, 4);
       if (holo[0]) buildHologram(k, 10, 4, ph, holo[0]);
       else { const sph = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16), new THREE.MeshStandardMaterial({ color: 0xdfe3ea, metalness: 1, roughness: 0.08 })); sph.position.set(10, ph + 0.3, 4); sph.castShadow = true; g.add(sph); }
       ph = plinth(-10, -6.5, 0.8);
-      if (holo[2]) buildHologram(k, -10, -6.5, ph, holo[2]);
+      if (holo[1]) buildHologram(k, -10, -6.5, ph, holo[1]);
       else { const cols = [0xe76f51, 0x2a9d8f, 0xe9c46a, 0x264653, 0xf4a261];
         for (let q = 0; q < 9; q++) k.box(mat(cols[q % 5]), 0.18, 0.18, 0.18, -10 + ((q % 3) - 1) * 0.12, ph + Math.floor(q / 3) * 0.18 + (q % 2) * 0.02, -6.5 + ((q % 3) - 1) * 0.1, { ry: q * 0.4 }); }
       // the gold Chonk statue (centre piece) built from Chonk #1
@@ -1413,6 +1423,189 @@ function buildHologram(k, x, z, top, item) {
   });
   GALLERY.spots.push({ item, x, z, nx: 0, nz: 1, w: 1, round: true });
   GALLERY.views.push({ x, z, nx: x > 0 ? -1 : 1, nz: 0, w: W, weight: 2, dist: 2.6 });
+}
+
+/* Chonk #18 holo card on the stand by the window wall (where the gold knot used to turn). The card art is drawn
+   from the Chonk #18 Holo Card design; a shader lays rainbow foil over the hair, the dress, the frame and the name,
+   and the foil, sheen and glare follow the angle you see the card from. Walk up and press E (or Look) to step in
+   close: move the mouse, or drag on a touch screen, to tilt the card and watch the foil shift. */
+const HOLO = { x: -10, z: 4, near: false, view: false, card: null };
+const HOLO_ART = [",,,,,,,,ffa600,,,ffa600,,,,,", ",,,,,,,,000000,,,000000,,,,,", ",,,,ac61de,ac61de,ac61de,024be6,024be6,024be6,024be6,024be6,024be6,,,,", ",,,ac61de,2e8bdc,2e8bdc,2e8bdc,facd17,facd17,facd17,facd17,facd17,facd17,,,,", ",,ac61de,2e8bdc,58c82a,58c82a,58c82a,024be6,024be6,024be6,024be6,024be6,024be6,ac61de,,,", ",ac61de,2e8bdc,58c82a,58c82a,f8d714,f8d714,f8d714,e9831f,efb15e,efb15e,efb15e,de5e2c,58c82a,ac61de,,", ",ac61de,2e8bdc,58c82a,f8d714,e9831f,e9831f,de5e2c,efb15e,efb15e,efb15e,efb15e,efb15e,de5e2c,ac61de,,", "ac61de,2e8bdc,58c82a,fcfcfc,fcfcfc,fcfcfc,fcfcfc,fcfcfc,fcfcfc,fcfcfc,fcfcfc,fcfcfc,fcfcfc,fcfcfc,ac61de,,", "ac61de,2e8bdc,58c82a,f8d714,e9831f,fcfcfc,2aa6ff,6dc3ff,fcfcfc,efb15e,fcfcfc,ff3636,ff7373,fcfcfc,ac61de,,", "ac61de,2e8bdc,58c82a,f8d714,e9831f,fcfcfc,6dc3ff,2aa6ff,fcfcfc,d69743,fcfcfc,ff7373,ff3636,fcfcfc,ac61de,,", "ac61de,2e8bdc,58c82a,f8d714,e9831f,efb15e,fcfcfc,fcfcfc,efb15e,efb15e,efb15e,fcfcfc,fcfcfc,efb15e,ac61de,,", "ac61de,2e8bdc,58c82a,f8d714,de5e2c,efb15e,efb15e,efb15e,efb15e,efb15e,efb15e,efb15e,efb15e,f9ff37,f9ff37,,", ",2e8bdc,58c82a,f8d714,de5e2c,d69743,d69743,d69743,d69743,d69743,d69743,d69743,f9ff37,000000,f9ff37,ffa600,", ",,58c82a,f8d714,efb15e,efb15e,b3102d,efb15e,efb15e,efb15e,b3102d,efb15e,f9ff37,f9ff37,f9ff37,ffa600,ffa600", ",,,efb15e,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,d3d834,d3d834,", ",,,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,f9ff37,d3d834,,,", ",,,efb15e,d3d834,d3d834,d3d834,d3d834,d3d834,d3d834,d3d834,d3d834,d3d834,efb15e,,,", ",,,,,c94fe4,57b1e6,c94fe4,daddaa,3a8ed5,3fc5a8,c94fe4,,,,,", ",,,,57b1e6,3fc5a8,c94fe4,57b1e6,c94fe4,3fc5a8,c94fe4,3a8ed5,3fc5a8,,,,", ",,,3a8ed5,d7d8a9,c94fe4,57b1e6,3a8ed5,3fc5a8,3a8ed5,daddaa,3fc5a8,c94fe4,daddaa,,,"].map((r) => r.split(","));
+function holoCardCanvases() {
+  const S = 2, W = 250 * S, H = 350 * S;
+  const mk = () => { const c = document.createElement("canvas"); c.width = W; c.height = H; const x = c.getContext("2d"); x.scale(S, S); return [c, x]; };
+  const rr = (x, X, Y, w, h, r) => { x.beginPath(); x.roundRect(X, Y, w, h, r); };
+  // ---- front ----
+  const [front, f] = mk(), [fmask, m] = mk();
+  m.fillStyle = "#000"; m.fillRect(0, 0, 250, 350);
+  rr.call(null, f, 0, 0, 250, 350, 18); f.fillStyle = "#0a0a0f"; f.fill();
+  f.save(); rr(f, 14, 14, 222, 270, 10); f.clip();
+  const sky = f.createLinearGradient(0, 14, 0, 284); sky.addColorStop(0, "#5fc8ff"); sky.addColorStop(1, "#c9f1ff"); f.fillStyle = sky; f.fillRect(14, 14, 222, 270);
+  const R = (c, ...rs) => { f.fillStyle = c; for (let i = 0; i < rs.length; i += 4) f.fillRect(rs[i], rs[i + 1], rs[i + 2], rs[i + 3]); };
+  f.globalAlpha = 0.9; R("#fff", 34, 40, 40, 8, 42, 32, 24, 8, 160, 58, 48, 8, 172, 50, 24, 8); f.globalAlpha = 1;
+  R("#ffe66b", 186, 26, 28, 28, 190, 22, 20, 36, 182, 30, 36, 20);
+  R("#2aa7d6", 14, 150, 222, 44); R("#7fd9f2", 14, 150, 222, 6);
+  R("#bfeefb", 30, 166, 22, 3, 96, 176, 30, 3, 170, 164, 20, 3, 200, 182, 18, 3);
+  R("#e9f8ff", 14, 194, 222, 8); R("#f7d79a", 14, 202, 222, 90);
+  R("#e8bf78", 40, 226, 6, 3, 200, 240, 6, 3, 28, 262, 5, 3, 214, 268, 6, 3);
+  R("#9a6a3c", 34, 110, 8, 96); R("#7c5130", 34, 120, 8, 4, 34, 150, 8, 4, 34, 180, 8, 4);
+  R("#3fbf6a", 14, 100, 24, 8, 38, 100, 28, 8, 18, 108, 8, 8, 58, 108, 8, 8, 30, 92, 16, 8, 46, 86, 8, 8, 22, 86, 8, 8);
+  R("#6b3f1f", 38, 108, 6, 6);
+  R("#ff8a6b", 196, 250, 6, 6, 190, 254, 18, 4, 198, 244, 2, 18);
+  R("#fff0f4", 58, 252, 12, 6, 60, 248, 8, 4);
+  f.restore();
+  // Chonk #18: hair cells take one foil (red channel of the mask), the dress another (green)
+  const HAIR = new Set(["ac61de", "2e8bdc", "58c82a", "f8d714", "e9831f", "de5e2c", "024be6", "facd17"]);
+  HOLO_ART.forEach((row, y) => row.forEach((c, x) => {
+    if (!c) return;
+    f.fillStyle = "#" + c; f.fillRect(40 + x * 10, 76 + y * 10, 10, 10);
+    const hair = HAIR.has(c), dress = y >= 17;
+    if (hair || dress) { m.fillStyle = hair ? "#f00" : "#0f0"; m.fillRect(40 + x * 10, 76 + y * 10, 10, 10); }
+  }));
+  // frame and name: solid foil (blue channel)
+  f.strokeStyle = "#fff"; f.lineWidth = 3; rr(f, 14, 14, 222, 270, 10); f.stroke();
+  m.strokeStyle = "#00f"; m.lineWidth = 3; rr(m, 14, 14, 222, 270, 10); m.stroke();
+  f.font = "700 20px Silkscreen, monospace"; f.fillStyle = "#fff"; f.fillText("chonk", 22, 314);
+  m.font = f.font; m.fillStyle = "#00f"; m.fillText("chonk", 22, 314);
+  f.font = "11px 'DM Mono', monospace"; f.fillStyle = "#a69cb8"; f.textAlign = "right"; f.fillText("#18", 228, 314); f.textAlign = "left";
+  f.font = "9px 'DM Mono', monospace"; f.fillStyle = "#6e6582"; try { f.letterSpacing = "1.2px"; } catch (_) {} f.fillText("CC0 · BEACH FOIL", 22, 334);
+  // ---- back: dark, foil frame and logo, a little pixel Chonk ----
+  const [back, b] = mk(), [bmask, n] = mk();
+  n.fillStyle = "#000"; n.fillRect(0, 0, 250, 350);
+  rr(b, 0, 0, 250, 350, 18); b.fillStyle = "#0a0a0f"; b.fill();
+  b.strokeStyle = "#fff"; b.lineWidth = 3; rr(b, 14, 14, 222, 322, 10); b.stroke();
+  n.strokeStyle = "#00f"; n.lineWidth = 3; rr(n, 14, 14, 222, 322, 10); n.stroke();
+  const FACE = ["..yyyyyyyy.", ".yyyyyyyyyy", ".yyyyyyyyyy", "ryywkyyywky", "ryywkrrrwky", ".yyyyyyyyyy", "..yyyyyyyy."];
+  const FC = { y: "#FDCB58", r: "#F4900C", w: "#E6E7E8", k: "#31373D" };
+  FACE.forEach((row, y) => [...row].forEach((c, x) => { if (FC[c]) { b.fillStyle = FC[c]; b.fillRect(70 + x * 10, 110 + y * 10, 10, 10); } }));
+  b.font = "700 36px Silkscreen, monospace"; b.textAlign = "center"; b.fillStyle = "#fff"; b.fillText("chonk", 125, 240);
+  n.font = b.font; n.textAlign = "center"; n.fillStyle = "#00f"; n.fillText("chonk", 125, 240);
+  b.font = "11px 'DM Mono', monospace"; b.fillStyle = "#a69cb8"; b.fillText("#18 · holo", 125, 268);
+  return { front, fmask, back, bmask };
+}
+function holoFoilMaterial(baseCanvas, maskCanvas) {
+  const t = (c, srgb) => { const x = new THREE.CanvasTexture(c); x.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace; x.anisotropy = 8; return x; };
+  return new THREE.ShaderMaterial({
+    uniforms: { base: { value: t(baseCanvas, true) }, mask: { value: t(maskCanvas, false) } },
+    fog: false, toneMapped: false,
+    vertexShader: `varying vec2 vUv; varying vec2 vTilt;
+      void main(){
+        vUv = uv;
+        vec4 wp = modelMatrix * vec4(position, 1.);
+        vec3 r = normalize(mat3(modelMatrix) * vec3(1., 0., 0.)), u = normalize(mat3(modelMatrix) * vec3(0., 1., 0.));
+        vec3 v = normalize(cameraPosition - wp.xyz);
+        vTilt = vec2(dot(v, r), dot(v, u));                       // which way the card leans from where you stand
+        gl_Position = projectionMatrix * viewMatrix * wp;
+      }`,
+    fragmentShader: `uniform sampler2D base; uniform sampler2D mask; varying vec2 vUv; varying vec2 vTilt;
+      const vec3 S0 = vec3(1., .416, .835), S1 = vec3(1., .722, .42), S2 = vec3(1., .953, .42), S3 = vec3(.49, 1., .698),
+                 S4 = vec3(.42, .941, 1.), S5 = vec3(.541, .545, 1.), S6 = vec3(.816, .482, 1.);
+      vec3 rainbow(float t){ t = fract(t) * 7.; float f = fract(t); int i = int(floor(t));
+        if (i == 0) return mix(S0, S1, f); if (i == 1) return mix(S1, S2, f); if (i == 2) return mix(S2, S3, f);
+        if (i == 3) return mix(S3, S4, f); if (i == 4) return mix(S4, S5, f); if (i == 5) return mix(S5, S6, f); return mix(S6, S0, f); }
+      vec2 rot(vec2 p, float a){ float c = cos(a), s = sin(a); return vec2(c * p.x - s * p.y, s * p.x + c * p.y); }
+      vec3 hard(vec3 b, vec3 f){ return mix(2. * b * f, 1. - 2. * (1. - b) * (1. - f), step(.5, f)); }
+      void main(){
+        vec4 bs = texture2D(base, vUv); if (bs.a < .5) discard;
+        vec3 col = pow(bs.rgb, vec3(1. / 2.2));                   // blend in sRGB, like the original card
+        vec3 m = texture2D(mask, vUv).rgb;
+        float px = clamp(.5 + vTilt.x * 1.1, 0., 1.), py = clamp(.5 - vTilt.y * 1.1, 0., 1.);
+        vec2 cp = vec2(vUv.x * 250., (1. - vUv.y) * 350.), c = vec2(125., 175.), D = vec2(250., 350.);
+        float shift = (px + py) * 260.;
+        vec2 p1 = rot(cp - c, -radians((px - .5) * 40.)) + c - vec2(shift, shift * .4);
+        vec2 p2 = rot(cp - c, -radians(60. + (py - .5) * 40.)) + c - vec2(-shift * .8, shift * .6);
+        vec3 h1 = rainbow(dot(p1, D) / dot(D, D)), h2 = rainbow(dot(p2, D) / dot(D, D));
+        col = mix(col, hard(col, h1), .82 * m.r);
+        col = mix(col, hard(col, h2), .82 * m.g);
+        vec2 p3 = rot(cp - c, -radians(25.)) + c - vec2((px - .5) * 300., 0.);
+        float sh = max(0., 1. - abs(fract(p3.x / 250.) - .5) / .05) * .75 * .6;
+        col = mix(col, vec3(1.), sh * max(m.r, m.g));
+        col = mix(col, h1, m.b);                                   // frame and name are solid foil
+        float g = .55 * max(0., 1. - distance(vUv, vec2(px, 1. - py)) / .45);
+        col = mix(col, mix(2. * col, vec3(1.), step(.5, col)), g); // soft glare that slides with the tilt
+        gl_FragColor = vec4(pow(col, vec3(2.2)), 1.);
+        #include <colorspace_fragment>
+      }`,
+  });
+}
+async function buildHoloCard(k, x, z, top) {
+  try { await Promise.all([document.fonts.load("700 20px Silkscreen"), document.fonts.load("11px 'DM Mono'")]); } catch (_) {}
+  const cv = holoCardCanvases();
+  if (!k.g.parent) return;                                // the room was rebuilt while the fonts loaded
+  const g = new THREE.Group(); g.position.set(x, top, z); k.g.add(g);
+  const CW = 0.45, CH = 0.63, LIFT = 0.06;
+  // a clear acrylic stand on the plinth
+  const stand = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.05, 0.14), new THREE.MeshStandardMaterial({ color: 0xdfe8f0, transparent: true, opacity: 0.55, roughness: 0.1, metalness: 0.1 }));
+  stand.position.y = 0.025; g.add(stand);
+  const card = new THREE.Group(); card.rotation.order = "YXZ"; card.position.y = LIFT + CH / 2; g.add(card);
+  const edge = new THREE.Mesh(new RoundedBoxGeometry(CW, CH, 0.006, 2, 0.018), new THREE.MeshStandardMaterial({ color: 0x0a0a0f, roughness: 0.5 }));
+  edge.castShadow = true; card.add(edge);
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), holoFoilMaterial(cv.front, cv.fmask)); front.position.z = 0.0034; card.add(front);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), holoFoilMaterial(cv.back, cv.bmask)); back.position.z = -0.0034; back.rotation.y = Math.PI; card.add(back);
+  const st = { spin: 0, faceYaw: 0, tx: 0, ty: 0, rx: 0, ry: 0, lastInput: 0 };
+  HOLO.card = { g, card, st, centre: () => card.getWorldPosition(new THREE.Vector3()) };
+  k.every((t, dt) => {
+    if (HOLO.view) {
+      if (performance.now() - st.lastInput > 6000) { st.tx = Math.sin(t * 0.9) * 0.22; st.ty = Math.sin(t * 0.6) * 0.32; }   // gentle sway when you stop moving
+      const e = 1 - Math.exp(-dt * 10);
+      st.rx += (st.tx - st.rx) * e; st.ry += (st.ty - st.ry) * e;
+      let d = st.faceYaw - st.spin; d = Math.atan2(Math.sin(d), Math.cos(d)); st.spin += d * (1 - Math.exp(-dt * 6));
+      card.rotation.set(st.rx, st.spin + st.ry, 0);
+      card.position.y = LIFT + CH / 2;
+    } else {
+      st.spin += dt * 0.5; st.rx *= 0.9; st.ry *= 0.9;
+      card.rotation.set(st.rx, st.spin + st.ry, 0);
+      card.position.y = LIFT + CH / 2 + Math.sin(t * 1.3) * 0.012;
+    }
+    updateHoloNear();
+  });
+}
+function updateHoloNear() {
+  let near = false;
+  if (HOLO.card && sel && mode === "walk" && camMode === "follow" && !VM.scene) {
+    const d = Math.hypot(sel.pos.x - HOLO.x, sel.pos.z - HOLO.z);
+    near = d > 0.45 && d < 2.1 && Math.abs(sel.pos.y) < 0.6;
+  }
+  if (near !== HOLO.near) { HOLO.near = near; document.getElementById("holoPrompt").hidden = !near; }
+}
+function enterHoloCard() {
+  const H = HOLO.card; if (!H || HOLO.view || !HOLO.near || VM.scene) return;
+  HOLO.view = true; VM.scene = true; HOLO.near = false;
+  document.getElementById("holoPrompt").hidden = true; document.getElementById("holoHint").hidden = false;
+  keys.clear(); joy.active = false; setSettings(false);
+  document.body.classList.add("cutscene", "holo-view");
+  const c = H.centre(), dir = new THREE.Vector3(sel.pos.x - HOLO.x, 0, sel.pos.z - HOLO.z);
+  if (dir.lengthSq() < 1e-4) dir.set(1, 0, 0); dir.normalize();
+  H.st.faceYaw = Math.atan2(dir.x, dir.z); H.st.lastInput = 0;
+  const to = c.clone().addScaledVector(dir, 1.3), from = camera.position.clone(), at = c.clone();
+  VM.cam = { pos: from.clone(), at };
+  let t0 = null;
+  const fly = (now) => { if (!HOLO.view) return; if (t0 === null) t0 = now; const e = Math.min(1, (now - t0) / 750), s = e * e * (3 - 2 * e);
+    VM.cam.pos.lerpVectors(from, to, s); if (e < 1) requestAnimationFrame(fly); };
+  requestAnimationFrame(fly);
+  if (sel) { sel.yaw = Math.atan2(HOLO.x - sel.pos.x, HOLO.z - sel.pos.z); sel.moveAnim = "idle"; }
+}
+function exitHoloCard() {
+  if (!HOLO.view) return;
+  HOLO.view = false; VM.scene = false; VM.cam = null;
+  document.body.classList.remove("cutscene", "holo-view"); document.getElementById("holoHint").hidden = true;
+  if (sel) { cam.yaw = sel.yaw + Math.PI; cam.pitch = 0.3; cam.dist = Math.max(cam.dist, 3.2); }
+  snapCamera = true;
+}
+function setupHoloInput() {
+  const el = renderer.domElement;
+  const aim = (e) => { if (!HOLO.view || !HOLO.card) return;
+    if (e.pointerType !== "mouse" && e.type === "pointermove" && !e.buttons && e.pressure === 0) return;
+    const st = HOLO.card.st, nx = e.clientX / innerWidth, ny = e.clientY / innerHeight;
+    st.tx = (ny - 0.5) * 0.9; st.ty = (nx - 0.5) * 1.1; st.lastInput = performance.now(); };
+  el.addEventListener("pointermove", aim); el.addEventListener("pointerdown", aim);
+  addEventListener("keydown", (e) => {
+    if (isTyping()) return;
+    if (e.code === "KeyE" && !e.repeat) { if (HOLO.view) { e.preventDefault(); exitHoloCard(); } else if (HOLO.near) { e.preventDefault(); enterHoloCard(); } }
+    else if (e.key === "Escape" && HOLO.view) { e.preventDefault(); e.stopPropagation(); exitHoloCard(); }
+  }, true);
+  document.getElementById("holoUse").addEventListener("click", (e) => { enterHoloCard(); e.currentTarget.blur(); });
+  document.getElementById("holoBack").addEventListener("click", (e) => { exitHoloCard(); e.currentTarget.blur(); });
 }
 
 /* Chonk-O-Mat stock: real Chonks' zMap voxels (packed bbox grid + palette, deflated), keyed by token ID */
@@ -1751,7 +1944,7 @@ async function loadGallery() {
     img.onload = () => { it.img = img; sheet(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
   })));
   GALLERY.all = items.filter((it) => it.img);
-  GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg).slice(0, 3);   // up to three holograms on the sculpture stands
+  GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg).slice(0, 2);   // up to two holograms on the sculpture stands (the third holds the holo card)
   GALLERY.shown = GALLERY.all.filter((it) => !GALLERY.ascii.includes(it)).slice(0, FRAMES);
   renderGalleryList();
 }
@@ -1839,6 +2032,8 @@ function applyLocation(id, { keepPositions = false } = {}) {
     if (o.isSkinnedMesh) o.skeleton?.dispose();                    // the vitrine Chonks' bone data
     for (const m of [].concat(o.material || [])) { if (m === colourMat) continue; m.map?.dispose(); m.emissiveMap?.dispose(); m.uniforms?.map?.value?.dispose?.(); m.dispose(); }
   }); }
+  if (HOLO.view) exitHoloCard();
+  HOLO.card = null; HOLO.near = false; document.getElementById("holoPrompt").hidden = true;
   locGroup = new THREE.Group(); scene.add(locGroup);
   kit = new Kit(locGroup); loc = L;
   GALLERY.spots = []; GALLERY.views = [];
@@ -2014,6 +2209,7 @@ function setFirstPerson(on) {
   el.addEventListener("wheel", (e) => { e.preventDefault();
     if (camMode === "free") freeCamDolly(-e.deltaY * 0.004); else if (fpOn()) fpFov = Math.max(22, Math.min(75, fpFov * Math.exp(e.deltaY * 0.0012))); else cam.dist = Math.max(0.7, Math.min(14, cam.dist * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
 })();
+setupHoloInput();
 const camRay = new THREE.Raycaster();
 function updateCamera(dt) {
   const fp = fpOn();
