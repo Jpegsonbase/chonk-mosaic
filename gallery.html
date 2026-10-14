@@ -1268,7 +1268,7 @@ const LOCATIONS = [
 for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
 const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
 const GALLERY = { all: [], shown: [], ascii: [], statues: [], spots: [], views: [] };
-const CHONK_STATUE = { x: 8.6, z: -1.6 };   // the column for a Chonk of Chonks statue, in the bay between the right partition and the side wall
+const CHONK_STATUE = { x: 10, z: -1.6 };   // the column for a Chonk of Chonks statue: in line with the hologram's column (10, 4), same distance from the side wall
 /* an easel with a blank canvas that opens the Chonkit Studio */
 function easelCanvasTex() {
   return canvasTex(256, 320, (c, w, h) => {
@@ -1600,10 +1600,9 @@ function buildHologram(k, x, z, top, item) {
    the real Chonk the mosaic matcher picked for it (one texture of all the pictures, an offset per block). */
 function buildChonkStatue(k, x, z, item) {
   const S = item.statue, n = S.count, P = S.pos;
-  const COL_H = 0.7, COL_W = 0.95, HEIGHT = 1.55, GAP = 0.92;
-  // the column: a plinth with a darker cap, like a museum pedestal
-  k.box(mat(0xf4f3ef, { r: .95 }), COL_W, COL_H - 0.06, COL_W, x, 0, z, { solid: true });
-  k.box(mat(0x2b2b2b, { r: .5 }), COL_W + 0.06, 0.06, COL_W + 0.06, x, COL_H - 0.06, z);
+  const COL_H = 1.0, COL_W = 0.8, HEIGHT = 1.4, GAP = 0.92;
+  // the column: the same white plinth as the hologram's
+  k.box(mat(0xf4f3ef, { r: .95 }), COL_W, COL_H, COL_W, x, 0, z, { solid: true });
   // fit the figure: feet on the column, about HEIGHT tall, centred
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
   for (let i = 0; i < n; i++) { const a = P[i * 3], b = P[i * 3 + 1], c = P[i * 3 + 2];
