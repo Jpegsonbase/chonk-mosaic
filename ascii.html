@@ -115,6 +115,8 @@ footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px
 /* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
 @media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
 button,a,label,input,select{touch-action:manipulation}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:12px}
+.seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
 /* Chonks mode: a 3D view made of real Chonks instead of text */
 .chonk-only{display:none}
 body.chonk-mode .chonk-only{display:block}
@@ -227,8 +229,12 @@ body.chonk-mode .text-only{display:none!important}
       <button class="btn" id="gif">Download GIF</button>
       <button class="btn ghost" id="toGallery">Add to Gallery as a hologram</button>
       <p class="hint" id="galNote" hidden></p>
-      <label class="f" for="frames"><span class="row">GIF frames per spin <b id="framesV">36</b></span>
-        <input type="range" id="frames" min="12" max="72" step="6" value="36"></label>
+      <div class="f" role="group" aria-label="GIF frame size"><span class="hint">Frame size</span>
+        <div class="seg" id="gifSize"><button type="button" data-v="480" aria-pressed="false">Small</button><button type="button" data-v="720" aria-pressed="true">Medium</button><button type="button" data-v="1080" aria-pressed="false">Large</button></div></div>
+      <div class="f" role="group" aria-label="GIF file size"><span class="hint">File size</span>
+        <div class="seg" id="gifWeight"><button type="button" data-v="small" aria-pressed="false">Smaller</button><button type="button" data-v="mid" aria-pressed="true">Balanced</button><button type="button" data-v="best" aria-pressed="false">Best quality</button></div></div>
+      <p class="hint" id="gifInfo"></p>
+      <input type="hidden" id="frames" value="36">
       <div class="gifout" id="gifOut" hidden><img id="gifImg" alt="Spinning ASCII GIF of the current model"><p class="hint">Right-click or long-press the GIF to save it.</p></div>
       <button class="btn ghost text-only" id="copy">Copy ASCII</button>
       <button class="btn ghost text-only" id="copyHtml">Copy coloured HTML</button>
@@ -239,7 +245,6 @@ body.chonk-mode .text-only{display:none!important}
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
 <script src="mosaic-core.js?v=42"></script>
 <script src="vendor/gifenc.js?v=42"></script>
 <script>
@@ -623,7 +628,21 @@ const POSES = [
   const ctl = { pan: 0, zoom: 1, cols: 90, contrast: 1.2, light: 40, frames: 36, ramp: ' ░▒▓█', mode: 'model', ink: '#e9e4f7', bg: '#14111c', spin: true, reverse: false, invert: false };
   const bindRange = (id, fmt) => { const el = $(id); const f = () => { ctl[id] = +el.value; $(id + 'V').textContent = fmt(el.value); }; el.oninput = f; f(); };
   bindRange('zoom', v => (+v).toFixed(2) + '×'); bindRange('pan', v => (v > 0 ? '+' : '') + (+v).toFixed(2));
-  $('fit').onclick = () => { ['zoom', 'pan'].forEach(id => { const el = $(id); el.value = id === 'zoom' ? 1 : 0; el.dispatchEvent(new Event('input')); }); }; bindRange('cols', v => v + ' cols'); bindRange('contrast', v => (+v).toFixed(1)); bindRange('light', v => v + '°'); bindRange('frames', v => v);
+  $('fit').onclick = () => { ['zoom', 'pan'].forEach(id => { const el = $(id); el.value = id === 'zoom' ? 1 : 0; el.dispatchEvent(new Event('input')); }); }; bindRange('cols', v => v + ' cols'); bindRange('contrast', v => (+v).toFixed(1)); bindRange('light', v => v + '°');
+  // GIF options. File size trades frames and colours: fewer of each makes a smaller file.
+  const WEIGHT = { small: { frames: 24, colours: 64, ss: 1 }, mid: { frames: 36, colours: 128, ss: 2 }, best: { frames: 60, colours: 256, ss: 2 } };
+  const gifOpt = { width: 720, weight: 'mid' };
+  function showGifInfo() {
+    const w = WEIGHT[gifOpt.weight];
+    ctl.frames = w.frames; $('frames').value = w.frames;
+    $('gifInfo').textContent = `${gifOpt.width} px wide · ${w.frames} frames · ${w.colours} colours`;
+  }
+  for (const [id, key] of [['gifSize', 'width'], ['gifWeight', 'weight']]) $(id).querySelectorAll('button').forEach(b => b.onclick = () => {
+    gifOpt[key] = key === 'width' ? +b.dataset.v : b.dataset.v;
+    $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    showGifInfo();
+  });
+  showGifInfo();
   ['spin', 'reverse', 'invert'].forEach(id => { const el = $(id); el.onchange = () => ctl[id] = el.checked; });
   const rampSel = $('ramp');
   const chonkMode = () => rampSel.value === 'chonks';
@@ -651,7 +670,7 @@ const POSES = [
   if (reduce.matches) { ctl.spin = false; $('spin').checked = false; }
 
   // ---- reset to default settings: a snapshot of every control as the page loaded ----
-  const DEF_IDS = ['pan', 'zoom', 'cols', 'ramp', 'custom', 'contrast', 'light', 'mode', 'ink', 'bg', 'frames', 'spin', 'reverse', 'invert'];
+  const DEF_IDS = ['pan', 'zoom', 'cols', 'ramp', 'custom', 'contrast', 'light', 'mode', 'ink', 'bg', 'spin', 'reverse', 'invert'];
   const defaults = Object.fromEntries(DEF_IDS.map(id => { const el = $(id); return [id, el.type === 'checkbox' ? el.checked : el.value]; }));
   $('reset').onclick = () => {
     for (const id of DEF_IDS) {
@@ -1060,7 +1079,8 @@ const POSES = [
     if (!chonk || !chonk.mesh) throw new Error('The Chonks are still being picked. Try again in a moment.');
     if (!window.gifenc) throw new Error('GIF encoder failed to load. Reload and try again.');
     const { GIFEncoder, quantize, applyPalette } = window.gifenc;
-    const sw = stage.clientWidth, sh = stageH(sw), W = Math.min(720, sw) & ~1, H = Math.round(W * sh / sw) & ~1, SS = 2;
+    const sw = stage.clientWidth, sh = stageH(sw), Wt = WEIGHT[gifOpt.weight];
+    const W = gifOpt.width & ~1, H = Math.round(W * sh / sw) & ~1, SS = Wt.ss;
     const fc = document.createElement('canvas'); fc.width = W; fc.height = H;
     const fx = fc.getContext('2d', { willReadFrequently: true }); fx.imageSmoothingQuality = 'high';
     const N = ctl.frames, delayCs = Math.max(2, Math.round(216 / N)), loopS = N * delayCs / 100;
@@ -1086,7 +1106,7 @@ const POSES = [
         for (let i = 0, o = k * per * 4; i < W * H; i += step, o += 4) { const q = i * 4; smp[o] = d[q]; smp[o + 1] = d[q + 1]; smp[o + 2] = d[q + 2]; smp[o + 3] = 255; }
         setStatus('Choosing GIF colours…'); await pause();
       }
-      const palette = quantize(smp, 256, { format: 'rgb565' });
+      const palette = quantize(smp, Wt.colours, { format: 'rgb565' });
       const gif = GIFEncoder();
       for (let f = 0; f < N; f++) {
         const idx = applyPalette(grab(f), palette, 'rgb565');
@@ -1140,63 +1160,64 @@ const POSES = [
 
   async function makeGif(opts = {}) {
     if (chonkMode()) return makeChonkGif(opts);
-    if (!window.GifWriter) throw new Error('GIF encoder failed to load. Reload and try again.');
+    if (!window.gifenc) throw new Error('GIF encoder failed to load. Reload and try again.');
+    const { GIFEncoder, quantize, applyPalette } = window.gifenc;
+    const Wt = WEIGHT[gifOpt.weight];
     const { cols, rows } = gridSize();
     const fc = document.createElement('canvas'), fx = fc.getContext('2d', { willReadFrequently: true });
-    let fs = 12; const pad = 12;
-    fx.font = `${fs}px "JetBrains Mono", ui-monospace, monospace`;
-    let cw = fx.measureText('M').width;
-    const maxW = 1000;
-    if (cols * cw + pad * 2 > maxW) { fs = Math.max(5, Math.floor(fs * (maxW - pad * 2) / (cols * cw))); fx.font = `${fs}px "JetBrains Mono", ui-monospace, monospace`; cw = fx.measureText('M').width; }
-    const W = Math.ceil(cols * cw + pad * 2), H = Math.ceil(rows * fs + pad * 2);
+    const font = s => `${s}px "JetBrains Mono", ui-monospace, monospace`;
+    // fit the text to the chosen width
+    fx.font = font(100);
+    const cwr = fx.measureText('M').width / 100, pad = Math.round(gifOpt.width * 0.012);
+    const fs = Math.max(4, (gifOpt.width - pad * 2) / (cols * cwr)), cw = fs * cwr;
+    const W = gifOpt.width & ~1, H = Math.ceil(rows * fs + pad * 2) & ~1;
     fc.width = W; fc.height = H;
 
-    // palette: 0 = background, 1..216 = colour cube, 217 = text colour
-    const bg = hexToRgb(ctl.bg), ink = hexToRgb(ctl.ink);
-    const pal = new Array(256).fill(0);
-    pal[0] = (bg[0] << 16) | (bg[1] << 8) | bg[2];
-    for (let r = 0; r < 6; r++) for (let g = 0; g < 6; g++) for (let b = 0; b < 6; b++) pal[1 + r * 36 + g * 6 + b] = (r * 51 << 16) | (g * 51 << 8) | b * 51;
-    pal[217] = (ink[0] << 16) | (ink[1] << 8) | ink[2];
-
-    const N = ctl.frames, buf = new Uint8Array(W * H * N * 2 + 8192);
-    const gw = new GifWriter(buf, W, H, { palette: pal, loop: 0 });
-    const idx = new Uint8Array(W * H);
-    const startY = pivot.rotation.y;
+    const N = ctl.frames, startY = pivot.rotation.y;
     const delayCs = Math.max(2, Math.round(216 / N)), loopS = N * delayCs / 100;
     const clip = action ? action.getClip() : null, t0 = action ? action.time : 0;
     const cycles = clip && clip.duration <= loopS * 1.5 ? Math.max(1, Math.round(loopS / clip.duration)) : 0;
     const rp = rig && rigPose ? POSES.find(p => p.id === rigPose) : null, rT0 = rigT;
     const rCycles = rp && rp.period <= loopS * 1.5 ? Math.max(1, Math.round(loopS / rp.period)) : 0;
-
-    for (let f = 0; f < N; f++) {
+    const grab = f => {
       pivot.rotation.y = startY + (ctl.reverse ? -1 : 1) * (f / N) * Math.PI * 2;
       if (clip) { action.time = cycles ? (f / N) * cycles * clip.duration : t0 + f * delayCs / 100; mixer.update(0); }
       if (rp) rig.pose(rigPose, rCycles ? (f / N) * rCycles * rp.period : rT0 + f * delayCs / 100);
       const G = computeGrid(cols, rows);
       fx.fillStyle = ctl.bg; fx.fillRect(0, 0, W, H);
-      fx.font = `${fs}px "JetBrains Mono", ui-monospace, monospace`; fx.textBaseline = 'top';
+      fx.font = font(fs); fx.textBaseline = 'top';
       for (let y = 0; y < rows; y++) for (let x = 0; x < cols; x++) {
         const p = y * cols + x, ch = G.chars[p];
         if (ch === ' ') continue;
         fx.fillStyle = ctl.mode === 'model' && G.colors[p] ? `rgb(${G.colors[p].join(',')})` : ctl.ink;
         fx.fillText(ch, pad + x * cw, pad + y * fs);
       }
-      const d = fx.getImageData(0, 0, W, H).data;
-      for (let i = 0, j = 0; i < d.length; i += 4, j++) {
-        const r = d[i], g = d[i + 1], b = d[i + 2];
-        if (Math.abs(r - bg[0]) + Math.abs(g - bg[1]) + Math.abs(b - bg[2]) < 24) idx[j] = 0;
-        else if (ctl.mode !== 'model' && Math.abs(r - ink[0]) + Math.abs(g - ink[1]) + Math.abs(b - ink[2]) < 48) idx[j] = 217;
-        else idx[j] = 1 + Math.round(r / 51) * 36 + Math.round(g / 51) * 6 + Math.round(b / 51);
+      return fx.getImageData(0, 0, W, H).data;
+    };
+    try {
+      // one palette for the whole loop, from frames spread across it
+      const SN = Math.min(8, N), step = 3, per = Math.ceil(W * H / step), smp = new Uint8Array(SN * per * 4);
+      for (let k = 0; k < SN; k++) {
+        const d = grab(Math.floor(k * N / SN));
+        for (let i = 0, o = k * per * 4; i < W * H; i += step, o += 4) { const q = i * 4; smp[o] = d[q]; smp[o + 1] = d[q + 1]; smp[o + 2] = d[q + 2]; smp[o + 3] = 255; }
+        setStatus('Choosing GIF colours…'); await tick();
       }
-      gw.addFrame(0, 0, W, H, idx, { delay: delayCs });
-      if (opts.onFrame) opts.onFrame(fc, f, N, W, H, delayCs);
-      setStatus(`Rendering GIF… frame ${f + 1} of ${N}`);
-      await tick();
+      const palette = quantize(smp, Wt.colours, { format: 'rgb565' });
+      const gif = GIFEncoder();
+      for (let f = 0; f < N; f++) {
+        const idx = applyPalette(grab(f), palette, 'rgb565');
+        gif.writeFrame(idx, W, H, f === 0 ? { palette, delay: delayCs * 10, repeat: 0 } : { delay: delayCs * 10 });
+        if (opts.onFrame) opts.onFrame(fc, f, N, W, H, delayCs);
+        setStatus(`Rendering GIF… frame ${f + 1} of ${N}`);
+        await tick();
+      }
+      gif.finish();
+      return gif.bytes();
+    } finally {
+      pivot.rotation.y = startY;
+      if (clip) { action.time = t0; mixer.update(0); }
+      if (rp) rig.pose(rigPose, rT0);
     }
-    pivot.rotation.y = startY;
-    if (clip) { action.time = t0; mixer.update(0); }
-    if (rp) rig.pose(rigPose, rT0);
-    return buf.slice(0, gw.end());
   }
 
   // ---- Add to Gallery: the same spin, saved with every frame packed into one image so the 3D gallery
@@ -1245,10 +1266,11 @@ const POSES = [
       const blob = new Blob([bytes], { type: 'image/gif' });
       const url = URL.createObjectURL(blob);
       $('gifImg').src = url; $('gifOut').hidden = false;
-      setStatus(`GIF ready · ${(bytes.length / 1024).toFixed(0)} KB`);
+      const kb = bytes.length / 1024, sizeTxt = kb > 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb.toFixed(0) + ' KB';
+      setStatus(`GIF ready · ${sizeTxt}`);
       if (!inClaude) {
         const a = document.createElement('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
-        setStatus('GIF downloaded');
+        setStatus(`GIF downloaded · ${sizeTxt}`);
       } else if (downloads) {
         try { await downloads.save({ filename: name, data: blob }); setStatus('GIF saved'); }
         catch (e) { if (e && e.code !== 'declined') setStatus('Couldn’t save directly. Right-click the GIF below to save it.'); }
