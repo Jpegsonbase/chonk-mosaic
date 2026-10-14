@@ -228,6 +228,8 @@ body.chonk-mode .text-only{display:none!important}
       <h2>Export</h2>
       <button class="btn" id="gif">Download GIF</button>
       <button class="btn ghost" id="toGallery">Add to Gallery as a hologram</button>
+      <button class="btn ghost chonk-only" id="toStatue">Add to Gallery as a statue</button>
+      <button class="btn ghost text-only" id="toWall">Add to Gallery as wall art</button>
       <p class="hint" id="galNote" hidden></p>
       <div class="f" role="group" aria-label="GIF frame size"><span class="hint">Frame size</span>
         <div class="seg" id="gifSize"><button type="button" data-v="480" aria-pressed="false">Small</button><button type="button" data-v="720" aria-pressed="true">Medium</button><button type="button" data-v="1080" aria-pressed="false">Large</button></div></div>
@@ -650,7 +652,6 @@ const POSES = [
     $('customWrap').hidden = rampSel.value !== 'custom';
     document.body.classList.toggle('chonk-mode', chonkMode());
     if (!chonkMode()) ctl.ramp = rampSel.value === 'custom' ? ($('custom').value || ' #') : rampSel.value;
-    $('toGallery').textContent = chonkMode() ? 'Add to Gallery as a statue' : 'Add to Gallery as a hologram';
   };
   rampSel.onchange = syncRamp; $('custom').oninput = syncRamp; syncRamp();
 
@@ -1224,10 +1225,12 @@ const POSES = [
   // ---- Add to Gallery: the same spin, saved with every frame packed into one image so the 3D gallery
   //      can play it as a hologram on a sculpture stand (and offer the GIF as its download) ----
   // Chonks mode: saved as a full-colour statue (each block's position and its Chonk picture) for a column in the gallery
+  const exportBtns = () => ['gif', 'toGallery', 'toStatue', 'toWall'].map($);
+  const lockExport = on => exportBtns().forEach(b => b.disabled = on);
   async function addStatue() {
-    const btn = $('toGallery'), note = $('galNote');
+    const note = $('galNote');
     if (!chonk || !chonk.mesh) { setStatus('The Chonks are still being picked. Try again in a moment.', true); return; }
-    btn.disabled = $('gif').disabled = true; busy = true; note.hidden = true;
+    lockExport(true); busy = true; note.hidden = true;
     try {
       if (chonk.kind === 'rig') rig.pose(null, 0);           // stand up straight for the statue
       updateChonk(true);
@@ -1251,14 +1254,14 @@ const POSES = [
     } finally {
       r3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r3W = r3H = 0;
       if (chonk && chonk.kind === 'rig' && rigPose) rig.pose(rigPose, rigT);
-      btn.disabled = $('gif').disabled = false; busy = false;
+      lockExport(false); busy = false;
     }
   }
-  $('toGallery').onclick = async () => {
-    const btn = $('toGallery'), note = $('galNote');
-    if (!window.ChonkitGallery || !ChonkitGallery.supported) { setStatus('This browser can’t keep a gallery.', true); return; }
-    if (chonkMode()) return addStatue();
-    btn.disabled = $('gif').disabled = true; busy = true; note.hidden = true;
+  // the spin as a sprite sheet: a hologram over a sculpture stand, or (text only) animated wall art in a frame
+  async function addSpin(display) {
+    const note = $('galNote');
+    if (chonkMode() && (!chonk || !chonk.mesh)) { setStatus('The Chonks are still being picked. Try again in a moment.', true); return; }
+    lockExport(true); busy = true; note.hidden = true;
     try {
       let sheet, sx, cols, rows, fw, fh, poster, delayMs = 60;
       const bytes = await makeGif({ onFrame: (fc, f, N, W, H, delayCs) => {
@@ -1276,23 +1279,29 @@ const POSES = [
       setStatus('Hanging it in your gallery…');
       const sheetBlob = await new Promise((res, rej) => sheet.toBlob(b => b ? res(b) : rej(new Error('Couldn’t pack the frames.')), 'image/png'));
       const id = (current.name.match(/^chonk-(\d+)$/) || [])[1];
-      const title = id ? `Chonk #${id} ASCII` : `${current.name} ASCII`;
-      await ChonkitGallery.addCanvas(poster, { title, tiles: 0, full: new Blob([bytes], { type: 'image/gif' }),
+      const name = id ? `Chonk #${id}` : current.name, title = chonkMode() ? `${name} of Chonks` : `${name} ASCII`;
+      await ChonkitGallery.addCanvas(poster, { title, tiles: 0, full: new Blob([bytes], { type: 'image/gif' }), display,
         anim: { sheet: sheetBlob, frames: ctl.frames, cols, rows, delay: delayMs, bg: ctl.bg } });
       setStatus('');
-      note.innerHTML = 'Added to your gallery. It’s floating over a sculpture stand as a hologram. <a href="gallery.html">Go and see it →</a>';
+      note.innerHTML = (display === 'wall' ? 'Added to your gallery. It’s hanging on a wall, playing its spin.'
+        : 'Added to your gallery. It’s floating over a sculpture stand as a hologram.') + ' <a href="gallery.html">Go and see it →</a>';
       note.hidden = false;
     } catch (e) {
       setStatus(e.message || 'Couldn’t add it to the gallery.', true);
-    } finally { btn.disabled = $('gif').disabled = false; busy = false; }
-  };
+    } finally { lockExport(false); busy = false; }
+  }
+  const canKeep = () => { if (window.ChonkitGallery && ChonkitGallery.supported) return true; setStatus('This browser can’t keep a gallery.', true); return false; };
+  // Chonks mode: hologram or statue. Text: hologram or wall art.
+  $('toGallery').onclick = () => { if (canKeep()) addSpin('hologram'); };
+  $('toStatue').onclick = () => { if (canKeep() && chonkMode()) addStatue(); };
+  $('toWall').onclick = () => { if (canKeep() && !chonkMode()) addSpin('wall'); };
 
   let downloads = null;
   if (window.claude && claude.use) claude.use('downloads').then(d => downloads = d).catch(() => {});
 
   $('gif').onclick = async () => {
     const btn = $('gif');
-    btn.disabled = true; busy = true;
+    lockExport(true); busy = true;
     try {
       const bytes = await makeGif();
       const name = (current.name || 'chonk').replace(/[^\w-]+/g, '-') + '-ascii.gif';
@@ -1310,11 +1319,11 @@ const POSES = [
       }
     } catch (e) {
       setStatus(e.message || 'GIF export failed.', true);
-    } finally { btn.disabled = false; busy = false; }
+    } finally { lockExport(false); busy = false; }
   };
 })();
 </script>
-<script src="gallery-store.js?v=6"></script>
+<script src="gallery-store.js?v=7"></script>
 
 <footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="./">chonkit.xyz</a></footer>
 </body>

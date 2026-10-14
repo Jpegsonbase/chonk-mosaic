@@ -22,7 +22,7 @@ button, a, label, input, select { touch-action: manipulation; }
 <title>Chonkit Gallery</title>
 <meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
 <link rel="icon" href="apple-touch-icon.png">
-<script src="gallery-store.js?v=6"></script>
+<script src="gallery-store.js?v=7"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
@@ -2188,7 +2188,7 @@ async function loadGallery() {
     img.onload = () => { it.img = img; statue(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
   })));
   GALLERY.all = items.filter((it) => it.img);
-  GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg).slice(0, 1);   // the newest ASCII Chonk as a hologram on the chrome sphere's stand (the others hold the holo card and the laptop)
+  GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg && it.display !== "wall").slice(0, 1);   // ones saved as wall art hang in frames instead   // the newest ASCII Chonk as a hologram on the chrome sphere's stand (the others hold the holo card and the laptop)
   GALLERY.statues = GALLERY.all.filter((it) => it.statue && it.statueImg).slice(0, 1);   // the newest Chonk of Chonks on its column
   GALLERY.shown = GALLERY.all.filter((it) => !GALLERY.ascii.includes(it) && !GALLERY.statues.includes(it)).slice(0, FRAMES);
   renderGalleryList();
