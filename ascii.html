@@ -115,6 +115,12 @@ footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px
 /* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
 @media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
 button,a,label,input,select{touch-action:manipulation}
+/* Chonks mode: a 3D view made of real Chonks instead of text */
+.chonk-only{display:none}
+body.chonk-mode .chonk-only{display:block}
+body.chonk-mode .text-only{display:none!important}
+.stage canvas.r3{display:block}
+.stage canvas.r3[hidden]{display:none}
 </style>
 <link rel="stylesheet" href="chonky.css?v=1">
 </head>
@@ -150,7 +156,7 @@ button,a,label,input,select{touch-action:manipulation}
             <input type="range" id="pan" min="-1" max="1" step="0.02" value="0"></label>
           <label class="f" for="zoom"><span class="row">Zoom <b id="zoomV">1.00×</b></span>
             <input type="range" id="zoom" min="0.2" max="4" step="0.05" value="1"></label>
-          <label class="f" for="cols"><span class="row">Width <b id="colsV">90 cols</b></span>
+          <label class="f text-only" for="cols"><span class="row">Width <b id="colsV">90 cols</b></span>
             <input type="range" id="cols" min="30" max="200" value="90"></label>
         </div>
         <div class="col">
@@ -161,30 +167,32 @@ button,a,label,input,select{touch-action:manipulation}
               <option value=" ░▒▓█" selected>Chonky blocks ░▒▓█</option>
               <option value=" .oO0@">Bubbly .oO0@</option>
               <option value=" `.-':_,^=;><+!rc*/z?sLTv)J7(|Fi{C}fI31tlu[neoZ5Yxjya]2ESwqkP6h9d4VpOGbUAKXHm8RD#$Bg0MNWQ%&@">Dense (70)</option>
+              <option value="chonks">Chonks</option>
               <option value="custom">Custom…</option>
             </select></label>
+          <p class="hint chonk-only">Every voxel becomes a block showing a real Chonk, picked the same way the mosaic maker picks them, so its colours fit that spot.</p>
           <label class="f" for="custom" id="customWrap" hidden>Custom ramp, dark → light
             <input type="text" id="custom" value=" .chonk#" spellcheck="false"></label>
-          <label class="f" for="contrast"><span class="row">Contrast <b id="contrastV">1.2</b></span>
+          <label class="f text-only" for="contrast"><span class="row">Contrast <b id="contrastV">1.2</b></span>
             <input type="range" id="contrast" min="0.5" max="2.5" step="0.1" value="1.2"></label>
           <label class="f" for="light"><span class="row">Light angle <b id="lightV">40°</b></span>
             <input type="range" id="light" min="-180" max="180" value="40"></label>
           <div class="checks">
             <label class="chip"><input type="checkbox" id="spin" checked> Spin</label>
             <label class="chip"><input type="checkbox" id="reverse"> Reverse spin</label>
-            <label class="chip"><input type="checkbox" id="invert"> Invert</label>
+            <label class="chip text-only"><input type="checkbox" id="invert"> Invert</label>
           </div>
 
         </div>
         <div class="col">
           <h2>Colour</h2>
-          <label class="f" for="mode">Character colour
+          <label class="f text-only" for="mode">Character colour
             <select id="mode">
               <option value="model" selected>Model colours</option>
               <option value="solid">One colour</option>
             </select></label>
           <div class="swatches">
-            <label class="sw" for="ink" id="inkWrap" hidden><input type="color" id="ink" value="#b9f2c2"> Text</label>
+            <label class="sw text-only" for="ink" id="inkWrap" hidden><input type="color" id="ink" value="#b9f2c2"> Text</label>
             <label class="sw" for="bg"><input type="color" id="bg" value="#14111c"> Background</label>
           </div>
           <div class="presets" role="group" aria-label="Colour presets">
@@ -222,8 +230,8 @@ button,a,label,input,select{touch-action:manipulation}
       <label class="f" for="frames"><span class="row">GIF frames per spin <b id="framesV">36</b></span>
         <input type="range" id="frames" min="12" max="72" step="6" value="36"></label>
       <div class="gifout" id="gifOut" hidden><img id="gifImg" alt="Spinning ASCII GIF of the current model"><p class="hint">Right-click or long-press the GIF to save it.</p></div>
-      <button class="btn ghost" id="copy">Copy ASCII</button>
-      <button class="btn ghost" id="copyHtml">Copy coloured HTML</button>
+      <button class="btn ghost text-only" id="copy">Copy ASCII</button>
+      <button class="btn ghost text-only" id="copyHtml">Copy coloured HTML</button>
       <p class="hint">Chonks load from the Chonks indexer, which mirrors each Chonk’s onchain voxel data. Or get a GLB from <a href="https://ztudio.chonks.xyz" target="_blank" rel="noopener">ztudio.chonks.xyz</a>. Chonks are CC0. Everything runs in your browser; nothing is uploaded.</p>
     </aside>
   </div>
@@ -232,6 +240,8 @@ button,a,label,input,select{touch-action:manipulation}
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/omggif@1.0.10/omggif.js"></script>
+<script src="mosaic-core.js?v=42"></script>
+<script src="vendor/gifenc.js?v=42"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -250,7 +260,7 @@ button,a,label,input,select{touch-action:manipulation}
   const key = new THREE.DirectionalLight(0xffffff, 1.4);
   scene.add(key);
   const pivot = new THREE.Group(); scene.add(pivot);
-  let model = null, radius = 1, mixer = null, clips = [], action = null, rig = null, rigPose = null, rigT = 0, current = { name: 'chonk' };
+  let badgeLabel = '', model = null, radius = 1, mixer = null, clips = [], action = null, rig = null, rigPose = null, rigT = 0, current = { name: 'chonk' };
   const clock = new THREE.Clock();
 
   const sample = document.createElement('canvas');
@@ -447,7 +457,7 @@ const POSES = [
     radius = s.length() * 0.5 || 1; // bounding sphere, so it fits at every angle
     pivot.add(obj);
     pivot.rotation.set(0.12, 0.6, 0);
-    $('badge').textContent = label;
+    $('badge').textContent = badgeLabel = label;
   }
 
   // A wave made on the fly: raise one arm from the shoulder and swing it side to side.
@@ -472,7 +482,7 @@ const POSES = [
   function showVoxelChonk(vox, meta) {
     if (mixer) mixer.stopAllAction();
     mixer = null; clips = []; action = null;
-    const r = new ChonkRig(); r.setVoxels(vox, meta.accessory || null);
+    const r = new ChonkRig(); r.setVoxels(vox, meta.accessory || null); r.vox = vox;
     setModel(r.object, `Chonk #${meta.id}${meta.label ? ' · ' + meta.label : ''}`);
     rig = r; rigT = 0;
     current = { name: `chonk-${meta.id}` };
@@ -616,9 +626,11 @@ const POSES = [
   $('fit').onclick = () => { ['zoom', 'pan'].forEach(id => { const el = $(id); el.value = id === 'zoom' ? 1 : 0; el.dispatchEvent(new Event('input')); }); }; bindRange('cols', v => v + ' cols'); bindRange('contrast', v => (+v).toFixed(1)); bindRange('light', v => v + '°'); bindRange('frames', v => v);
   ['spin', 'reverse', 'invert'].forEach(id => { const el = $(id); el.onchange = () => ctl[id] = el.checked; });
   const rampSel = $('ramp');
+  const chonkMode = () => rampSel.value === 'chonks';
   const syncRamp = () => {
     $('customWrap').hidden = rampSel.value !== 'custom';
-    ctl.ramp = rampSel.value === 'custom' ? ($('custom').value || ' #') : rampSel.value;
+    document.body.classList.toggle('chonk-mode', chonkMode());
+    if (!chonkMode()) ctl.ramp = rampSel.value === 'custom' ? ($('custom').value || ' #') : rampSel.value;
   };
   rampSel.onchange = syncRamp; $('custom').oninput = syncRamp; syncRamp();
 
@@ -723,6 +735,375 @@ const POSES = [
     return html;
   }
 
+  // ---- Chonks: every voxel becomes a block showing a real Chonk ----
+  // Picked with the mosaic maker's own data and scoring (data/features.bin and the
+  // sprite sheets in data/atlas), with "next to each other" meaning touching in 3D.
+  const pause = () => new Promise(r => setTimeout(r, 0));
+  const LIN = new Float32Array(256);
+  for (let i = 0; i < 256; i++) { const c = i / 255; LIN[i] = c > 0.04045 ? Math.pow((c + 0.055) / 1.055, 2.4) : c / 12.92; }
+  const labF = t => (t > 216 / 24389 ? Math.cbrt(t) : (24389 / 27 * t + 16) / 116);
+  function linLab(r, g, b, out, o) {
+    const fx = labF((r * 0.4124564 + g * 0.3575761 + b * 0.1804375) / 0.95047);
+    const fy = labF(r * 0.2126729 + g * 0.7151522 + b * 0.0721750);
+    const fz = labF((r * 0.0193339 + g * 0.1191920 + b * 0.9503041) / 1.08883);
+    out[o] = 116 * fy - 16; out[o + 1] = 500 * (fx - fy); out[o + 2] = 200 * (fy - fz);
+  }
+  const GCELL = 8, cellKey = (x, y, z) => ((x + 64) << 16) | ((y + 64) << 8) | (z + 64);
+  function gather(grid, lab, want, outArr) {
+    const cx = Math.floor(lab[0] / GCELL), cy = Math.floor(lab[1] / GCELL), cz = Math.floor(lab[2] / GCELL);
+    let count = 0;
+    for (let r = 0; r <= 32 && count < want; r++)
+      for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy), Math.abs(dz)) !== r) continue;
+        const a = grid.get(cellKey(cx + dx, cy + dy, cz + dz));
+        if (a) for (let j = 0; j < a.length; j++) outArr[count++] = a[j];
+      }
+    return count;
+  }
+  let dataP = null;
+  function loadData() {
+    return dataP || (dataP = (async () => {
+      if (!window.MosaicCore) throw new Error('mosaic-core.js missing');
+      setStatus('Loading the Chonk colour data…');
+      const meta = await (await fetch('data/meta.json', { cache: 'no-cache' })).json();
+      const res = await fetch(`data/features.bin?b=${meta.built || 0}`);
+      if (!res.ok) throw new Error('features.bin missing');
+      const ds = MosaicCore.decodeFeatures(await res.arrayBuffer(), meta);
+      const grid = new Map();
+      for (let i = 0; i < ds.n; i++) {
+        const k = cellKey(Math.floor(ds.lab[i * 3] / GCELL), Math.floor(ds.lab[i * 3 + 1] / GCELL), Math.floor(ds.lab[i * 3 + 2] / GCELL));
+        let a = grid.get(k); if (!a) grid.set(k, a = []); a.push(i);
+      }
+      const small = !!meta.smallThumb;
+      return { meta, ds, grid, pal: MosaicCore.buildPalette(ds),
+        T: small ? meta.smallThumb : meta.thumb, prefix: small ? 'atlas_s' : 'atlas', side: meta.perAtlasSide };
+    })().catch(e => { dataP = null; throw e; }));
+  }
+  const atlasP = new Map();
+  function atlasImg(D, a) {
+    if (!atlasP.has(a)) atlasP.set(a, new Promise((ok, bad) => {
+      const im = new Image();
+      im.onload = () => ok(im);
+      im.onerror = () => { atlasP.delete(a); bad(new Error('missing sprite sheet ' + a)); };
+      im.src = `data/atlas/${D.prefix}_${String(a).padStart(3, '0')}.${D.meta.atlasFormat || 'webp'}`;
+    }));
+    return atlasP.get(a);
+  }
+
+  // One Chonk per cell, scored like the mosaic: colour, fingerprint, brightness,
+  // saturation, detail, plus reuse, repeat and same-neighbour penalties.
+  async function matchCells(cells, cancelled) {
+    const D = await loadData(), ds = D.ds, S = MosaicCore.DEFAULTS, cellsN = ds.cells;
+    if (cancelled()) return null;
+    setStatus('Matching Chonks…');
+    const n = cells.length, at = new Map(), K = (x, y, z) => (x + 512) * 1048576 + (y + 512) * 1024 + (z + 512);
+    let mx = 0, my = 0, mz = 0;
+    cells.forEach((c, i) => { at.set(K(c.k[0], c.k[1], c.k[2]), i); mx += c.k[0]; my += c.k[1]; mz += c.k[2]; });
+    mx /= n; my /= n; mz /= n;
+    const SIX = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+    const order = cells.map((c, i) => {
+      const [x, y, z] = c.k, inside = SIX.every(d => at.has(K(x + d[0], y + d[1], z + d[2])));
+      return [i, (inside ? 1e4 : 0) + Math.hypot(x - mx, y - my, z - mz)];
+    }).sort((a, b) => a[1] - b[1]).map(e => e[0]);
+    const pick = new Int32Array(n).fill(-1), usage = new Uint32Array(ds.n), recent = [];
+    const cand = new Int32Array(ds.n), t = new Float32Array(3), near = [];
+    for (let q = 0; q < n; q++) {
+      const i = order[q], c = cells[i], R = c.color >> 16 & 255, G = c.color >> 8 & 255, B = c.color & 255;
+      linLab(LIN[R], LIN[G], LIN[B], t, 0);
+      const bright = R * 0.2126 + G * 0.7152 + B * 0.0722;
+      const hi = Math.max(R, G, B), lo = Math.min(R, G, B), sat = hi ? (hi - lo) / hi : 0;
+      const ad = MosaicCore.adaptColour([t[0], t[1], t[2]], D.pal, S);
+      const nc = gather(D.grid, ad, 900, cand);
+      near.length = 0;
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        const j = at.get(K(c.k[0] + dx, c.k[1] + dy, c.k[2] + dz));
+        if (j !== undefined && pick[j] >= 0) near.push(pick[j]);
+      }
+      let best = -1, bestScore = Infinity;
+      for (let k = 0; k < nc; k++) {
+        const m = cand[k];
+        const dl = ad[0] - ds.lab[m * 3], da = ad[1] - ds.lab[m * 3 + 1], db = ad[2] - ds.lab[m * 3 + 2];
+        let score = Math.sqrt(dl * dl + da * da + db * db) * S.colorWeight + usage[m] * S.reusePenalty
+          + Math.abs(bright - ds.bright[m]) * S.brightnessWeight + Math.abs(sat - ds.sat[m]) * 100 * S.saturationWeight + ds.edge[m] * S.edgeWeight;
+        if (near.includes(m)) score += S.neighbourPenalty;
+        if (score >= bestScore) continue;
+        let fs = 0; const base = m * cellsN * 3;   // a cell is one colour all over, so every fingerprint square is that colour
+        for (let e = 0; e < cellsN; e++) {
+          const x = t[0] - ds.fpl[base + e * 3], y = t[1] - ds.fpl[base + e * 3 + 1], z = t[2] - ds.fpl[base + e * 3 + 2];
+          fs += Math.sqrt(x * x + y * y + z * z);
+        }
+        score += fs / cellsN * S.fingerprintWeight;
+        const r = recent.indexOf(m);
+        if (r >= 0) score += (recent.length - r) * S.recentPenalty;
+        if (score < bestScore) { bestScore = score; best = m; }
+      }
+      pick[i] = best; usage[best]++;
+      const r = recent.indexOf(best); if (r >= 0) recent.splice(r, 1);
+      recent.unshift(best); if (recent.length > S.recentMemory) recent.pop();
+      if (q % 150 === 149) { setStatus(`Matching Chonks… ${Math.round(q / n * 100)}%`); await pause(); if (cancelled()) return null; }
+    }
+    return pick;
+  }
+
+  // The picked Chonks' pictures, packed into one texture: a block shows its Chonk on every side.
+  const TCELL = 32;
+  async function tileAtlas(pick) {
+    const D = await loadData(), T = D.T, per = D.side * D.side;
+    const uniq = [...new Set(pick)], slot = new Map(uniq.map((c, i) => [c, i]));
+    const cols = Math.ceil(Math.sqrt(uniq.length)), rows = Math.ceil(uniq.length / cols);
+    const cv = document.createElement('canvas'); cv.width = cols * TCELL; cv.height = rows * TCELL;
+    const x = cv.getContext('2d'); x.imageSmoothingEnabled = false;
+    setStatus(`Loading ${uniq.length} Chonk pictures…`);
+    await Promise.all([...new Set(uniq.map(c => Math.floor(c / per)))].map(a => atlasImg(D, a)));
+    for (const [c, i] of slot) {
+      const img = await atlasImg(D, Math.floor(c / per)), s = c % per;
+      const sx = (s % D.side) * T, sy = Math.floor(s / D.side) * T, ox = (i % cols) * TCELL, oy = Math.floor(i / cols) * TCELL;
+      x.drawImage(img, sx, sy, T, T, ox, oy, TCELL, TCELL);            // stretched copy behind, so edges never bleed
+      x.drawImage(img, sx, sy, T, T, ox + 1, oy + 1, T, T);
+    }
+    const tex = new THREE.CanvasTexture(cv);
+    tex.encoding = THREE.sRGBEncoding; tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+    const off = new Float32Array(pick.length * 2);
+    pick.forEach((c, j) => {
+      const i = slot.get(c);
+      off[j * 2] = ((i % cols) * TCELL + 1) / cv.width;
+      off[j * 2 + 1] = 1 - (Math.floor(i / cols) * TCELL + 1 + T) / cv.height;   // canvas textures are flipped: v runs bottom-up
+    });
+    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.9 });
+    const scale = { value: new THREE.Vector2(T / cv.width, T / cv.height) };
+    mat.onBeforeCompile = sh => {
+      sh.uniforms.tileScale = scale;
+      sh.vertexShader = 'attribute vec2 tileOff;\nuniform vec2 tileScale;\n' + sh.vertexShader.replace('#include <uv_vertex>', 'vUv = uv * tileScale + tileOff;');
+    };
+    return { mat, tex, off, unique: uniq.length };
+  }
+
+  // .glb files: turned into cubes first, each pinned to the surface point it came from
+  const texCache = new Map();
+  function texSampler(tex) {
+    if (!tex || !tex.image) return null;
+    let s = texCache.get(tex); if (s) return s;
+    try {
+      const img = tex.image, w = img.width, h = img.height, c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
+      const d = x.getImageData(0, 0, w, h).data;
+      s = (u, v) => { u = ((u % 1) + 1) % 1; v = ((v % 1) + 1) % 1; if (tex.flipY) v = 1 - v; const i = ((Math.min(h - 1, (v * h) | 0)) * w + Math.min(w - 1, (u * w) | 0)) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+    } catch (e) { s = null; }
+    texCache.set(tex, s); return s;
+  }
+  const s2l = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const l2s = u => Math.max(0, Math.min(255, Math.round((u <= 0.0031308 ? 12.92 * u : 1.055 * Math.pow(u, 1 / 2.4) - 0.055) * 255)));
+  function voxelizeModel(root) {
+    root.updateMatrixWorld(true);
+    const invRoot = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    const meshes = []; root.traverse(o => { if (o.isMesh && !o.userData.chonkTiles && o.geometry && o.geometry.attributes.position) meshes.push(o); });
+    const pt = (m, i, v) => { v.fromBufferAttribute(m.geometry.attributes.position, i); if (m.isSkinnedMesh && m.boneTransform) m.boneTransform(i, v); return v.applyMatrix4(m.matrixWorld).applyMatrix4(invRoot); };
+    const tris = [], box = new THREE.Box3(); let minEdge = Infinity;
+    for (const m of meshes) {
+      const g = m.geometry, ix = g.index, n = ix ? ix.count : g.attributes.position.count;
+      for (let t = 0; t + 2 < n; t += 3) {
+        const a = ix ? ix.getX(t) : t, b = ix ? ix.getX(t + 1) : t + 1, c = ix ? ix.getX(t + 2) : t + 2;
+        const pa = pt(m, a, new THREE.Vector3()), pb = pt(m, b, new THREE.Vector3()), pc = pt(m, c, new THREE.Vector3());
+        box.expandByPoint(pa); box.expandByPoint(pb); box.expandByPoint(pc);
+        for (const e of [pa.distanceTo(pb), pb.distanceTo(pc), pc.distanceTo(pa)]) if (e > 1e-6 && e < minEdge) minEdge = e;
+        tris.push({ m, a, b, c, pa, pb, pc });
+      }
+    }
+    if (!tris.length) return null;
+    const dims = box.getSize(new THREE.Vector3()), maxDim = Math.max(dims.x, dims.y, dims.z);
+    // voxel-built models (like a Chonk from the Ztudio) keep their own cube size; anything else gets about 40 cubes across
+    let size = Math.max(minEdge * 0.999, maxDim / 40); if (maxDim / size > 64) size = maxDim / 64;
+    const o = box.min, cells = new Map(), v = new THREE.Vector3(), nrm = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+    for (const T of tris) {
+      const { m, a, b, c, pa, pb, pc } = T, g = m.geometry, mat = Array.isArray(m.material) ? m.material[0] : m.material;
+      const col = g.attributes.color, uv = g.attributes.uv, samp = texSampler(mat && mat.map);
+      const base = mat && mat.color ? [mat.color.r, mat.color.g, mat.color.b] : [1, 1, 1];
+      nrm.crossVectors(e1.subVectors(pb, pa), e2.subVectors(pc, pa)); if (nrm.lengthSq() < 1e-14) continue; nrm.normalize();
+      const steps = Math.min(40, Math.max(1, Math.ceil(Math.max(pa.distanceTo(pb), pb.distanceTo(pc), pc.distanceTo(pa)) / (size * 0.5))));
+      for (let i = 0; i <= steps; i++) for (let j = 0; j <= steps - i; j++) {
+        let w1 = i / steps, w2 = j / steps, w0 = 1 - w1 - w2;
+        w0 = w0 * 0.9 + 0.1 / 3; w1 = w1 * 0.9 + 0.1 / 3; w2 = w2 * 0.9 + 0.1 / 3;   // pull samples off shared edges
+        v.set(0, 0, 0).addScaledVector(pa, w0).addScaledVector(pb, w1).addScaledVector(pc, w2);
+        const surf = v.clone(); v.addScaledVector(nrm, -size * 0.25);   // nudge inside the surface
+        const kx = Math.floor((v.x - o.x) / size + 1e-4), ky = Math.floor((v.y - o.y) / size + 1e-4), kz = Math.floor((v.z - o.z) / size + 1e-4);
+        const key = kx + ',' + ky + ',' + kz;
+        let lc = base.slice();
+        if (col) { const k = [col.getX(a) * w0 + col.getX(b) * w1 + col.getX(c) * w2, col.getY(a) * w0 + col.getY(b) * w1 + col.getY(c) * w2, col.getZ(a) * w0 + col.getZ(b) * w1 + col.getZ(c) * w2]; lc = lc.map((x, q) => x * k[q]); }
+        if (samp && uv) { const t = samp(uv.getX(a) * w0 + uv.getX(b) * w1 + uv.getX(c) * w2, uv.getY(a) * w0 + uv.getY(b) * w1 + uv.getY(c) * w2); lc = lc.map((x, q) => x * s2l(t[q])); }
+        let cell = cells.get(key);
+        if (!cell) {
+          const centre = new THREE.Vector3(o.x + (kx + 0.5) * size, o.y + (ky + 0.5) * size, o.z + (kz + 0.5) * size);
+          cell = { acc: [0, 0, 0, 0], k: [kx, ky, kz], src: { m, a, b, c, w0, w1, w2, off: centre.clone().sub(surf) } };
+          cells.set(key, cell);
+        }
+        cell.acc[0] += lc[0]; cell.acc[1] += lc[1]; cell.acc[2] += lc[2]; cell.acc[3]++;
+      }
+    }
+    const list = [...cells.values()].map(c => ({ k: c.k, src: c.src, color: (l2s(c.acc[0] / c.acc[3]) << 16) | (l2s(c.acc[1] / c.acc[3]) << 8) | l2s(c.acc[2] / c.acc[3]) }));
+    return { size, list };
+  }
+
+  // The 3D view: its own renderer at the stage size.
+  const r3 = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  r3.outputEncoding = THREE.sRGBEncoding; r3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  r3.domElement.className = 'r3'; r3.domElement.hidden = true; stage.append(r3.domElement);
+  let r3W = 0, r3H = 0, chonk = null, chonkToken = 0;
+  const PIECE = 0.92;   // block size: a little gap between blocks, like mosaic grout
+  function clearChonk() {
+    chonkToken++;
+    if (chonk && chonk.mesh) {
+      const m = chonk.mesh; m.parent && m.parent.remove(m);
+      m.geometry.dispose(); m.material.dispose(); chonk.tex.dispose(); m.dispose();
+    }
+    chonk = null;
+  }
+  function buildChonks(src) {
+    clearChonk();
+    const token = chonkToken, me = { src, mesh: null };
+    chonk = me;
+    (async () => {
+      let cells, unit = 1, kind;
+      if (rig && src === rig) {
+        kind = 'rig';
+        cells = rig.vox.map(v => {
+          const p = partOf(v.x, v.y, v.z), pv = PIVOT[p];
+          return { k: [v.x, v.y, v.z], color: v.color, part: p,
+            local: new THREE.Vector3(v.x - RIG.MIDDLE_X - pv[0], (RIG.FEET_Y - v.y) + 0.5 - pv[1], v.z + 0.5 - 5.5 - pv[2]) };
+        });
+      } else {
+        kind = 'glb';
+        setStatus('Turning the model into blocks…'); await pause();
+        if (token !== chonkToken) return;
+        const V = voxelizeModel(src);
+        if (!V || !V.list.length) { setStatus('Couldn’t find any surfaces in this file to build Chonks from.', true); return; }
+        cells = V.list; unit = V.size;
+      }
+      const pick = await matchCells(cells, () => token !== chonkToken);
+      if (!pick) return;
+      const A = await tileAtlas(pick);
+      if (token !== chonkToken) { A.mat.dispose(); A.tex.dispose(); return; }
+      const geo = new THREE.BoxGeometry(1, 1, 1);
+      geo.setAttribute('tileOff', new THREE.InstancedBufferAttribute(A.off, 2));
+      const mesh = new THREE.InstancedMesh(geo, A.mat, cells.length);
+      mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; mesh.userData.chonkTiles = true;
+      (kind === 'rig' ? rig.object : src).add(mesh);
+      Object.assign(me, { kind, cells, unit, mesh, tex: A.tex, info: `${cells.length} Chonks, ${A.unique} different`, fresh: true });
+      setStatus('');
+    })().catch(e => {
+      if (token !== chonkToken) return;
+      console.error(e);
+      setStatus(location.protocol === 'file:'
+        ? 'Chonks mode needs the page opened through the site or the local preview, not straight from the file.'
+        : 'Couldn’t load the Chonk pictures for Chonks mode. Check your connection and try again.', true);
+    });
+  }
+  // show either the model's own meshes or the Chonk blocks
+  function setTiles(on) {
+    const showTiles = on && !!(chonk && chonk.mesh);
+    const root = rig ? rig.object : model;
+    if (root) root.traverse(o => { if (o.isMesh) o.visible = o.userData.chonkTiles ? showTiles : !showTiles; });
+  }
+  const M4 = new THREE.Matrix4(), T4 = new THREE.Matrix4(), S4 = new THREE.Matrix4(), inv4 = new THREE.Matrix4();
+  const va = new THREE.Vector3(), vb = new THREE.Vector3(), vc = new THREE.Vector3(), vp = new THREE.Vector3();
+  function updateChonk(force) {
+    const c = chonk;
+    const moving = c.kind === 'rig' ? !!rigPose : !!(mixer && action);
+    if (!moving && !force && !c.fresh) return;
+    c.fresh = false;
+    const root = c.kind === 'rig' ? rig.object : c.src;
+    root.updateMatrixWorld(true); inv4.copy(root.matrixWorld).invert();
+    const s = PIECE * c.unit; S4.makeScale(s, s, s);
+    if (c.kind === 'rig') {
+      const rel = {};
+      for (const p in rig.parts) rel[p] = new THREE.Matrix4().multiplyMatrices(inv4, rig.parts[p].matrixWorld);
+      c.cells.forEach((cell, i) => {
+        const l = cell.local;
+        M4.copy(rel[cell.part]).multiply(T4.makeTranslation(l.x, l.y, l.z)).multiply(S4);
+        c.mesh.setMatrixAt(i, M4);
+      });
+    } else {
+      const ptNow = (m, i, outV) => { outV.fromBufferAttribute(m.geometry.attributes.position, i); if (m.isSkinnedMesh && m.boneTransform) m.boneTransform(i, outV); return outV.applyMatrix4(m.matrixWorld).applyMatrix4(inv4); };
+      c.cells.forEach((cell, i) => {
+        const q = cell.src;   // follow the surface point this block was built from, so it moves with the model's animation
+        vp.set(0, 0, 0).addScaledVector(ptNow(q.m, q.a, va), q.w0).addScaledVector(ptNow(q.m, q.b, vb), q.w1).addScaledVector(ptNow(q.m, q.c, vc), q.w2).add(q.off);
+        M4.makeTranslation(vp.x, vp.y, vp.z).multiply(S4);
+        c.mesh.setMatrixAt(i, M4);
+      });
+    }
+    c.mesh.instanceMatrix.needsUpdate = true;
+  }
+  const stageH = w => Math.round(Math.max(320, Math.min(w * 0.85, 640)));
+  function place3d(w, h) {
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+    const vHalf = THREE.MathUtils.degToRad(camera.fov / 2), hHalf = Math.atan(Math.tan(vHalf) * camera.aspect);
+    const dist = radius / Math.sin(Math.min(vHalf, hHalf)) * 1.04 / ctl.zoom, ty = -ctl.pan * radius;
+    camera.position.set(0, ty, dist); camera.near = Math.max(0.001, dist - radius * 3); camera.far = dist * 10; camera.lookAt(0, ty, 0);
+    const a = THREE.MathUtils.degToRad(ctl.light);
+    key.position.set(Math.sin(a) * dist, dist * 0.8, Math.cos(a) * dist);
+  }
+  function drawChonks() {
+    if (!out.hidden) { out.hidden = true; r3.domElement.hidden = false; }
+    const src = rig || model;
+    if (src && (!chonk || chonk.src !== src)) buildChonks(src);
+    const ready = !!(chonk && chonk.mesh);
+    setTiles(ready);
+    if (ready) updateChonk();
+    const label = ready ? `${badgeLabel} · ${chonk.info}` : badgeLabel;
+    if ($('badge').textContent !== label) $('badge').textContent = label;
+    const w = stage.clientWidth, h = stageH(w);
+    if (w !== r3W || h !== r3H) { r3.setSize(w, h); r3W = w; r3H = h; }
+    place3d(w, h); r3.setClearColor(ctl.bg, 1); r3.render(scene, camera);
+  }
+
+  // GIF of the Chonks view: frames drawn at twice the size for smooth edges, one shared palette
+  async function makeChonkGif(opts = {}) {
+    if (!chonk || !chonk.mesh) throw new Error('The Chonks are still being picked. Try again in a moment.');
+    if (!window.gifenc) throw new Error('GIF encoder failed to load. Reload and try again.');
+    const { GIFEncoder, quantize, applyPalette } = window.gifenc;
+    const sw = stage.clientWidth, sh = stageH(sw), W = Math.min(720, sw) & ~1, H = Math.round(W * sh / sw) & ~1, SS = 2;
+    const fc = document.createElement('canvas'); fc.width = W; fc.height = H;
+    const fx = fc.getContext('2d', { willReadFrequently: true }); fx.imageSmoothingQuality = 'high';
+    const N = ctl.frames, delayCs = Math.max(2, Math.round(216 / N)), loopS = N * delayCs / 100;
+    const startY = pivot.rotation.y;
+    const clip = action ? action.getClip() : null, t0 = action ? action.time : 0;
+    const cycles = clip && clip.duration <= loopS * 1.5 ? Math.max(1, Math.round(loopS / clip.duration)) : 0;
+    const rp = rig && rigPose ? POSES.find(p => p.id === rigPose) : null, rT0 = rigT;
+    const rCycles = rp && rp.period <= loopS * 1.5 ? Math.max(1, Math.round(loopS / rp.period)) : 0;
+    const grab = f => {
+      pivot.rotation.y = startY + (ctl.reverse ? -1 : 1) * (f / N) * Math.PI * 2;
+      if (clip) { action.time = cycles ? (f / N) * cycles * clip.duration : t0 + f * delayCs / 100; mixer.update(0); }
+      if (rp) rig.pose(rigPose, rCycles ? (f / N) * rCycles * rp.period : rT0 + f * delayCs / 100);
+      updateChonk(true);
+      r3.setPixelRatio(1); r3.setSize(W * SS, H * SS, false);
+      place3d(W, H); r3.setClearColor(ctl.bg, 1); r3.render(scene, camera);
+      fx.drawImage(r3.domElement, 0, 0, W, H);
+      return fx.getImageData(0, 0, W, H).data;
+    };
+    try {
+      const SN = Math.min(8, N), step = 3, per = Math.ceil(W * H / step), smp = new Uint8Array(SN * per * 4);
+      for (let k = 0; k < SN; k++) {
+        const d = grab(Math.floor(k * N / SN));
+        for (let i = 0, o = k * per * 4; i < W * H; i += step, o += 4) { const q = i * 4; smp[o] = d[q]; smp[o + 1] = d[q + 1]; smp[o + 2] = d[q + 2]; smp[o + 3] = 255; }
+        setStatus('Choosing GIF colours…'); await pause();
+      }
+      const palette = quantize(smp, 256, { format: 'rgb565' });
+      const gif = GIFEncoder();
+      for (let f = 0; f < N; f++) {
+        const idx = applyPalette(grab(f), palette, 'rgb565');
+        gif.writeFrame(idx, W, H, f === 0 ? { palette, delay: delayCs * 10, repeat: 0 } : { delay: delayCs * 10 });
+        if (opts.onFrame) opts.onFrame(fc, f, N, W, H, delayCs);
+        setStatus(`Rendering GIF… frame ${f + 1} of ${N}`); await pause();
+      }
+      gif.finish();
+      return gif.bytes();
+    } finally {
+      pivot.rotation.y = startY;
+      if (clip) { action.time = t0; mixer.update(0); }
+      if (rp) rig.pose(rigPose, rT0);
+      r3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r3W = r3H = 0;
+    }
+  }
+
   // ---- live loop ----
   let lastG = null, busy = false;
   function frame() {
@@ -731,10 +1112,14 @@ const POSES = [
       if (mixer) mixer.update(dt);
       if (rig && rigPose) { rigT += dt; rig.pose(rigPose, rigT); }
       if (ctl.spin && !dragging) pivot.rotation.y += ctl.reverse ? -0.012 : 0.012;
-      const { cols, rows } = gridSize();
-      lastG = computeGrid(cols, rows);
-      if (ctl.mode === 'model') out.innerHTML = toHtml(lastG); else out.textContent = toText(lastG);
-      out.style.fontSize = Math.max(4, Math.min(18, (stage.clientWidth - 28) / (cols * 0.6))) + 'px';
+      if (chonkMode()) drawChonks();
+      else {
+        if (out.hidden) { r3.domElement.hidden = true; out.hidden = false; setTiles(false); $('badge').textContent = badgeLabel; }
+        const { cols, rows } = gridSize();
+        lastG = computeGrid(cols, rows);
+        if (ctl.mode === 'model') out.innerHTML = toHtml(lastG); else out.textContent = toText(lastG);
+        out.style.fontSize = Math.max(4, Math.min(18, (stage.clientWidth - 28) / (cols * 0.6))) + 'px';
+      }
     }
     requestAnimationFrame(frame);
   }
@@ -754,6 +1139,7 @@ const POSES = [
   const tick = () => new Promise(r => setTimeout(r, 0));
 
   async function makeGif(opts = {}) {
+    if (chonkMode()) return makeChonkGif(opts);
     if (!window.GifWriter) throw new Error('GIF encoder failed to load. Reload and try again.');
     const { cols, rows } = gridSize();
     const fc = document.createElement('canvas'), fx = fc.getContext('2d', { willReadFrequently: true });
