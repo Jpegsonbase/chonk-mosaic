@@ -22,7 +22,7 @@ button, a, label, input, select { touch-action: manipulation; }
 <title>Chonkit Gallery</title>
 <meta name="description" content="Walk around a 3D gallery of the mosaics you made on Chonkit.">
 <link rel="icon" href="apple-touch-icon.png">
-<script src="gallery-store.js?v=5"></script>
+<script src="gallery-store.js?v=6"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=Sora:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap">
@@ -1123,6 +1123,7 @@ const LOCATIONS = [
       ph = plinth(10, 4);
       if (holo[0]) buildHologram(k, 10, 4, ph, holo[0]);
       else { const sph = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16), new THREE.MeshStandardMaterial({ color: 0xdfe3ea, metalness: 1, roughness: 0.08 })); sph.position.set(10, ph + 0.3, 4); sph.castShadow = true; g.add(sph); }
+      if (GALLERY.statues[0]) buildChonkStatue(k, CHONK_STATUE.x, CHONK_STATUE.z, GALLERY.statues[0]);
       ph = plinth(-10, -6.5, 0.8);
       buildAsciiLaptop(k, -10, -6.5, ph);                   // a laptop typing out an ASCII Chonk (press E beside it -> Chonk ASCII)
       // the gold Chonk statue (centre piece) built from Chonk #1
@@ -1266,7 +1267,8 @@ const LOCATIONS = [
 /* Chonkit Gallery: only the Art Gallery scene */
 for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
 const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
-const GALLERY = { all: [], shown: [], ascii: [], spots: [], views: [] };
+const GALLERY = { all: [], shown: [], ascii: [], statues: [], spots: [], views: [] };
+const CHONK_STATUE = { x: 8.6, z: -1.6 };   // the column for a Chonk of Chonks statue, in the bay between the right partition and the side wall
 /* an easel with a blank canvas that opens the Chonkit Studio */
 function easelCanvasTex() {
   return canvasTex(256, 320, (c, w, h) => {
@@ -1592,6 +1594,49 @@ function buildHologram(k, x, z, top, item) {
   });
   GALLERY.spots.push({ item, x, z, nx: 0, nz: 1, w: 1, round: true });
   GALLERY.views.push({ x, z, nx: x > 0 ? -1 : 1, nz: 0, w: W, weight: 2, dist: 2.6 });
+}
+
+/* A Chonk of Chonks from Chonk ASCII as a full-colour statue on its own column: one block per voxel, each showing
+   the real Chonk the mosaic matcher picked for it (one texture of all the pictures, an offset per block). */
+function buildChonkStatue(k, x, z, item) {
+  const S = item.statue, n = S.count, P = S.pos;
+  const COL_H = 0.7, COL_W = 0.95, HEIGHT = 1.55, GAP = 0.92;
+  // the column: a plinth with a darker cap, like a museum pedestal
+  k.box(mat(0xf4f3ef, { r: .95 }), COL_W, COL_H - 0.06, COL_W, x, 0, z, { solid: true });
+  k.box(mat(0x2b2b2b, { r: .5 }), COL_W + 0.06, 0.06, COL_W + 0.06, x, COL_H - 0.06, z);
+  // fit the figure: feet on the column, about HEIGHT tall, centred
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (let i = 0; i < n; i++) { const a = P[i * 3], b = P[i * 3 + 1], c = P[i * 3 + 2];
+    if (a < x0) x0 = a; if (a > x1) x1 = a; if (b < y0) y0 = b; if (b > y1) y1 = b; if (c < z0) z0 = c; if (c > z1) z1 = c; }
+  const s = Math.min(HEIGHT / (y1 - y0 + 1), (COL_W - 0.05) / Math.max(1, z1 - z0 + 1) * 2.2);
+  const g = new THREE.Group(); g.position.set(x, COL_H, z);
+  g.rotation.y = Math.atan2(0 - x, 2 - z);                // faces into the room, towards the entrance
+  k.g.add(g);
+  const tex = new THREE.Texture(item.statueImg); tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
+  const m = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
+  const scale = { value: new THREE.Vector2(S.T / S.aw, S.T / S.ah) };
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.tileScale = scale;
+    sh.vertexShader = "attribute vec2 tileOff;\nuniform vec2 tileScale;\n" + sh.vertexShader.replace("#include <uv_vertex>", "#include <uv_vertex>\nvMapUv = uv * tileScale + tileOff;");
+  };
+  m.customProgramCacheKey = () => "chonk-statue";
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  geo.setAttribute("tileOff", new THREE.InstancedBufferAttribute(new Float32Array(S.off), 2));
+  const mesh = new THREE.InstancedMesh(geo, m, n);
+  const M = new THREE.Matrix4(), cx = (x0 + x1) / 2, cz = (z0 + z1) / 2;
+  for (let i = 0; i < n; i++) {
+    M.makeScale(s * GAP, s * GAP, s * GAP).setPosition((P[i * 3] - cx) * s, (P[i * 3 + 1] - y0 + 0.5) * s, (P[i * 3 + 2] - cz) * s);
+    mesh.setMatrixAt(i, M);
+  }
+  mesh.castShadow = true; mesh.receiveShadow = true; mesh.computeBoundingSphere();
+  g.add(mesh);
+  // a little plaque on the column's front
+  const front = g.rotation.y, fx = Math.sin(front), fz = Math.cos(front);
+  plane(k, textTex([{ text: shortTitle(item.title), size: 40, font: "Sora", weight: 600 }, { text: `${n.toLocaleString()} Chonks`, size: 30, font: "Sora" }], { w: 512, h: 160, bg: "#2a2620", fg: "#e9c27c" }),
+    0.5, 0.16, x + fx * (COL_W / 2 + 0.035), COL_H * 0.62, z + fz * (COL_W / 2 + 0.035), front, { r: 0.5 });
+  k.solidBox(x - COL_W / 2, x + COL_W / 2, z - COL_W / 2, z + COL_W / 2, 0, 99);
+  GALLERY.spots.push({ item, x, z, nx: fx, nz: fz, w: 1, round: true });
+  GALLERY.views.push({ x, z, nx: fx, nz: fz, w: 1.2, weight: 2, dist: 2.8 });
 }
 
 /* Chonk #18 holo card on the stand by the window wall (where the gold knot used to turn). The card art is drawn
@@ -2136,11 +2181,17 @@ async function loadGallery() {
       const su = URL.createObjectURL(it.anim.sheet), si = new Image();
       si.onload = () => { it.sheetImg = si; URL.revokeObjectURL(su); res(); }; si.onerror = () => { URL.revokeObjectURL(su); res(); }; si.src = su;
     };
-    img.onload = () => { it.img = img; sheet(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
+    const statue = () => {                              // Chonk-of-Chonks statues: the Chonk pictures its blocks show
+      if (!it.statue?.atlas) return sheet();
+      const su = URL.createObjectURL(it.statue.atlas), si = new Image();
+      si.onload = () => { it.statueImg = si; URL.revokeObjectURL(su); sheet(); }; si.onerror = () => { URL.revokeObjectURL(su); sheet(); }; si.src = su;
+    };
+    img.onload = () => { it.img = img; statue(); }; img.onerror = () => { URL.revokeObjectURL(it.url); res(); }; img.src = it.url;
   })));
   GALLERY.all = items.filter((it) => it.img);
   GALLERY.ascii = GALLERY.all.filter((it) => it.anim && it.sheetImg).slice(0, 1);   // the newest ASCII Chonk as a hologram on the chrome sphere's stand (the others hold the holo card and the laptop)
-  GALLERY.shown = GALLERY.all.filter((it) => !GALLERY.ascii.includes(it)).slice(0, FRAMES);
+  GALLERY.statues = GALLERY.all.filter((it) => it.statue && it.statueImg).slice(0, 1);   // the newest Chonk of Chonks on its column
+  GALLERY.shown = GALLERY.all.filter((it) => !GALLERY.ascii.includes(it) && !GALLERY.statues.includes(it)).slice(0, FRAMES);
   renderGalleryList();
 }
 function renderGalleryList() {

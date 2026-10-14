@@ -3,6 +3,7 @@
  * Shared by the mosaic maker (index.html) and the 3D gallery (gallery.html).
  * Each entry: { id, created, title, tiles, w, h, blob (JPEG, for the 3D walls), full (PNG at the original size, for downloads) }
  * ASCII pieces also carry anim: { sheet (all frames in one image), frames, cols, rows, delay ms } and their full file is the GIF.
+ * Chonk-of-Chonks statues carry statue: { atlas (PNG of the Chonk pictures), aw, ah, T, off (UV offset per block), pos (x,y,z per block), count }.
  */
 (function (root) {
   "use strict";
@@ -39,7 +40,7 @@
 
   /** Save a canvas to the gallery: a JPEG (longest side <= maxSide) to hang on the walls, plus the
    *  full-quality PNG at its original size so downloads match the mosaic maker exactly. Returns the new id. */
-  async function addCanvas(canvas, { title = "Untitled", tiles = 0, maxSide = 2048, quality = 0.9, keepFull = true, full: fullFile = null, anim = null } = {}) {
+  async function addCanvas(canvas, { title = "Untitled", tiles = 0, maxSide = 2048, quality = 0.9, keepFull = true, full: fullFile = null, anim = null, statue = null } = {}) {
     const k = Math.min(1, maxSide / Math.max(canvas.width, canvas.height));
     const w = Math.max(1, Math.round(canvas.width * k)), h = Math.max(1, Math.round(canvas.height * k));
     const c = document.createElement("canvas"); c.width = w; c.height = h;
@@ -52,6 +53,7 @@
     const entry = { created: Date.now(), title, tiles, w, h, blob };
     if (full) { entry.full = full; entry.fullW = canvas.width; entry.fullH = canvas.height; }
     if (anim) entry.anim = anim;
+    if (statue) entry.statue = statue;
     try { return await tx("readwrite", (s) => s.add(entry)); }
     catch (e) { if (!full) throw e; delete entry.full; delete entry.fullW; delete entry.fullH; return tx("readwrite", (s) => s.add(entry)); }   // out of space: keep the wall copy
   }

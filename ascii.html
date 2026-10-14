@@ -650,6 +650,7 @@ const POSES = [
     $('customWrap').hidden = rampSel.value !== 'custom';
     document.body.classList.toggle('chonk-mode', chonkMode());
     if (!chonkMode()) ctl.ramp = rampSel.value === 'custom' ? ($('custom').value || ' #') : rampSel.value;
+    $('toGallery').textContent = chonkMode() ? 'Add to Gallery as a statue' : 'Add to Gallery as a hologram';
   };
   rampSel.onchange = syncRamp; $('custom').oninput = syncRamp; syncRamp();
 
@@ -894,7 +895,7 @@ const POSES = [
       sh.uniforms.tileScale = scale;
       sh.vertexShader = 'attribute vec2 tileOff;\nuniform vec2 tileScale;\n' + sh.vertexShader.replace('#include <uv_vertex>', 'vUv = uv * tileScale + tileOff;');
     };
-    return { mat, tex, off, unique: uniq.length };
+    return { mat, tex, off, unique: uniq.length, cv, T };
   }
 
   // .glb files: turned into cubes first, each pinned to the surface point it came from
@@ -1006,7 +1007,7 @@ const POSES = [
       const mesh = new THREE.InstancedMesh(geo, A.mat, cells.length);
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage); mesh.frustumCulled = false; mesh.userData.chonkTiles = true;
       (kind === 'rig' ? rig.object : src).add(mesh);
-      Object.assign(me, { kind, cells, unit, mesh, tex: A.tex, info: `${cells.length} Chonks, ${A.unique} different`, fresh: true });
+      Object.assign(me, { kind, cells, unit, mesh, tex: A.tex, atlas: A.cv, off: A.off, T: A.T, info: `${cells.length} Chonks, ${A.unique} different`, fresh: true });
       setStatus('');
     })().catch(e => {
       if (token !== chonkToken) return;
@@ -1222,9 +1223,41 @@ const POSES = [
 
   // ---- Add to Gallery: the same spin, saved with every frame packed into one image so the 3D gallery
   //      can play it as a hologram on a sculpture stand (and offer the GIF as its download) ----
+  // Chonks mode: saved as a full-colour statue (each block's position and its Chonk picture) for a column in the gallery
+  async function addStatue() {
+    const btn = $('toGallery'), note = $('galNote');
+    if (!chonk || !chonk.mesh) { setStatus('The Chonks are still being picked. Try again in a moment.', true); return; }
+    btn.disabled = $('gif').disabled = true; busy = true; note.hidden = true;
+    try {
+      if (chonk.kind === 'rig') rig.pose(null, 0);           // stand up straight for the statue
+      updateChonk(true);
+      const n = chonk.cells.length, pos = new Float32Array(n * 3), m4 = new THREE.Matrix4(), v = new THREE.Vector3();
+      for (let i = 0; i < n; i++) { chonk.mesh.getMatrixAt(i, m4); v.setFromMatrixPosition(m4).divideScalar(chonk.unit); pos[i * 3] = v.x; pos[i * 3 + 1] = v.y; pos[i * 3 + 2] = v.z; }
+      // a still of the view for the gallery list
+      const sw = stage.clientWidth, W = 900, H = Math.round(W * stageH(sw) / sw);
+      r3.setPixelRatio(1); r3.setSize(W, H, false); place3d(W, H); r3.setClearColor(ctl.bg, 1); r3.render(scene, camera);
+      const poster = document.createElement('canvas'); poster.width = W; poster.height = H; poster.getContext('2d').drawImage(r3.domElement, 0, 0);
+      setStatus('Carving the statue…');
+      const atlas = await new Promise((res, rej) => chonk.atlas.toBlob(b => b ? res(b) : rej(new Error('Couldn’t save the Chonk pictures.')), 'image/png'));
+      const id = (current.name.match(/^chonk-(\d+)$/) || [])[1];
+      const title = id ? `Chonk #${id} of Chonks` : `${current.name} of Chonks`;
+      await ChonkitGallery.addCanvas(poster, { title, tiles: n,
+        statue: { atlas, aw: chonk.atlas.width, ah: chonk.atlas.height, T: chonk.T, off: chonk.off.slice(), pos, count: n } });
+      setStatus('');
+      note.innerHTML = 'Added to your gallery. It’s standing on a new column as a full-colour statue. <a href="gallery.html">Go and see it →</a>';
+      note.hidden = false;
+    } catch (e) {
+      setStatus(e.message || 'Couldn’t add it to the gallery.', true);
+    } finally {
+      r3.setPixelRatio(Math.min(2, window.devicePixelRatio || 1)); r3W = r3H = 0;
+      if (chonk && chonk.kind === 'rig' && rigPose) rig.pose(rigPose, rigT);
+      btn.disabled = $('gif').disabled = false; busy = false;
+    }
+  }
   $('toGallery').onclick = async () => {
     const btn = $('toGallery'), note = $('galNote');
     if (!window.ChonkitGallery || !ChonkitGallery.supported) { setStatus('This browser can’t keep a gallery.', true); return; }
+    if (chonkMode()) return addStatue();
     btn.disabled = $('gif').disabled = true; busy = true; note.hidden = true;
     try {
       let sheet, sx, cols, rows, fw, fh, poster, delayMs = 60;
@@ -1281,7 +1314,7 @@ const POSES = [
   };
 })();
 </script>
-<script src="gallery-store.js?v=5"></script>
+<script src="gallery-store.js?v=6"></script>
 
 <footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="./">chonkit.xyz</a></footer>
 </body>
