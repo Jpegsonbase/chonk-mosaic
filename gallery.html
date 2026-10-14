@@ -1268,7 +1268,7 @@ const LOCATIONS = [
 for (let i = LOCATIONS.length - 1; i >= 0; i--) if (LOCATIONS[i].id !== "gallery") LOCATIONS.splice(i, 1);
 const MOSAIC_MAX_W = 3.0, MOSAIC_MAX_H = 2.2, FRAMES = 14;
 const GALLERY = { all: [], shown: [], ascii: [], statues: [], spots: [], views: [] };
-const CHONK_STATUE = { x: 10, z: -6.5 };   // the column for a Chonk of Chonks statue: mirrors the laptop's column (-10, -6.5) across the room
+const CHONK_STATUE = { x: 10, z: -4 };   // the column for a Chonk of Chonks statue: the hologram's column (10, 4) mirrored across the middle of the room
 /* an easel with a blank canvas that opens the Chonkit Studio */
 function easelCanvasTex() {
   return canvasTex(256, 320, (c, w, h) => {
