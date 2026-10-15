@@ -151,12 +151,12 @@ label.f output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tab
 .captionOpts input[type=text]{width:100%;font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--soft);color:var(--ink)}
 .captionOpts input[type=text]:focus{border-color:var(--edge,var(--blue));outline:none}
 .spinbox{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--soft)}
-/* three columns on wide screens: settings | drawing | load, paper and export. The drawing stays in view. */
+/* three columns on wide screens: load, paper and export | drawing | settings. The drawing stays in view. */
 .wrap.sk-wide{max-width:1600px}
-.sk-main{grid-template-columns:280px minmax(0,1fr) 290px;grid-template-areas:"left desk rail"}
+.sk-main{grid-template-columns:290px minmax(0,1fr) 280px;grid-template-areas:"rail desk left"}
 .sk-main .sk-left{grid-area:left}.sk-main .desk{grid-area:desk;position:sticky;top:12px}.sk-main > .rail:not(.sk-left){grid-area:rail}
 .sk-main .sheet{max-width:min(820px, calc(100vh - 120px))}
-@media (max-width:1180px){.sk-main{grid-template-columns:minmax(0,1fr) 290px;grid-template-areas:"desk rail" "left rail"}.sk-main .desk{position:static}}
+@media (max-width:1180px){.sk-main{grid-template-columns:290px minmax(0,1fr);grid-template-areas:"rail desk" "rail left"}.sk-main .desk{position:static}}
 @media (max-width:760px){.sk-main{display:flex;flex-direction:column}.sk-main .desk{order:1}.sk-main > .rail:not(.sk-left){order:2}.sk-main .sk-left{order:3}.sk-main > *{width:100%}}
 
 .rail > label.btn{display:flex;justify-content:center;width:100%}
