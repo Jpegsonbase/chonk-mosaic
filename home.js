@@ -200,7 +200,7 @@
     async function play() {
       const id = ++run; skipping = false; skip.hidden = false; out.innerHTML = "";
       const lines = await getSource();
-      add('<span class="p">$ </span>'); await type("cat mosaic-core.js", id); add("\n");
+      add('<span class="p">$ </span>'); await type("chonk mosaic-core.js", id); add("\n");
       for (let i = 0; i < lines.length; i++) {
         if (id !== run) return;
         add(paint(lines[i]) + "\n");
