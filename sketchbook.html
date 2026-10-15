@@ -1,0 +1,850 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chonk Sketchbook</title>
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Any Chonk redrawn by hand in coloured pencil.">
+<meta property="og:title" content="Chonk Sketchbook · Chonkit">
+<meta property="og:description" content="Any Chonk redrawn by hand in coloured pencil.">
+<meta property="og:image" content="https://chonkit.xyz/og.png?v=4">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="fonts/sangyo.woff2" as="font" type="font/woff2" crossorigin>
+<style>@font-face { font-family: "Sangyo"; src: url("fonts/sangyo.woff2") format("woff2"); font-weight: 400 900; font-display: swap; } html { font-synthesis-weight: none; }.logo .logo-mark{display:block;flex:none;width:33px;height:21px}
+.logo .logo-mark.hat{display:none;width:30px;height:33px}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&family=Reenie+Beanie&display=swap" rel="stylesheet">
+<script>
+  try { var t = localStorage.getItem("chonk-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<style>
+/* Chonkit look: same palette, fonts and menu as the mosaic maker, gallery and studio */
+:root{
+  --paper:#FAFBFF; --surface:#FFFFFF; --ink:#0E1230; --muted:#5B6185; --line:#E3E6F2; --soft:#F1F3FB; --quiet-hover:#E4E8F7;
+  --blue:#0052FF; --yellow:#FFC93C;
+  --display:"Sangyo","Arial Black",sans-serif; --body:"Manrope",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  /* names the tool below uses */
+  --bg:var(--paper); --panel:var(--surface); --fg:var(--ink); --accent:var(--blue); --accent-ink:#ffffff; --stage:#14111c;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1024; --surface:#161A33; --ink:#EEF0FF; --muted:#9BA2C8; --line:#262B4D; --soft:#1E2340; --quiet-hover:#262C50; --blue:#3D7BFF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0D1024; --surface:#161A33; --ink:#EEF0FF; --muted:#9BA2C8; --line:#262B4D; --soft:#1E2340; --quiet-hover:#262C50; --blue:#3D7BFF; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--body)}
+a{color:var(--blue)}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px clamp(16px,3vw,32px)}
+.logo{display:flex;align-items:center;gap:10px;font:800 22px var(--display);color:var(--ink);text-decoration:none}
+.logo .sq{width:22px;height:22px;border-radius:6px;background:var(--yellow);box-shadow:inset -4px -4px 0 #E8A91F}
+.logo small{font:500 13px var(--body);color:var(--muted)}
+@media (max-width:440px){.logo .logo-text{display:none}}
+.site-nav{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.site-nav a{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font:700 13.5px var(--body);color:var(--muted);text-decoration:none;white-space:nowrap}
+.site-nav a:hover{color:var(--ink)}
+.site-nav a[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.site-nav .short{display:none}
+.site-nav #galBadge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--yellow);color:#0E1230;font:800 10.5px/18px var(--body);text-align:center}
+@media (max-width:640px){.site-nav .long{display:none}.site-nav .short{display:inline}.site-nav a{padding:6px 9px;font-size:12.5px}}
+.wrap{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:0 clamp(16px,3vw,32px) 32px}
+.intro h1{font:800 clamp(26px,4.4vw,40px)/1.1 var(--display);letter-spacing:-.02em;margin:4px 0 6px}
+.intro h1 span{color:var(--blue)}
+.intro p{margin:0;color:var(--muted);max-width:62ch}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px;align-items:start}
+.stage{background:var(--stage);transition:background .2s;border:1px solid var(--line);border-radius:22px;position:relative;overflow:hidden;min-height:320px;display:grid;place-items:center;cursor:grab;touch-action:none}
+.stage.drag{outline:2px dashed var(--accent);outline-offset:-8px}
+.stage:active{cursor:grabbing}
+#out{margin:0;padding:14px;font-family:var(--mono);line-height:1;white-space:pre;color:inherit;user-select:text;letter-spacing:0}
+.badge{position:absolute;left:14px;bottom:10px;color:#9a93ad;font:12px var(--body);pointer-events:none}
+.rail{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;gap:14px;font-size:14px}
+.rail h2{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 0}
+.inrow{display:flex;gap:6px;margin:0}
+.inrow input{flex:1;min-width:0;font:inherit;padding:9px 11px;border-radius:11px;border:1.5px solid transparent;background:var(--soft);color:var(--fg)}
+.inrow input:focus{border-color:var(--blue);background:var(--surface);outline:none}
+.btn.sm{width:auto;padding:9px 14px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.tags button{font:700 12px var(--body);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.tags button:hover,.tags button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.tags:empty{display:none}
+label.f{display:grid;gap:6px;font-size:13px;font-weight:500}
+label.f .row{display:flex;justify-content:space-between;color:var(--muted)}
+label.f .row b{color:var(--fg);font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,input[type=text]{width:100%;font:inherit;padding:9px 11px;border-radius:11px;border:1.5px solid transparent;background:var(--soft);color:var(--fg)}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;user-select:none}
+.chip input{accent-color:var(--accent);margin:0}
+.btn{font:700 14px var(--body);border:0;border-radius:12px;padding:11px 12px;cursor:pointer;background:var(--accent);color:var(--accent-ink);width:100%}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn.ghost{background:var(--soft);color:var(--fg);border:1.5px solid transparent;font-weight:700}
+.btn.ghost:hover:not(:disabled){background:var(--quiet-hover);filter:none}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.chip:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.sw input{width:26px;height:26px;border:0;padding:0;background:none;border-radius:50%;cursor:pointer}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pre{font:700 11.5px var(--body);padding:7px 0;border-radius:10px;border:1px solid var(--line);background:var(--b);color:var(--i);cursor:pointer}
+.gifout{display:grid;gap:6px}.gifout img{border-radius:10px;border:1px solid var(--line);width:100%}
+.btn:disabled{opacity:.6;cursor:progress}
+.hint{color:var(--muted);font-size:12.5px;line-height:1.5;margin:0}
+.hint a{color:var(--accent)}
+.status{font-size:13px;min-height:1.2em;color:var(--muted)}
+.status.err{color:#d23a52}
+.left{display:grid;gap:18px;min-width:0}
+.look{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 24px;font-size:14px}
+.look .col{display:grid;gap:12px;align-content:start;min-width:0}
+.look-foot{grid-column:1/-1;display:flex;justify-content:flex-end}
+.look-foot .btn{width:auto;padding:9px 16px}
+@media (max-width:760px){.look-foot .btn{width:100%}}
+.look h2{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 0}
+@media (max-width:1060px){.look{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+  .main{display:flex;flex-direction:column;min-width:0}
+  .stage,.rail,.look{width:100%;min-width:0}
+  .left{display:contents}
+  .stage{order:1}.rail{order:2}.look{order:3;grid-template-columns:minmax(0,1fr)}
+}
+footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px;color:var(--muted);font-size:13px}
+/* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
+@media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
+button,a,label,input,select{touch-action:manipulation}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:12px}
+.seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
+/* Chonks mode: a 3D view made of real Chonks instead of text */
+.chonk-only{display:none}
+body.chonk-mode .chonk-only{display:block}
+body.chonk-mode .text-only{display:none!important}
+.stage canvas.r3{display:block}
+.stage canvas.r3[hidden]{display:none}
+/* Sketchbook: the sheet of paper on a desk, the pencil case of controls beside it */
+.desk{position:relative;min-width:0;background:var(--soft);border:1px solid var(--line);border-radius:22px;padding:clamp(14px,3vw,34px)}
+.sheet{width:100%;max-width:820px;margin:0 auto;display:block;aspect-ratio:1/1;height:auto;background:#f4f3ee;border-radius:2px;
+  box-shadow:0 1px 2px rgba(30,40,60,.18),0 18px 40px -18px rgba(30,40,60,.35);transform:rotate(-.6deg)}
+.drop-hint{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;opacity:0;transition:opacity .15s}
+.desk.dragging .drop-hint{opacity:1}
+.drop-hint b{font:400 44px "Reenie Beanie",cursive;background:var(--surface);color:var(--ink);padding:6px 22px;border:2px dashed var(--blue);border-radius:8px}
+.sk-status{font:12.5px var(--mono);color:var(--muted);text-align:center;margin-top:14px;min-height:1.5em}
+.sk-status.err{color:#c0392b}
+.rail label.f{display:grid;gap:4px;font-size:13.5px}
+.rail label.f .lv{display:flex;justify-content:space-between;gap:8px}
+.rail label.f output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.papers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.swatch{aspect-ratio:1;border-radius:8px;border:2px solid var(--edge,var(--line));cursor:pointer;padding:0}
+.swatch[aria-pressed="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--blue)}
+.paper-name{font-size:12.5px;color:var(--muted);margin:0}
+.check{display:flex;gap:8px;align-items:center;font-size:13.5px}
+.check input{accent-color:var(--blue);width:16px;height:16px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filerow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filerow .btn{width:auto}
+@media (max-width:760px){.main{display:flex;flex-direction:column}.desk,.rail{width:100%}}
+@media (prefers-reduced-motion:reduce){.drop-hint{transition:none}}
+</style>
+<link rel="stylesheet" href="chonky.css?v=1">
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="./"><svg class="logo-mark plain sm" viewBox="0 0 11 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#FDCB58" d="M2 0h8v1h-8zM1 1h10v5h-10zM2 6h8v1h-8z"/><path fill="#F4900C" d="M0 3h1v2h-1zM5 4h3v1h-3z"/><path fill="#E6E7E8" d="M3 3h1v2h-1zM8 3h1v2h-1z"/><path fill="#31373D" d="M4 3h1v2h-1zM9 3h1v2h-1z"/></svg><svg class="logo-mark hat sm" viewBox="0 0 11 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#7B3FE4" d="M6 0h1v1h-1zM5 1h2v1h-2zM4 2h4v1h-4zM3 3h1v1h-1zM7 3h1v1h-1zM0 4h11v1h-11z"/><path fill="#FF8A1F" d="M4 3h3v1h-3z"/><path fill="#FDCB58" d="M2 5h8v1h-8zM1 6h10v5h-10zM2 11h8v1h-8z"/><path fill="#F4900C" d="M0 8h1v2h-1zM5 9h3v1h-3z"/><path fill="#E6E7E8" d="M3 8h1v2h-1zM8 8h1v2h-1z"/><path fill="#31373D" d="M4 8h1v2h-1zM9 8h1v2h-1z"/></svg><span class="logo-text">Chonk Sketchbook <small>· any Chonk in coloured pencil</small></span></a>
+  <nav class="site-nav" aria-label="Chonkit">
+    <a href="./"><span class="long">Mosaic maker</span><span class="short">Mosaic</span></a>
+    <a href="gallery.html">Gallery</a>
+    <a href="studio.html"><span class="long">Chonkit Studio</span><span class="short">Studio</span></a>
+    <a href="ascii.html">ASCII</a>
+  </nav>
+</header>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>Chonk <span>Sketchbook</span></h1>
+    <p>Load any Chonk by number or wallet and it gets redrawn by hand, cell by cell, in coloured pencil on real-feeling paper.</p>
+  </div>
+  <div class="main">
+    <div class="desk" id="stage">
+      <canvas id="sheet" class="sheet" width="1200" height="1200" aria-label="Coloured pencil drawing of the loaded Chonk"></canvas>
+      <div class="drop-hint"><b>drop it on the paper</b></div>
+      <div class="sk-status" id="skStatus" role="status">Loading…</div>
+    </div>
+    <aside class="rail">
+      <h2>Load a Chonk</h2>
+      <form class="inrow" id="idForm">
+        <input type="number" id="tokenId" min="1" max="99999" inputmode="numeric" placeholder="Chonk #, e.g. 42" aria-label="Chonk token ID">
+        <button class="btn sm" type="submit">Load</button>
+      </form>
+      <form class="inrow" id="walletForm">
+        <input type="text" id="wallet" placeholder="Wallet 0x…" aria-label="Wallet address" spellcheck="false" autocomplete="off">
+        <button class="btn ghost sm" type="submit">Find</button>
+      </form>
+      <div class="tags" id="walletChonks"></div>
+      <div class="tags"><span class="hint">Samples</span><span id="samples" class="tags"></span></div>
+      <div class="status" id="status" role="status"></div>
+      <div class="filerow"><label class="btn ghost sm" for="file">Or draw a picture…</label><input type="file" id="file" accept="image/*,.svg" hidden></div>
+      <label class="check" id="removeBgRow" hidden><input type="checkbox" id="removeBg" checked> Remove the picture's background colour</label>
+
+      <h2>Pencils</h2>
+      <label class="f"><span class="lv">Pressure <output id="pressureOut">60</output></span><input type="range" id="pressure" min="15" max="100" value="60"></label>
+      <label class="f"><span class="lv">Stroke density <output id="densityOut">6</output></span><input type="range" id="density" min="1" max="10" value="6"></label>
+      <label class="f"><span class="lv">Hatch angle <output id="angleOut">35°</output></span><input type="range" id="angle" min="-80" max="80" value="35"></label>
+      <label class="f"><span class="lv">Shaky hand <output id="wobbleOut">45</output></span><input type="range" id="wobble" min="0" max="100" value="45"></label>
+      <label class="f"><span class="lv">Colouring outside the lines <output id="bleedOut">2 px</output></span><input type="range" id="bleed" min="0" max="10" value="2"></label>
+      <label class="f">Outline
+        <select id="outline">
+          <option value="silhouette">Around the silhouette</option>
+          <option value="all">Every colour edge</option>
+          <option value="none">No outline</option>
+        </select></label>
+      <label class="f">Outline pencil
+        <select id="outlineColour">
+          <option value="graphite">Graphite</option>
+          <option value="shade">Darker shade of each colour</option>
+        </select></label>
+
+      <h2>Paper</h2>
+      <div class="papers" id="papers"></div>
+      <p class="paper-name" id="paperName"></p>
+      <label class="check"><input type="checkbox" id="caption" checked> Write the Chonk number on the page</label>
+
+      <div class="actions">
+        <button class="btn ghost" id="redraw" type="button">Draw it again</button>
+        <button class="btn" id="save" type="button">Save PNG</button>
+      </div>
+      <p class="hint">Chonks load from the Chonks indexer, which mirrors each Chonk’s onchain voxel data, and are drawn from the front, like their pixel art. Chonks are CC0.</p>
+    </aside>
+  </div>
+</div>
+<script>
+(() => {
+
+const W = 1200, H = 1200;
+const sheet = document.getElementById('sheet');
+const sctx = sheet.getContext('2d');
+const $ = id => document.getElementById(id);
+
+const PAPERS = [
+  { key:'cartridge', name:'Cartridge — bright white, fine tooth', rgb:[247,246,241] },
+  { key:'sketch',    name:'Sketchbook — warm off-white', rgb:[240,232,214] },
+  { key:'kraft',     name:'Kraft — brown wrapping paper', rgb:[196,160,117] },
+  { key:'grey',      name:'Toned grey — mid-value drawing paper', rgb:[192,195,193] },
+  { key:'black',     name:'Black — light pencils only show up', rgb:[36,36,40] },
+];
+
+/* ---------- seeded randomness ---------- */
+function rng(seed){ let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function hash2(i, j, s){ let h = (i * 374761393 + j * 668265263 + s * 2147483647) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+
+/* ---------- state ---------- */
+const state = {
+  grid: null, label: 'sample', isSample: true,
+  seed: 1, paper: 'sketch',
+};
+
+/* ---------- sample figure (original, not a real Chonk) ---------- */
+function sampleGrid(){
+  const half = [
+    "......kkkk","....kkssss","...kssssss","..ksssssss","..ksswwsss","..ksswesss","..ksswesss",
+    "..ksssssss","..ksssksss","..kssssskk","..ksssssss",".khhhhhhhh","khhhhhhhhh","khhkhhhhhh",
+    "khhkhhhwhh","ksskhhhwhh",".kkkhhhhhh","...kpppppp","...kpppk..","..kmmmmk..","..kkkkkk..",
+  ];
+  const pal = { k:[44,38,50], s:[238,178,140], w:[255,255,255], e:[32,30,42], h:[72,122,210], p:[56,66,98], m:[216,78,60] };
+  const keys = Object.keys(pal);
+  const w = 20, h = half.length, idx = new Int16Array(w*h).fill(-1);
+  half.forEach((row, y) => {
+    const full = row + row.split('').reverse().join('');
+    for (let x = 0; x < w; x++){ const c = full[x]; if (c !== '.') idx[y*w+x] = keys.indexOf(c); }
+  });
+  return { w, h, idx, labels: keys.map(k => pal[k]) };
+}
+
+/* ---------- image -> pixel grid ---------- */
+function ingestImage(img){
+  let nw = img.naturalWidth || img.width || 600, nh = img.naturalHeight || img.height || 600;
+  let scale = 1;
+  const big = Math.max(nw, nh);
+  if (big < 400) scale = Math.ceil(400 / big);
+  if (big * scale > 1600) scale = 1600 / big;
+  const w = Math.max(1, Math.round(nw * scale)), h = Math.max(1, Math.round(nh * scale));
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  const x = c.getContext('2d', { willReadFrequently:true });
+  x.imageSmoothingEnabled = scale < 1;
+  x.drawImage(img, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data;
+  if ($('removeBg').checked) removeBackground(d, w, h);
+
+  // bounding box of visible pixels
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) if (d[(y*w+xx)*4+3] > 40){ if (xx<x0)x0=xx; if (xx>x1)x1=xx; if (y<y0)y0=y; if (y>y1)y1=y; }
+  if (x1 < 0) throw new Error('The image is empty after removing the background. Untick "Remove background colour" and try again.');
+
+  let cell = detectCell(d, w, h);
+  let ox, oy, s;
+  if (cell){ s = cell.s; ox = x0 - (((x0 - cell.ox) % s) + s) % s; oy = y0 - (((y0 - cell.oy) % s) + s) % s; }
+  else { s = Math.max(2, Math.ceil(Math.max(x1-x0+1, y1-y0+1) / 56)); ox = x0; oy = y0; }
+  const gw = Math.ceil((x1 + 1 - ox) / s), gh = Math.ceil((y1 + 1 - oy) / s);
+
+  const cols = [], idx = new Int16Array(gw*gh).fill(-1);
+  for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++){
+    let r=0,g=0,b=0,n=0,tot=0;
+    const inset = s >= 4 ? 1 : 0;
+    for (let yy = oy + j*s + inset; yy < oy + (j+1)*s - inset; yy++){
+      if (yy < 0 || yy >= h) continue;
+      for (let xx = ox + i*s + inset; xx < ox + (i+1)*s - inset; xx++){
+        if (xx < 0 || xx >= w) continue;
+        const p = (yy*w+xx)*4; tot++;
+        if (d[p+3] > 100){ r+=d[p]; g+=d[p+1]; b+=d[p+2]; n++; }
+      }
+    }
+    if (!tot || n / tot < 0.5) continue;
+    const col = [r/n, g/n, b/n];
+    let best = -1, bd = 1e9;
+    for (let k = 0; k < cols.length; k++){ const q = cols[k]; const dd = Math.abs(q[0]-col[0]) + Math.abs(q[1]-col[1]) + Math.abs(q[2]-col[2]); if (dd < bd){ bd = dd; best = k; } }
+    if (best >= 0 && bd < 24) idx[j*gw+i] = best;
+    else { cols.push(col); idx[j*gw+i] = cols.length - 1; }
+  }
+  return { w: gw, h: gh, idx, labels: cols.map(c => c.map(Math.round)), detected: !!cell };
+}
+
+function removeBackground(d, w, h){
+  // most common border colour
+  const counts = new Map(); let transparent = 0, total = 0;
+  const visit = (x, y) => { const p = (y*w+x)*4; total++; if (d[p+3] < 40){ transparent++; return; } const k = (d[p]>>3)+','+(d[p+1]>>3)+','+(d[p+2]>>3); counts.set(k, (counts.get(k)||0)+1); };
+  for (let x = 0; x < w; x++){ visit(x,0); visit(x,h-1); }
+  for (let y = 0; y < h; y++){ visit(0,y); visit(w-1,y); }
+  if (transparent > total * 0.5) return;
+  let bestK = null, bestN = 0; counts.forEach((n,k) => { if (n > bestN){ bestN = n; bestK = k; } });
+  if (!bestK) return;
+  const [br,bg,bb] = bestK.split(',').map(v => (+v << 3) + 4);
+  const tol = 42;
+  const near = p => d[p+3] > 40 && Math.abs(d[p]-br) + Math.abs(d[p+1]-bg) + Math.abs(d[p+2]-bb) < tol;
+  const seen = new Uint8Array(w*h); const stack = [];
+  const push = (x,y) => { const i = y*w+x; if (!seen[i] && near(i*4)){ seen[i] = 1; stack.push(i); } };
+  for (let x = 0; x < w; x++){ push(x,0); push(x,h-1); }
+  for (let y = 0; y < h; y++){ push(0,y); push(w-1,y); }
+  while (stack.length){
+    const i = stack.pop(); d[i*4+3] = 0;
+    const x = i % w, y = (i / w) | 0;
+    if (x > 0) push(x-1,y); if (x < w-1) push(x+1,y); if (y > 0) push(x,y-1); if (y < h-1) push(x,y+1);
+  }
+}
+
+function detectCell(d, w, h){
+  const diff = (p, q) => Math.abs(d[p]-d[q]) + Math.abs(d[p+1]-d[q+1]) + Math.abs(d[p+2]-d[q+2]) + Math.abs(d[p+3]-d[q+3]) > 48;
+  const xs = [], ys = [];
+  const sy = Math.max(1, (h / 160) | 0), sx = Math.max(1, (w / 160) | 0);
+  for (let y = 0; y < h; y += sy) for (let x = 1; x < w; x++) if (diff((y*w+x-1)*4, (y*w+x)*4)) xs.push(x);
+  for (let x = 0; x < w; x += sx) for (let y = 1; y < h; y++) if (diff(((y-1)*w+x)*4, (y*w+x)*4)) ys.push(y);
+  if (xs.length < 12 || ys.length < 12) return null;
+  const fit = (arr, s) => {
+    const hist = new Float32Array(s);
+    for (const v of arr) hist[v % s]++;
+    let best = 0, bo = 0;
+    for (let o = 0; o < s; o++){ const sc = hist[o] + hist[(o+1)%s] + hist[(o+s-1)%s]; if (sc > best){ best = sc; bo = o; } }
+    return { score: best / arr.length, o: bo };
+  };
+  const maxS = Math.min(96, Math.floor(Math.min(w, h) / 6));
+  for (let s = maxS; s >= 4; s--){
+    const fx = fit(xs, s); if (fx.score < 0.9) continue;
+    const fy = fit(ys, s); if (fy.score < 0.9) continue;
+    return { s, ox: fx.o, oy: fy.o };
+  }
+  return null;
+}
+
+/* ---------- paper tooth ---------- */
+let GRAIN = null;
+function makeGrain(){
+  const r = rng(7);
+  const g = new Float32Array(W*H);
+  const layer = (n, weight) => {
+    const c = document.createElement('canvas'); c.width = n; c.height = n;
+    const x = c.getContext('2d'); const id = x.createImageData(n, n);
+    for (let i = 0; i < n*n; i++){ const v = r()*255; id.data[i*4]=v; id.data[i*4+1]=v; id.data[i*4+2]=v; id.data[i*4+3]=255; }
+    x.putImageData(id, 0, 0);
+    const b = document.createElement('canvas'); b.width = W; b.height = H;
+    const bx = b.getContext('2d', { willReadFrequently:true }); bx.imageSmoothingEnabled = true; bx.imageSmoothingQuality = 'high';
+    bx.drawImage(c, 0, 0, W, H);
+    const dd = bx.getImageData(0, 0, W, H).data;
+    for (let i = 0; i < W*H; i++) g[i] += weight * dd[i*4] / 255;
+  };
+  layer(Math.round(W/2.5), 0.5);
+  layer(Math.round(W/14), 0.22);
+  for (let i = 0; i < W*H; i++) g[i] += 0.32 * r();
+  let m = 0; for (let i = 0; i < W*H; i++) m += g[i]; m /= W*H;
+  let v = 0; for (let i = 0; i < W*H; i++){ const t = g[i]-m; v += t*t; } const sd = Math.sqrt(v / (W*H)) || 1;
+  for (let i = 0; i < W*H; i++){ let t = (g[i]-m)/sd*0.18 + 0.5; g[i] = t < 0 ? 0 : t > 1 ? 1 : t; }
+  return g;
+}
+
+function applyTooth(ctx, pressure){
+  const id = ctx.getImageData(0, 0, W, H), d = id.data;
+  const th = 0.58 - pressure * 0.56, span = 0.3;
+  for (let i = 0, p = 3; i < W*H; i++, p += 4){
+    const a = d[p]; if (!a) continue;
+    let f = (GRAIN[i] - th) / span; f = f < 0 ? 0 : f > 1 ? 1 : f;
+    d[p] = a * f;
+  }
+  ctx.putImageData(id, 0, 0);
+}
+
+/* ---------- helpers ---------- */
+const lum = c => (0.2126*c[0] + 0.7152*c[1] + 0.0722*c[2]) / 255;
+const mkCanvas = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; };
+const L_DARK = mkCanvas(), L_LIGHT = mkCanvas(), L_LINE = mkCanvas(), L_TMP = mkCanvas(), L_PAPER = mkCanvas();
+const ctxOf = c => c.getContext('2d', { willReadFrequently:true });
+
+function settings(){
+  return {
+    pressure: +$('pressure').value / 100,
+    density: +$('density').value,
+    angle: +$('angle').value * Math.PI / 180,
+    wobble: +$('wobble').value / 100,
+    bleed: +$('bleed').value,
+    outline: $('outline').value,
+    outlineColour: $('outlineColour').value,
+    caption: $('caption').checked,
+  };
+}
+
+/* ---------- the drawing ---------- */
+function render(){
+  const grid = state.grid; if (!grid) return;
+  const S = settings();
+  const R = rng(state.seed * 9973 + 11);
+  const paper = PAPERS.find(p => p.key === state.paper);
+  const paperL = lum(paper.rgb);
+  const darkPaper = paperL < 0.4;
+
+  // layout
+  const marginX = 150, top = 130, bottom = S.caption ? 250 : 150;
+  const cs = Math.min((W - 2*marginX) / grid.w, (H - top - bottom) / grid.h, 64);
+  const dw = cs * grid.w, dh = cs * grid.h;
+  const ox = (W - dw) / 2, oy = top + ((H - top - bottom) - dh) / 2;
+  const rot = (R() - 0.5) * 0.035, cx = W/2, cy = oy + dh/2;
+  const cr = Math.cos(rot), sr = Math.sin(rot);
+  const ph = [R()*6.28, R()*6.28, R()*6.28, R()*6.28];
+  const amp = S.wobble * cs * 0.2 + S.wobble * 1.5;
+  const seedJ = state.seed;
+  const P = (i, j) => {
+    const jx = amp * (0.55*Math.sin(i*0.83 + j*0.31 + ph[0]) + 0.35*Math.sin(j*1.37 + ph[1]) + 0.5*(hash2(i, j, seedJ) - 0.5));
+    const jy = amp * (0.55*Math.sin(j*0.79 + i*0.27 + ph[2]) + 0.35*Math.sin(i*1.29 + ph[3]) + 0.5*(hash2(j+71, i+13, seedJ) - 0.5));
+    const x = ox + i*cs + jx - cx, y = oy + j*cs + jy - cy;
+    return [cx + x*cr - y*sr, cy + x*sr + y*cr];
+  };
+  const toGrid = (x, y) => { const dx = x - cx, dy = y - cy; const ux = cx + dx*cr + dy*sr, uy = cy - dx*sr + dy*cr; return [Math.floor((ux - ox)/cs), Math.floor((uy - oy)/cs)]; };
+  const lab = (i, j) => (i < 0 || j < 0 || i >= grid.w || j >= grid.h) ? -1 : grid.idx[j*grid.w + i];
+
+  // ---- paper
+  const pctx = ctxOf(L_PAPER);
+  const pid = pctx.createImageData(W, H), pd = pid.data;
+  const [pr, pg, pb] = paper.rgb;
+  for (let i = 0, p = 0; i < W*H; i++, p += 4){
+    const k = 1 - (darkPaper ? -0.10 : 0.075) * (0.5 - GRAIN[i]) * 2;
+    pd[p] = pr*k; pd[p+1] = pg*k; pd[p+2] = pb*k; pd[p+3] = 255;
+  }
+  pctx.putImageData(pid, 0, 0);
+  // fibres
+  const fr = rng(31);
+  pctx.save(); pctx.lineCap = 'round';
+  for (let n = 0; n < 160; n++){
+    const x = fr()*W, y = fr()*H, a = fr()*Math.PI, l = 6 + fr()*22;
+    pctx.strokeStyle = darkPaper ? 'rgba(255,255,255,0.05)' : 'rgba(80,60,40,0.06)';
+    pctx.lineWidth = 0.6 + fr()*0.6;
+    pctx.beginPath(); pctx.moveTo(x, y); pctx.quadraticCurveTo(x + Math.cos(a)*l*0.5 + (fr()-.5)*6, y + Math.sin(a)*l*0.5 + (fr()-.5)*6, x + Math.cos(a)*l, y + Math.sin(a)*l); pctx.stroke();
+  }
+  pctx.restore();
+  // vignette
+  const vg = pctx.createRadialGradient(W/2, H/2, W*0.35, W/2, H/2, W*0.78);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, darkPaper ? 'rgba(0,0,0,0.25)' : 'rgba(60,45,30,0.10)');
+  pctx.fillStyle = vg; pctx.fillRect(0, 0, W, H);
+
+  // ---- pigment
+  const dctx = ctxOf(L_DARK), lctx = ctxOf(L_LIGHT), tctx = ctxOf(L_TMP);
+  dctx.clearRect(0,0,W,H); lctx.clearRect(0,0,W,H);
+  const spacing = 7.6 - S.density * 0.58;
+
+  grid.labels.forEach((rgb, L) => {
+    // cells for this label, dilated mask, bbox
+    let i0 = 1e9, j0 = 1e9, i1 = -1, j1 = -1;
+    const dil = new Uint8Array((grid.w+2) * (grid.h+2));
+    const path = new Path2D();
+    for (let j = 0; j < grid.h; j++) for (let i = 0; i < grid.w; i++){
+      if (grid.idx[j*grid.w+i] !== L) continue;
+      if (i<i0)i0=i; if (i>i1)i1=i; if (j<j0)j0=j; if (j>j1)j1=j;
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++){ const ii = i+a+1, jj = j+b+1; if (ii>=0 && jj>=0 && ii<grid.w+2 && jj<grid.h+2) dil[jj*(grid.w+2)+ii] = 1; }
+      const a = P(i,j), b = P(i+1,j), c = P(i+1,j+1), e = P(i,j+1);
+      path.moveTo(a[0],a[1]); path.lineTo(b[0],b[1]); path.lineTo(c[0],c[1]); path.lineTo(e[0],e[1]); path.closePath();
+    }
+    if (i1 < 0) return;
+    const inMask = (x, y) => { const [gi, gj] = toGrid(x, y); const ii = gi+1, jj = gj+1; return ii >= 0 && jj >= 0 && ii < grid.w+2 && jj < grid.h+2 && dil[jj*(grid.w+2)+ii] === 1; };
+
+    const l = lum(rgb);
+    const useLight = darkPaper || l > paperL + 0.03;
+    // pencil colour: slightly softened
+    const base = rgb.map(v => v * 0.97 + 128 * 0.03);
+    const passes = 2 + (l < 0.5) + (l < 0.28) + (l < 0.12) + (useLight && darkPaper ? 1 : 0);
+
+    tctx.clearRect(0,0,W,H);
+    tctx.save(); tctx.lineCap = 'round';
+    const a0 = P(i0, j0), a1 = P(i1+1, j1+1);
+    const bx = (a0[0] + a1[0]) / 2, by = (a0[1] + a1[1]) / 2;
+    const Rr = Math.hypot(a1[0]-a0[0], a1[1]-a0[1]) / 2 + cs + 12;
+    for (let pass = 0; pass < passes; pass++){
+      const ang = S.angle + (pass % 2 ? 1 : 0) * (Math.PI * 0.32) * (pass % 4 === 3 ? -1 : 1) + (R() - 0.5) * 0.14;
+      const dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx;
+      const sp = spacing * (1 + pass * 0.12);
+      for (let t = -Rr + R()*sp; t < Rr; t += sp * (0.75 + R()*0.5)){
+        const lx = bx + nx*t, ly = by + ny*t;
+        let u = -Rr + R()*20;
+        while (u < Rr){
+          const len = Math.max(14, Math.min(150, cs * (0.7 + R()*1.8)));
+          const sxp = lx + dx*u, syp = ly + dy*u, exp = lx + dx*(u+len), eyp = ly + dy*(u+len);
+          const mxp = (sxp+exp)/2, myp = (syp+eyp)/2;
+          if (inMask(sxp, syp) || inMask(mxp, myp) || inMask(exp, eyp)){
+            const bend = (R() - 0.5) * len * 0.09;
+            const j = (R() - 0.5) * 14;
+            tctx.strokeStyle = `rgb(${Math.min(255,base[0]+j)|0},${Math.min(255,base[1]+j)|0},${Math.min(255,base[2]+j)|0})`;
+            tctx.globalAlpha = Math.min(1, S.pressure * (0.6 + R()*0.5) + (useLight && darkPaper ? 0.15 : 0));
+            tctx.lineWidth = 1.2 + R()*1.1;
+            tctx.beginPath(); tctx.moveTo(sxp, syp); tctx.quadraticCurveTo(mxp + nx*bend, myp + ny*bend, exp, eyp); tctx.stroke();
+          }
+          u += len + (R() < 0.3 ? R()*7 : -R()*6);
+        }
+      }
+    }
+    tctx.restore();
+    // mask the strokes to the shape, letting them slip past the edge by the bleed amount
+    const mctx = ctxOf(MASK); mctx.clearRect(0,0,W,H);
+    mctx.fillStyle = '#000'; mctx.fill(path);
+    if (S.bleed > 0){ mctx.strokeStyle = '#000'; mctx.lineJoin = 'round'; mctx.lineWidth = S.bleed * 2; mctx.stroke(path); }
+    tctx.save(); tctx.globalCompositeOperation = 'destination-in'; tctx.drawImage(MASK, 0, 0); tctx.restore();
+    const target = useLight ? lctx : dctx;
+    target.save(); target.globalCompositeOperation = useLight ? 'source-over' : 'multiply'; target.drawImage(L_TMP, 0, 0); target.restore();
+  });
+  applyTooth(dctx, S.pressure);
+  applyTooth(lctx, S.pressure);
+
+  // ---- outlines
+  const octx = ctxOf(L_LINE); octx.clearRect(0,0,W,H);
+  const graphite = darkPaper ? [228,228,232] : [50,50,58];
+  const shadeOf = L => L < 0 ? graphite : grid.labels[L].map(v => v * 0.42);
+  const edgeOn = (a, b) => S.outline === 'silhouette' ? ((a < 0) !== (b < 0)) : (a !== b);
+  const pickCol = (a, b) => {
+    if (S.outlineColour === 'graphite') return graphite;
+    if (a < 0) return shadeOf(b); if (b < 0) return shadeOf(a);
+    return lum(grid.labels[a]) < lum(grid.labels[b]) ? shadeOf(a) : shadeOf(b);
+  };
+  const runs = [];
+  const span = (a, b, f) => { const out = []; for (let k = a; k <= b; k++) out.push(f(k)); return out; };
+  if (S.outline !== 'none'){
+    for (let j = 0; j <= grid.h; j++){
+      let start = -1, col = null;
+      for (let i = 0; i <= grid.w; i++){
+        const a = lab(i, j-1), b = lab(i, j);
+        const on = i < grid.w && edgeOn(a, b);
+        const c = on ? pickCol(a, b) : null;
+        if (start >= 0 && (!on || c.join() !== col.join())){ runs.push({ pts: span(start, i, k => P(k, j)), col }); start = -1; }
+        if (on && start < 0){ start = i; col = c; }
+      }
+    }
+    for (let i = 0; i <= grid.w; i++){
+      let start = -1, col = null;
+      for (let j = 0; j <= grid.h; j++){
+        const a = lab(i-1, j), b = lab(i, j);
+        const on = j < grid.h && edgeOn(a, b);
+        const c = on ? pickCol(a, b) : null;
+        if (start >= 0 && (!on || c.join() !== col.join())){ runs.push({ pts: span(start, j, k => P(i, k)), col }); start = -1; }
+        if (on && start < 0){ start = j; col = c; }
+      }
+    }
+  }
+  octx.save(); octx.lineCap = 'round'; octx.lineJoin = 'round';
+  const lw = 1.5 + Math.min(cs, 60) * 0.028;
+  for (const run of runs){
+    const pts = run.pts; let k = 0;
+    while (k < pts.length - 1){
+      const n = Math.min(pts.length - 1 - k, 2 + Math.floor(R() * 4));
+      const seg = pts.slice(k, k + n + 1);
+      for (let pass = 0; pass < 2; pass++) pencilLine(octx, seg, run.col, pass, lw, R);
+      k += n;
+    }
+  }
+  octx.restore();
+
+  if (S.caption){
+    const text = state.isSample ? 'sample chonk' : state.label;
+    const [bl] = [P(0, grid.h)];
+    octx.save();
+    octx.translate(Math.max(60, ox - 8), Math.min(H - 70, oy + dh + 115));
+    octx.rotate(-0.03 + (R() - 0.5) * 0.02);
+    octx.fillStyle = `rgb(${graphite.join(',')})`;
+    octx.globalAlpha = 0.92;
+    octx.font = '88px "Reenie Beanie", "Segoe Print", cursive';
+    octx.fillText(text, 0, 0);
+    const textW = octx.measureText(text).width;   // measured in the big font, so the date never overlaps it
+    octx.font = '56px "Reenie Beanie", "Segoe Print", cursive';
+    const date = new Date().toLocaleDateString('en-GB');
+    const dwid = octx.measureText(date).width;
+    octx.fillText(date, Math.max(textW + 40, dw + 16 - dwid), 0);
+    octx.restore();
+  }
+  applyTooth(octx, Math.min(1, S.pressure + 0.22));
+
+  // ---- composite
+  sctx.globalCompositeOperation = 'source-over'; sctx.drawImage(L_PAPER, 0, 0);
+  sctx.globalCompositeOperation = 'multiply'; sctx.drawImage(L_DARK, 0, 0);
+  sctx.globalCompositeOperation = 'source-over'; sctx.drawImage(L_LIGHT, 0, 0);
+  sctx.globalCompositeOperation = darkPaper ? 'source-over' : 'multiply'; sctx.drawImage(L_LINE, 0, 0);
+  sctx.globalCompositeOperation = 'source-over';
+}
+
+function pencilLine(ctx, seg, col, pass, lw, R){
+  const f = seg[0], l = seg[seg.length - 1];
+  let dx = l[0] - f[0], dy = l[1] - f[1]; const len = Math.hypot(dx, dy) || 1; dx /= len; dy /= len;
+  const nx = -dy, ny = dx;
+  const off = (R() - 0.5) * (pass ? 2.2 : 1.2);
+  const pts = seg.map(p => { const j = (R() - 0.5) * 1.4 + off; return [p[0] + nx*j, p[1] + ny*j]; });
+  const e0 = 2 + R() * 6, e1 = 2 + R() * 6;
+  pts[0] = [pts[0][0] - dx*e0, pts[0][1] - dy*e0];
+  const z = pts.length - 1; pts[z] = [pts[z][0] + dx*e1, pts[z][1] + dy*e1];
+  ctx.strokeStyle = `rgb(${col.map(v => v | 0).join(',')})`;
+  ctx.globalAlpha = pass ? 0.4 + R()*0.15 : 0.75 + R()*0.2;
+  ctx.lineWidth = lw * (pass ? 0.8 : 1) * (0.85 + R()*0.3);
+  ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+  for (let i = 1; i < pts.length - 1; i++){ const mx = (pts[i][0] + pts[i+1][0]) / 2, my = (pts[i][1] + pts[i+1][1]) / 2; ctx.quadraticCurveTo(pts[i][0], pts[i][1], mx, my); }
+  ctx.lineTo(pts[z][0], pts[z][1]);
+  ctx.stroke();
+}
+
+const MASK = mkCanvas();
+
+/* ---------- loading: the same Chonk loader as Chonk ASCII ---------- */
+const statusEl = $('skStatus');
+let message = '';
+function say(text, isErr){ statusEl.textContent = text; statusEl.classList.toggle('err', !!isErr); }
+const loadStatus = $('status');
+const setStatus = (t, err) => { loadStatus.textContent = t; loadStatus.className = 'status' + (err ? ' err' : ''); };
+const fileLabel = f => f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 40) || 'Chonk';
+
+const SAMPLES = {"1": {"b64": "xZJLCsIwFEVvPy95LwiCYweCGyidWhwobsNtOXMPbsZtuIRK/gq2FkQ9lHASCM1pI6qaLcgA6Lqubdvb5Xg97c9z9H2/bJr17rDabDGMeB7UTjgB1Ilpjmw/xuQWE45vJyz+QLYrHvODLhdGHvda5ZnspWe8JX1+gONSVucPLSzyqosGfFKXUlqHQ6vkCloH1xo1BSe7uSpL+8RGxMaiiMPI/xKxufYeQ4SNY+we6qJ2g3ciCj7Q9Q0Gu57JPxKhi/My87vt/+QO"}, "3": {"b64": "zZKxDcIwEEUvuZwdJxYNJRJVlqACRmAB1mAHJmAfajoqKnqgYgAjx46xk0ACAimvON2TE1n/y4JwNCZ5hMnteonmZ5gdtutis5oWO7jvk1O2UEoBgIIl/AhhCcQoOboM/H3Q+GkhSCuqQKF1Zm9vwlbBDPZy5BqszNDD4kQTf5u2R/b2JqhhjF7bB01w2wQvhadl2JTz0mz20ohZY2SbwARdEzEiIFYWRdWwSI3bvSakO5US5PNzPfo2AYKynEgPEzbLGWPO3jTxfxpNhNTfRHDQ74V4PwH4e90GxAM="}, "23": {"b64": "xZGxDsIgEIZP4QpYJp3dXFyZNOni6DMY39TdlzB9Bh2cMRyIV0OTNqbxJ718NLTclzOVsEu0m925bVvnXNM0AHC9nI5utV3Xz8f9BnvvvYcDjM4ihWHY9LHKgbwZf+lE6bik5kL/qsCq61LyIjEdQ/83MYNZxvzuwmfBXLIMaNY/50FexiAtQ91jeiJjZKXTex0+RokVSqQ+hZQgpSCezd8lx1LJ4QiWz+Xj8jWjGhWVyFrrxD1eU6TgNWxgAfkJxlDmP+UF"}, "42": {"b64": "rZIxDsIwDEUNaW2Kw8BF2ChjRxZmBiSOwAmYWDgER+EAHIOBE4CEULcix0kTJBBU4leKXt3UfpFSkOFxPgKAqqqW29l8Xa720+OuPGwmt0e9ODV1XV/OcL9C0zTwPewTibkTJh1A3tyjrX8Y3znpXNQwKHFA9tWwI2x4QcvApBHlwhULkR5qZFqhEUyqeWZyk+VdhB1ZF1FvdVpKEVOMHH+Trl4dAL06AuJAg4jk1QmRfJVQ1TNjRMeYDPwpev2wgDraV9+I/E5deNRDlMUhEQnaD+r/vA+JOnBoHS6JjRfV2vYr2EShG7b81zM8AQ=="}, "123": {"b64": "xZJBDoIwEEUHmIF26MqjsGZn3HMCT6QLN3oOV56AeAOXbDyAJzCYgUJLAjYkJr40k5emi//b6jTJN2R2p2dZlkVRvK77x2XbNA0A1HV9qw7F8d227b06wyq0xZnWYYVR/oiXBi16VtFXdArOIO2BlRr3fItpZBmRATDuJj2djc44p8stiIgkmbIhFSjRTFSpcVch2V1CgCSOZdlCYAtF0TACD+B/numHGaNrzDNEGSBKRKKu0qTFTwm2CMLM3A1mTrN+AHTT6nDgh7GX+AA="}, "404": {"b64": "tZIxTgQxDEUN6zDOn7HQ1pyAYinhFlyCmoYTQA8VVNRbI9FSsAUlHIALII4xKHayyexCgQRfI42f4mTyNJZupnPWeHkW7y72H6+fro7vz48O3pYnnyt9vl3cvB6+P4zjSESnHy9ERICqkgcgAMi1AIUgECkkZcWg1LA9FdZNE7CjJb//Pjs17pDkNPt4dCKnRY6ZOcux1S7HBRS8DmluMkAFOyx47DNUF4iIuy49Dp3HYc/jMPNYvVsycTO7n+TQyqGVQ5FLEKW5NiI3IN/CllzTlTxdLhGHLBcMslzgX8htjGWdne2x3Pxzdh+RfmDmfkgQuR9CCA6tHLVyJP80lNOx/AI="}};
+const SAMPLE_META = {
+  1: "Cap Forward · Top Red · Sash White",
+  3: "Side Spikey Red · Bro Green · Racer Pants",
+  23: "Short Red · Tuxedo White · Wings Light",
+  42: "Long Blonde · Beach City Tank · Wings Midnight",
+  123: "Nouns Glasses · Chef's Coat",
+  404: "Asymmetric Green · Ball Gown · Wings Dark",
+};
+const sampleCache = {};
+async function unpackSample(id) {
+  if (sampleCache[id]) return sampleCache[id];
+  const bin = Uint8Array.from(atob(SAMPLES[id].b64), c => c.charCodeAt(0));
+  const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const b = new Uint8Array(await new Response(ds).arrayBuffer());
+  const mn = [b[0], b[1], b[2]], d = [b[3], b[4], b[5]], np = b[6];
+  const pal = []; for (let i = 0; i < np; i++) pal.push((b[7+i*3] << 16) | (b[8+i*3] << 8) | b[9+i*3]);
+  const g = b.subarray(7 + np * 3), vox = [];
+  for (let i = 0; i < g.length; i++) if (g[i]) {
+    vox.push({ x: (i % d[0]) + mn[0], y: (Math.floor(i / d[0]) % d[1]) + mn[1], z: Math.floor(i / (d[0] * d[1])) + mn[2], color: pal[g[i] - 1] });
+  }
+  return (sampleCache[id] = vox);
+}
+
+function parseZMap(hex) {
+  const t = hex.startsWith("0x") ? hex.slice(2) : hex, m = new Map();
+  for (let i = 0; i + 12 <= t.length; i += 12) {
+    const x = parseInt(t.slice(i, i+2), 16), y = parseInt(t.slice(i+2, i+4), 16), z = parseInt(t.slice(i+4, i+6), 16);
+    m.set(x << 16 | y << 8 | z, { x, y, z, color: parseInt(t.slice(i+6, i+12), 16) });
+  }
+  return [...m.values()];
+}
+
+// A Chonk's voxels seen from the front: the nearest voxel in each column and row, like its pixel art
+function voxelGrid(vox){
+  const front = new Map();
+  for (const v of vox){ const k = v.x * 256 + v.y, f = front.get(k); if (!f || v.z > f.z) front.set(k, v); }
+  let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+  for (const v of front.values()){ if (v.x < x0) x0 = v.x; if (v.x > x1) x1 = v.x; if (v.y < y0) y0 = v.y; if (v.y > y1) y1 = v.y; }
+  const w = x1 - x0 + 1, h = y1 - y0 + 1, idx = new Int16Array(w * h).fill(-1), cols = [], seen = new Map();
+  for (const v of front.values()){
+    let L = seen.get(v.color);
+    if (L === undefined){ L = cols.length; seen.set(v.color, L); cols.push([v.color >> 16 & 255, v.color >> 8 & 255, v.color & 255]); }
+    idx[(v.y - y0) * w + (v.x - x0)] = L;
+  }
+  return { w, h, idx, labels: cols, detected: true };
+}
+function showChonk(vox, meta){
+  lastImg = null; $('removeBgRow').hidden = true;
+  const g = voxelGrid(vox);
+  state.grid = g; state.label = 'Chonk #' + meta.id; state.isSample = false; state.seed = 1;
+  message = `Chonk #${meta.id}${meta.label ? ' · ' + meta.label : ''} · ${g.w}×${g.h} cells, ${g.labels.length} colours`;
+  schedule();
+}
+  const INDEXER = 'https://indexer.chonks.xyz';
+  const offlineMsg = 'Couldn’t reach the Chonks indexer. Check your connection and try again.';
+  function decodeTokenURI(uri) {
+    const i = uri.indexOf(','), head = uri.slice(0, i), body = uri.slice(i + 1);
+    if (head.endsWith(';base64')) return JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(body), c => c.charCodeAt(0))));
+    return JSON.parse(decodeURIComponent(body));
+  }
+  async function fetchChonk(id) {
+    const r = await fetch(`${INDEXER}/chonk/zmap?tokenId=${id}`);
+    if (!r.ok) throw new Error('http ' + r.status);
+    const j = await r.json(), c = j.chonks && j.chonks[0];
+    if (!j.success || !c || !c.z_map) return null;
+    let meta = {}; try { meta = decodeTokenURI(c.token_uri); } catch (e) {}
+    const attrs = meta.attributes || [];
+    const acc = (attrs.find(a => a.trait_type === 'Accessory') || {}).value || null;
+    const label = attrs.filter(a => ['Head', 'Hair', 'Face', 'Top', 'Accessory'].includes(a.trait_type)).map(a => a.value).slice(0, 3).join(' · ');
+    return { vox: parseZMap(c.z_map), id: Number(c.token_id != null ? c.token_id : id), label, accessory: acc };
+  }
+  const markPressed = id => document.querySelectorAll('.tags button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.id === String(id))));
+  async function loadChonk(id) {
+    setStatus(`Fetching Chonk #${id}…`);
+    try {
+      const got = await fetchChonk(id);
+      if (!got) { setStatus(`Chonk #${id} wasn’t found. Check the number.`, true); return; }
+      showChonk(got.vox, got); markPressed(id); setStatus('');
+    } catch (e) { setStatus(offlineMsg, true); }
+  }
+  async function loadSample(id) {
+    showChonk(await unpackSample(id), { id: Number(id), label: SAMPLE_META[id] });
+    markPressed(id); setStatus('');
+  }
+  const tagBtn = (id, onclick) => { const b = document.createElement('button'); b.type = 'button'; b.dataset.id = id; b.textContent = '#' + id; b.onclick = onclick; return b; };
+  for (const id of Object.keys(SAMPLES)) $('samples').append(tagBtn(id, () => loadSample(id)));
+  $('idForm').addEventListener('submit', e => {
+    e.preventDefault(); const v = parseInt($('tokenId').value, 10);
+    if (Number.isFinite(v) && v > 0) (SAMPLES[v] ? loadSample(String(v)) : loadChonk(v)); else setStatus('Enter a Chonk number, like 42.', true);
+  });
+  $('walletForm').addEventListener('submit', async e => {
+    e.preventDefault(); const a = $('wallet').value.trim(), box = $('walletChonks'); box.textContent = '';
+    if (!/^0x[0-9a-fA-F]{40}$/.test(a)) { setStatus('Enter a full wallet address starting with 0x (42 characters).', true); return; }
+    setStatus('Looking up Chonks in that wallet…');
+    try {
+      const r = await fetch(`${INDEXER}/chonk/owner/${a.toLowerCase()}`); const j = await r.json();
+      const ids = (j.success && j.chonks ? j.chonks.map(c => Number(c.id)) : []).sort((x, y) => x - y);
+      if (!ids.length) { setStatus('No Chonks found in that wallet.', true); return; }
+      setStatus(`${ids.length} Chonk${ids.length > 1 ? 's' : ''} in this wallet. Tap one to draw it.`);
+      for (const id of ids.slice(0, 120)) box.append(tagBtn(id, () => loadChonk(id)));
+    } catch (e2) { setStatus(offlineMsg, true); }
+  });
+
+/* ---------- pictures (pasted or dropped images and SVGs) ---------- */
+let lastImg = null;
+function useImage(img, label){
+  try {
+    const g = ingestImage(img);
+    lastImg = img; $('removeBgRow').hidden = false;
+    state.grid = g; state.label = label; state.isSample = false;
+    message = `${label} · ${g.w}×${g.h} cells, ${g.labels.length} colours` + (g.detected ? '' : ' · no pixel grid found, so it was approximated');
+    markPressed(null); schedule();
+  } catch (e){ say(e.message, true); }
+}
+function loadURL(url, label){
+  const img = new Image();
+  img.onload = () => useImage(img, label);
+  img.onerror = () => say("That image couldn't be read. Save it as a PNG and drop the file in instead.", true);
+  img.src = url;
+}
+function loadBlob(blob, label){ if (!blob) return; say('Reading image…'); loadURL(URL.createObjectURL(blob), label); }
+function ingestText(t){
+  t = t.trim();
+  if (/^#?\d+$/.test(t)){ const v = t.replace('#', ''); return SAMPLES[v] ? loadSample(v) : loadChonk(+v); }
+  if (/^data:image/i.test(t)) return loadURL(t, 'Chonk');
+  if (/^(<\?xml|<svg)/i.test(t)) return loadBlob(new Blob([t], { type:'image/svg+xml' }), 'Chonk');
+}
+
+/* ---------- UI wiring ---------- */
+let timer = null;
+function schedule(){
+  clearTimeout(timer);
+  say('Drawing…');
+  timer = setTimeout(() => {
+    requestAnimationFrame(() => {
+      const t0 = performance.now();
+      try { render(); say(message || (state.isSample ? 'Sample figure. Paste a Chonk to draw it.' : state.label)); }
+      catch (e){ say('Something went wrong while drawing: ' + e.message, true); }
+    });
+  }, 140);
+}
+
+const outs = { pressure: v => v, density: v => v, angle: v => v + '°', wobble: v => v, bleed: v => v + ' px' };
+Object.keys(outs).forEach(id => {
+  const el = $(id), out = $(id + 'Out');
+  const upd = () => { out.textContent = outs[id](el.value); };
+  el.addEventListener('input', () => { upd(); schedule(); }); upd();
+});
+['outline','outlineColour','caption'].forEach(id => $(id).addEventListener('change', schedule));
+$('removeBg').addEventListener('change', () => { if (lastImg) useImage(lastImg, state.label); });
+$('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadBlob(f, fileLabel(f)); e.target.value = ''; });
+$('redraw').addEventListener('click', () => { state.seed++; schedule(); });
+
+document.addEventListener('paste', e => {
+  const cd = e.clipboardData; if (!cd) return;
+  const items = [...cd.items];
+  const imgItem = items.find(it => it.kind === 'file' && it.type.startsWith('image/'));
+  if (imgItem){ e.preventDefault(); loadBlob(imgItem.getAsFile(), 'Chonk'); return; }
+  if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+  const text = cd.getData('text/plain');
+  if (text && text.trim()){ e.preventDefault(); ingestText(text); }
+});
+const stage = $('stage');
+let dragDepth = 0;
+document.addEventListener('dragenter', e => { if ([...(e.dataTransfer?.types || [])].includes('Files')){ dragDepth++; stage.classList.add('dragging'); } });
+document.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) stage.classList.remove('dragging'); });
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault(); dragDepth = 0; stage.classList.remove('dragging');
+  const f = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('image/') || /\.svg$/i.test(f.name));
+  if (f) return loadBlob(f, fileLabel(f));
+  const t = e.dataTransfer?.getData('text/plain'); if (t) ingestText(t);
+});
+
+// paper swatches
+const papersEl = $('papers');
+PAPERS.forEach(p => {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'swatch'; b.id = 'paper-' + p.key;
+  b.style.background = `rgb(${p.rgb.join(',')})`;
+  b.setAttribute('aria-label', p.name.split(' — ')[0] + ' paper');
+  b.setAttribute('aria-pressed', String(p.key === state.paper));
+  b.addEventListener('click', () => {
+    state.paper = p.key;
+    papersEl.querySelectorAll('.swatch').forEach(s => s.setAttribute('aria-pressed', String(s === b)));
+    $('paperName').textContent = p.name;
+    schedule();
+  });
+  papersEl.appendChild(b);
+});
+$('paperName').textContent = PAPERS.find(p => p.key === state.paper).name;
+
+// saving
+$('save').addEventListener('click', async () => {
+  const name = (state.isSample ? 'sample-chonk' : state.label.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')) + '-pencil.png';
+  const blob = await new Promise(r => sheet.toBlob(r, 'image/png'));
+  if (!blob){ say('Couldn’t save the drawing. Right-click it and choose "Save image as…".', true); return; }
+  const url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; document.body.append(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  say('Saved ' + name);
+});
+
+// start
+GRAIN = makeGrain();
+const fontReady = document.fonts ? Promise.race([document.fonts.load('88px "Reenie Beanie"'), new Promise(r => setTimeout(r, 2500))]) : Promise.resolve();
+fontReady.then(() => { if (state.grid) schedule(); });
+// start with a ?chonk=42 or #42 link if given, else sample #42
+const startId = (location.search.match(/[?&]chonk=(\d+)/) || location.hash.match(/^#(\d+)$/) || [])[1];
+if (startId && !SAMPLES[startId]) loadChonk(+startId).then(() => { if (!state.grid) loadSample('42'); });
+else loadSample(startId || '42');
+})();
+</script>
+<footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="./">chonkit.xyz</a></footer>
+</body>
+</html>
