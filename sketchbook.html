@@ -145,6 +145,9 @@ body.chonk-mode .text-only{display:none!important}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .filerow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filerow .btn{width:auto}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:12px}
+.seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
+.v3d{display:grid;gap:12px}
 @media (max-width:760px){.main{display:flex;flex-direction:column}.desk,.rail{width:100%}}
 @media (prefers-reduced-motion:reduce){.drop-hint{transition:none}}
 </style>
@@ -185,8 +188,17 @@ body.chonk-mode .text-only{display:none!important}
       <div class="tags" id="walletChonks"></div>
       <div class="tags"><span class="hint">Samples</span><span id="samples" class="tags"></span></div>
       <div class="status" id="status" role="status"></div>
-      <div class="filerow"><label class="btn ghost sm" for="file">Or draw a picture…</label><input type="file" id="file" accept="image/*,.svg" hidden></div>
+      <div class="filerow"><label class="btn ghost sm" for="file">Or load a .glb or picture…</label><input type="file" id="file" accept="image/*,.svg,.glb,.gltf,model/gltf-binary" hidden></div>
       <label class="check" id="removeBgRow" hidden><input type="checkbox" id="removeBg" checked> Remove the picture's background colour</label>
+
+      <h2>View</h2>
+      <div class="seg" id="view" role="group" aria-label="View"><button type="button" data-v="3d" aria-pressed="true">3D</button><button type="button" data-v="front" aria-pressed="false">Front (pixel art)</button></div>
+      <div id="view3d" class="v3d">
+        <label class="f"><span class="lv">Turn <output id="turnOut">-35°</output></span><input type="range" id="turn" min="-180" max="180" value="-35"></label>
+        <label class="f"><span class="lv">Tilt <output id="tiltOut">28°</output></span><input type="range" id="tilt" min="0" max="60" value="28"></label>
+        <label class="check"><input type="checkbox" id="shadow" checked> Shadow on the paper</label>
+      </div>
+      <p class="hint" id="viewNote" hidden>3D needs a Chonk or a .glb file. Pictures are drawn flat.</p>
 
       <h2>Pencils</h2>
       <label class="f"><span class="lv">Pressure <output id="pressureOut">60</output></span><input type="range" id="pressure" min="15" max="100" value="60"></label>
@@ -215,7 +227,7 @@ body.chonk-mode .text-only{display:none!important}
         <button class="btn ghost" id="redraw" type="button">Draw it again</button>
         <button class="btn" id="save" type="button">Save PNG</button>
       </div>
-      <p class="hint">Chonks load from the Chonks indexer, which mirrors each Chonk’s onchain voxel data, and are drawn from the front, like their pixel art. Chonks are CC0.</p>
+      <p class="hint">Chonks load from the Chonks indexer, which mirrors each Chonk’s onchain voxel data. Or get a GLB from <a href="https://ztudio.chonks.xyz" target="_blank" rel="noopener">ztudio.chonks.xyz</a>. Chonks are CC0. Everything runs in your browser; nothing is uploaded.</p>
     </aside>
   </div>
 </div>
@@ -241,7 +253,7 @@ function hash2(i, j, s){ let h = (i * 374761393 + j * 668265263 + s * 2147483647
 
 /* ---------- state ---------- */
 const state = {
-  grid: null, label: 'sample', isSample: true,
+  grid: null, vox: null, view: '3d', label: 'sample', isSample: true,
   seed: 1, paper: 'sketch',
 };
 
@@ -408,11 +420,15 @@ function settings(){
     outline: $('outline').value,
     outlineColour: $('outlineColour').value,
     caption: $('caption').checked,
+    turn: +$('turn').value * Math.PI / 180,
+    tilt: +$('tilt').value * Math.PI / 180,
+    shadow: $('shadow').checked,
   };
 }
 
 /* ---------- the drawing ---------- */
 function render(){
+  if (state.view === '3d' && state.vox) return render3d();
   const grid = state.grid; if (!grid) return;
   const S = settings();
   const R = rng(state.seed * 9973 + 11);
@@ -439,29 +455,7 @@ function render(){
   const toGrid = (x, y) => { const dx = x - cx, dy = y - cy; const ux = cx + dx*cr + dy*sr, uy = cy - dx*sr + dy*cr; return [Math.floor((ux - ox)/cs), Math.floor((uy - oy)/cs)]; };
   const lab = (i, j) => (i < 0 || j < 0 || i >= grid.w || j >= grid.h) ? -1 : grid.idx[j*grid.w + i];
 
-  // ---- paper
-  const pctx = ctxOf(L_PAPER);
-  const pid = pctx.createImageData(W, H), pd = pid.data;
-  const [pr, pg, pb] = paper.rgb;
-  for (let i = 0, p = 0; i < W*H; i++, p += 4){
-    const k = 1 - (darkPaper ? -0.10 : 0.075) * (0.5 - GRAIN[i]) * 2;
-    pd[p] = pr*k; pd[p+1] = pg*k; pd[p+2] = pb*k; pd[p+3] = 255;
-  }
-  pctx.putImageData(pid, 0, 0);
-  // fibres
-  const fr = rng(31);
-  pctx.save(); pctx.lineCap = 'round';
-  for (let n = 0; n < 160; n++){
-    const x = fr()*W, y = fr()*H, a = fr()*Math.PI, l = 6 + fr()*22;
-    pctx.strokeStyle = darkPaper ? 'rgba(255,255,255,0.05)' : 'rgba(80,60,40,0.06)';
-    pctx.lineWidth = 0.6 + fr()*0.6;
-    pctx.beginPath(); pctx.moveTo(x, y); pctx.quadraticCurveTo(x + Math.cos(a)*l*0.5 + (fr()-.5)*6, y + Math.sin(a)*l*0.5 + (fr()-.5)*6, x + Math.cos(a)*l, y + Math.sin(a)*l); pctx.stroke();
-  }
-  pctx.restore();
-  // vignette
-  const vg = pctx.createRadialGradient(W/2, H/2, W*0.35, W/2, H/2, W*0.78);
-  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, darkPaper ? 'rgba(0,0,0,0.25)' : 'rgba(60,45,30,0.10)');
-  pctx.fillStyle = vg; pctx.fillRect(0, 0, W, H);
+  paintPaper(paper, darkPaper);
 
   // ---- pigment
   const dctx = ctxOf(L_DARK), lctx = ctxOf(L_LIGHT), tctx = ctxOf(L_TMP);
@@ -576,31 +570,268 @@ function render(){
   }
   octx.restore();
 
-  if (S.caption){
-    const text = state.isSample ? 'sample chonk' : state.label;
-    const [bl] = [P(0, grid.h)];
-    octx.save();
-    octx.translate(Math.max(60, ox - 8), Math.min(H - 70, oy + dh + 115));
-    octx.rotate(-0.03 + (R() - 0.5) * 0.02);
-    octx.fillStyle = `rgb(${graphite.join(',')})`;
-    octx.globalAlpha = 0.92;
-    octx.font = '88px "Reenie Beanie", "Segoe Print", cursive';
-    octx.fillText(text, 0, 0);
-    const textW = octx.measureText(text).width;   // measured in the big font, so the date never overlaps it
-    octx.font = '56px "Reenie Beanie", "Segoe Print", cursive';
-    const date = new Date().toLocaleDateString('en-GB');
-    const dwid = octx.measureText(date).width;
-    octx.fillText(date, Math.max(textW + 40, dw + 16 - dwid), 0);
-    octx.restore();
-  }
+  if (S.caption) writeCaption(octx, R, graphite, Math.max(60, ox - 8), Math.min(H - 70, oy + dh + 115), dw);
   applyTooth(octx, Math.min(1, S.pressure + 0.22));
 
-  // ---- composite
+  composite(darkPaper);
+}
+function paintPaper(paper, darkPaper){
+  const pctx = ctxOf(L_PAPER);
+  const pid = pctx.createImageData(W, H), pd = pid.data;
+  const [pr, pg, pb] = paper.rgb;
+  for (let i = 0, p = 0; i < W*H; i++, p += 4){
+    const k = 1 - (darkPaper ? -0.10 : 0.075) * (0.5 - GRAIN[i]) * 2;
+    pd[p] = pr*k; pd[p+1] = pg*k; pd[p+2] = pb*k; pd[p+3] = 255;
+  }
+  pctx.putImageData(pid, 0, 0);
+  // fibres
+  const fr = rng(31);
+  pctx.save(); pctx.lineCap = 'round';
+  for (let n = 0; n < 160; n++){
+    const x = fr()*W, y = fr()*H, a = fr()*Math.PI, l = 6 + fr()*22;
+    pctx.strokeStyle = darkPaper ? 'rgba(255,255,255,0.05)' : 'rgba(80,60,40,0.06)';
+    pctx.lineWidth = 0.6 + fr()*0.6;
+    pctx.beginPath(); pctx.moveTo(x, y); pctx.quadraticCurveTo(x + Math.cos(a)*l*0.5 + (fr()-.5)*6, y + Math.sin(a)*l*0.5 + (fr()-.5)*6, x + Math.cos(a)*l, y + Math.sin(a)*l); pctx.stroke();
+  }
+  pctx.restore();
+  // vignette
+  const vg = pctx.createRadialGradient(W/2, H/2, W*0.35, W/2, H/2, W*0.78);
+  vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(1, darkPaper ? 'rgba(0,0,0,0.25)' : 'rgba(60,45,30,0.10)');
+  pctx.fillStyle = vg; pctx.fillRect(0, 0, W, H);
+
+}
+function writeCaption(octx, R, graphite, x, y, dw){
+  const text = state.isSample ? 'sample chonk' : state.label;
+  octx.save();
+  octx.translate(x, y);
+  octx.rotate(-0.03 + (R() - 0.5) * 0.02);
+  octx.fillStyle = `rgb(${graphite.join(',')})`;
+  octx.globalAlpha = 0.92;
+  octx.font = '88px "Reenie Beanie", "Segoe Print", cursive';
+  octx.fillText(text, 0, 0);
+  const textW = octx.measureText(text).width;   // measured in the big font, so the date never overlaps it
+  octx.font = '56px "Reenie Beanie", "Segoe Print", cursive';
+  const date = new Date().toLocaleDateString('en-GB');
+  const dwid = octx.measureText(date).width;
+  octx.fillText(date, Math.max(textW + 40, dw + 16 - dwid), 0);
+  octx.restore();
+}
+function composite(darkPaper){
   sctx.globalCompositeOperation = 'source-over'; sctx.drawImage(L_PAPER, 0, 0);
   sctx.globalCompositeOperation = 'multiply'; sctx.drawImage(L_DARK, 0, 0);
   sctx.globalCompositeOperation = 'source-over'; sctx.drawImage(L_LIGHT, 0, 0);
   sctx.globalCompositeOperation = darkPaper ? 'source-over' : 'multiply'; sctx.drawImage(L_LINE, 0, 0);
   sctx.globalCompositeOperation = 'source-over';
+}
+
+
+/* ---------- the 3D drawing: every visible block face, shaded by which way it faces ----------
+   The Chonk is turned and tilted towards you (no perspective, like an isometric sketch). Faces are
+   sorted back to front and painted into an ID picture, so each colour is hatched only where it shows. */
+const L_ID = mkCanvas(), L_SH = mkCanvas();
+const NORMALS = [[0,1,0],[0,-1,0],[1,0,0],[-1,0,0],[0,0,1],[0,0,-1]];
+// corners of each face, as offsets from the block's min corner (x right, y up, z towards the front)
+const FACE_PTS = [
+  [[0,1,0],[1,1,0],[1,1,1],[0,1,1]], [[0,0,0],[0,0,1],[1,0,1],[1,0,0]],
+  [[1,0,0],[1,0,1],[1,1,1],[1,1,0]], [[0,0,0],[0,1,0],[0,1,1],[0,0,1]],
+  [[0,0,1],[0,1,1],[1,1,1],[1,0,1]], [[0,0,0],[1,0,0],[1,1,0],[0,1,0]],
+];
+function render3d(){
+  const S = settings();
+  const R = rng(state.seed * 9973 + 11);
+  const paper = PAPERS.find(p => p.key === state.paper);
+  const paperL = lum(paper.rgb), darkPaper = paperL < 0.4;
+  const ct = Math.cos(S.turn), st = Math.sin(S.turn), ce = Math.cos(S.tilt), se = Math.sin(S.tilt);
+  // world: X right, Y up, Z towards the front of the Chonk
+  const vox = state.vox, key = (x, y, z) => ((x + 512) * 1024 + (y + 512)) * 1024 + (z + 512);
+  const has = new Set(vox.map(v => key(v.x, -v.y, v.z)));
+  let gx0 = 1e9, gx1 = -1e9, gy0 = 1e9, gz0 = 1e9, gz1 = -1e9;
+  for (const v of vox){ if (v.x < gx0) gx0 = v.x; if (v.x > gx1) gx1 = v.x; if (-v.y < gy0) gy0 = -v.y; if (v.z < gz0) gz0 = v.z; if (v.z > gz1) gz1 = v.z; }
+  const mx = (gx0 + gx1 + 1) / 2, mz = (gz0 + gz1 + 1) / 2;
+  const rotN = n => [n[0]*ct + n[2]*st, n[1], -n[0]*st + n[2]*ct];
+  const proj = (X, Y, Z) => { X -= mx; Z -= mz; const x2 = X*ct + Z*st, z2 = -X*st + Z*ct; return [x2, -(Y*ce - z2*se), Y*se + z2*ce]; };
+  // light from the upper left, in the turned frame
+  const LD = [-0.45, 0.85, 0.5], ll = Math.hypot(...LD); LD.forEach((v, i) => LD[i] = v / ll);
+  const faces = [], labels = [], labelKey = new Map();
+  let bx0 = 1e9, bx1 = -1e9, by0 = 1e9, by1 = -1e9;
+  for (const v of vox){
+    const X = v.x, Y = -v.y, Z = v.z;
+    for (let f = 0; f < 6; f++){
+      const n = NORMALS[f];
+      if (has.has(key(X + n[0], Y + n[1], Z + n[2]))) continue;
+      const rn = rotN(n), view = rn[1]*se + rn[2]*ce;
+      if (view <= 1e-6) continue;
+      const pts = FACE_PTS[f].map(o => proj(X + o[0], Y + o[1], Z + o[2]));
+      for (const q of pts){ if (q[0] < bx0) bx0 = q[0]; if (q[0] > bx1) bx1 = q[0]; if (q[1] < by0) by0 = q[1]; if (q[1] > by1) by1 = q[1]; }
+      // shade: lighter where the face turns to the light, darker where it turns away
+      const lit = Math.max(0, rn[0]*LD[0] + rn[1]*LD[1] + rn[2]*LD[2]), k = 0.58 + 0.5 * lit;
+      const c = v.color, base = [c >> 16 & 255, c >> 8 & 255, c & 255];
+      const rgb = k > 1 ? base.map(u => u + (255 - u) * (k - 1) * 1.6) : base.map(u => u * k);
+      const lk = c + '|' + f;
+      let L = labelKey.get(lk);
+      if (L === undefined){ L = labels.length; labelKey.set(lk, L); labels.push({ rgb: rgb.map(u => Math.max(0, Math.min(255, Math.round(u)))), f, top: f === 0 }); }
+      const corners = FACE_PTS[f].map(o => [X + o[0], Y + o[1], Z + o[2]]);
+      faces.push({ pts, corners, L, depth: pts.reduce((a, q) => a + q[2], 0) / 4 });
+    }
+  }
+  if (!faces.length) return;
+  faces.sort((a, b) => a.depth - b.depth);   // back to front
+
+  // layout: fit the projected Chonk into the page, leaving room for the caption and the shadow
+  const marginX = 150, top = 120, bottom = S.caption ? 270 : 170;
+  const bw = bx1 - bx0, bh = by1 - by0;
+  const cs = Math.min((W - 2*marginX) / bw, (H - top - bottom) / bh, 64);
+  const dw = cs * bw, dh = cs * bh;
+  const ox = (W - dw) / 2 - bx0 * cs, oy = top + ((H - top - bottom) - dh) / 2 - by0 * cs;
+  const rot = (R() - 0.5) * 0.035, cx = W/2, cy = oy + by0*cs + dh/2, cr = Math.cos(rot), sr = Math.sin(rot);
+  const ph = [R()*6.28, R()*6.28, R()*6.28, R()*6.28];
+  const amp = S.wobble * cs * 0.16 + S.wobble * 1.5, seedJ = state.seed;
+  const jitCache = new Map();
+  // the shaky hand: each corner moves a little, the same amount for every face that shares it
+  const P3 = (X, Y, Z) => {
+    const kk = key(X, Y, Z); let r = jitCache.get(kk); if (r) return r;
+    const q = proj(X, Y, Z), i = X * 1.7 + Z * 0.9, j = Y * 1.3 + Z * 0.4;
+    const jx = amp * (0.55*Math.sin(i*0.83 + j*0.31 + ph[0]) + 0.35*Math.sin(j*1.37 + ph[1]) + 0.5*(hash2(X*31+Z, Y, seedJ) - 0.5));
+    const jy = amp * (0.55*Math.sin(j*0.79 + i*0.27 + ph[2]) + 0.35*Math.sin(i*1.29 + ph[3]) + 0.5*(hash2(Y*17+Z, X+13, seedJ) - 0.5));
+    const x = ox + q[0]*cs + jx - cx, y = oy + q[1]*cs + jy - cy;
+    r = [cx + x*cr - y*sr, cy + x*sr + y*cr]; jitCache.set(kk, r); return r;
+  };
+  for (const fc of faces) fc.sp = fc.corners.map(c => P3(c[0], c[1], c[2]));
+
+  // ---- which colour shows where: paint every face, back to front, in its own exact colour
+  const codes = labels.map((_, L) => { const h = Math.floor(hash2(L, 7, 99) * 0xfffff0) + 8; return h; });
+  const codeTo = new Map(codes.map((c, L) => [c, L]));
+  const ictx = ctxOf(L_ID); ictx.clearRect(0, 0, W, H);
+  for (const fc of faces){
+    const c = codes[fc.L]; ictx.fillStyle = `rgb(${c >> 16 & 255},${c >> 8 & 255},${c & 255})`;
+    ictx.beginPath(); fc.sp.forEach((q, i) => i ? ictx.lineTo(q[0], q[1]) : ictx.moveTo(q[0], q[1])); ictx.closePath(); ictx.fill();
+    ictx.strokeStyle = ictx.fillStyle; ictx.lineWidth = 0.8; ictx.stroke();   // close hairline gaps between neighbouring faces
+  }
+  const idd = ictx.getImageData(0, 0, W, H).data, lmap = new Int16Array(W*H).fill(-1);
+  const G = 6, gw = Math.ceil(W / G), gh = Math.ceil(H / G);
+  const occ = labels.map(() => new Uint8Array(gw * gh)), lbb = labels.map(() => [1e9, 1e9, -1, -1]);
+  let anyX0 = 1e9, anyX1 = -1, anyY1 = -1;
+  for (let y = 0, i = 0; y < H; y++) for (let x = 0; x < W; x++, i++){
+    const p = i * 4; if (idd[p+3] < 250) continue;
+    const L = codeTo.get(idd[p] << 16 | idd[p+1] << 8 | idd[p+2]); if (L === undefined) continue;
+    lmap[i] = L; occ[L][((y / G) | 0) * gw + ((x / G) | 0)] = 1;
+    const b = lbb[L]; if (x < b[0]) b[0] = x; if (y < b[1]) b[1] = y; if (x > b[2]) b[2] = x; if (y > b[3]) b[3] = y;
+    if (x < anyX0) anyX0 = x; if (x > anyX1) anyX1 = x; if (y > anyY1) anyY1 = y;
+  }
+  const labelAt = (x, y) => { x |= 0; y |= 0; return x < 0 || y < 0 || x >= W || y >= H ? -1 : lmap[y*W + x]; };
+
+  paintPaper(paper, darkPaper);
+
+  // ---- pigment
+  const dctx = ctxOf(L_DARK), lctx = ctxOf(L_LIGHT), tctx = ctxOf(L_TMP), mctx = ctxOf(MASK);
+  dctx.clearRect(0,0,W,H); lctx.clearRect(0,0,W,H);
+  const spacing = 7.6 - S.density * 0.58;
+  const maskData = mctx.createImageData(W, H), md = maskData.data;
+  const hatch = (rgb, inMask, bb, angle0, passes, alphaBoost, lineScale = 1) => {
+    tctx.clearRect(0,0,W,H); tctx.save(); tctx.lineCap = 'round';
+    const bxm = (bb[0] + bb[2]) / 2, bym = (bb[1] + bb[3]) / 2, Rr = Math.hypot(bb[2]-bb[0], bb[3]-bb[1]) / 2 + 16;
+    const unit = Math.max(10, cs * 0.9);
+    for (let pass = 0; pass < passes; pass++){
+      const ang = angle0 + (pass % 2 ? 1 : 0) * (Math.PI * 0.32) * (pass % 4 === 3 ? -1 : 1) + (R() - 0.5) * 0.14;
+      const dx = Math.cos(ang), dy = Math.sin(ang), nx = -dy, ny = dx, sp = spacing * (1 + pass * 0.12);
+      for (let t = -Rr + R()*sp; t < Rr; t += sp * (0.75 + R()*0.5)){
+        const lx = bxm + nx*t, ly = bym + ny*t;
+        let u = -Rr + R()*20;
+        while (u < Rr){
+          const len = Math.max(14, Math.min(150, unit * (0.7 + R()*1.8)));
+          const sx = lx + dx*u, sy = ly + dy*u, ex = lx + dx*(u+len), ey = ly + dy*(u+len), mxp = (sx+ex)/2, myp = (sy+ey)/2;
+          if (inMask(sx, sy) || inMask(mxp, myp) || inMask(ex, ey)){
+            const bend = (R() - 0.5) * len * 0.09, j = (R() - 0.5) * 14;
+            tctx.strokeStyle = `rgb(${Math.min(255,rgb[0]+j)|0},${Math.min(255,rgb[1]+j)|0},${Math.min(255,rgb[2]+j)|0})`;
+            tctx.globalAlpha = Math.min(1, S.pressure * (0.6 + R()*0.5) + alphaBoost);
+            tctx.lineWidth = (1.2 + R()*1.1) * lineScale;
+            tctx.beginPath(); tctx.moveTo(sx, sy); tctx.quadraticCurveTo(mxp + nx*bend, myp + ny*bend, ex, ey); tctx.stroke();
+          }
+          u += len + (R() < 0.3 ? R()*7 : -R()*6);
+        }
+      }
+    }
+    tctx.restore();
+  };
+  const bleedMask = () => {   // let the strokes slip past the edge by the bleed amount
+    mctx.putImageData(maskData, 0, 0);
+    if (S.bleed > 0){
+      const sh = ctxOf(L_SH); sh.clearRect(0,0,W,H);
+      for (let a = 0; a < 8; a++) sh.drawImage(MASK, Math.cos(a * Math.PI / 4) * S.bleed, Math.sin(a * Math.PI / 4) * S.bleed);
+      sh.drawImage(MASK, 0, 0);
+      return L_SH;
+    }
+    return MASK;
+  };
+
+  // a soft graphite shadow on the paper, off to the right (the light comes from the upper left)
+  if (S.shadow){
+    const fy = gy0, foot = [[gx0, fy, gz0], [gx1 + 1, fy, gz0], [gx1 + 1, fy, gz1 + 1], [gx0, fy, gz1 + 1]].map(c => P3(c[0], c[1], c[2]));
+    let ex0 = 1e9, ex1 = -1e9, ey0 = 1e9, ey1 = -1e9;
+    for (const q of foot){ if (q[0] < ex0) ex0 = q[0]; if (q[0] > ex1) ex1 = q[0]; if (q[1] < ey0) ey0 = q[1]; if (q[1] > ey1) ey1 = q[1]; }
+    const ecx = (ex0 + ex1) / 2 + (ex1 - ex0) * 0.18, ecy = (ey0 + ey1) / 2 + 4;
+    const erx = (ex1 - ex0) * 0.75 + cs, ery = Math.max((ey1 - ey0) * 0.6, cs * 1.6);
+    const inE = (x, y) => ((x - ecx) / erx) ** 2 + ((y - ecy) / ery) ** 2 < 1;
+    hatch(darkPaper ? [10,10,12] : [96,96,104], inE, [ecx - erx, ecy - ery, ecx + erx, ecy + ery], S.angle + 0.5, 2, -0.25, 0.9);
+    // only on the paper, fading towards the rim, and never over the Chonk
+    tctx.save(); tctx.globalCompositeOperation = 'destination-in';
+    const gr = tctx.createRadialGradient(0, 0, 0, 0, 0, 1); gr.addColorStop(0, 'rgba(0,0,0,.8)'); gr.addColorStop(0.7, 'rgba(0,0,0,.45)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    tctx.translate(ecx, ecy); tctx.scale(erx, ery); tctx.fillStyle = gr; tctx.beginPath(); tctx.arc(0, 0, 1, 0, Math.PI * 2); tctx.fill(); tctx.restore();
+    tctx.save(); tctx.globalCompositeOperation = 'destination-out'; tctx.drawImage(L_ID, 0, 0); tctx.restore();
+    dctx.save(); dctx.globalCompositeOperation = 'multiply'; dctx.drawImage(L_TMP, 0, 0); dctx.restore();
+  }
+
+  labels.forEach((lb, L) => {
+    const bb = lbb[L]; if (bb[2] < 0) return;
+    const o = occ[L];
+    const inMask = (x, y) => { const gx = (x / G) | 0, gy = (y / G) | 0;
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++){ const X = gx + a, Y = gy + b; if (X >= 0 && Y >= 0 && X < gw && Y < gh && o[Y*gw + X]) return true; } return false; };
+    const l = lum(lb.rgb), useLight = darkPaper || l > paperL + 0.03;
+    const base = lb.rgb.map(v => v * 0.97 + 128 * 0.03);
+    const passes = 2 + (l < 0.5) + (l < 0.28) + (l < 0.12) + (useLight && darkPaper ? 1 : 0) + (lb.f >= 2 && !lb.top && l < 0.6 ? 1 : 0);
+    // tops, fronts and sides each get their own hatch direction, like an artist following the form
+    const angle0 = S.angle + (lb.f === 0 ? 0.9 : lb.f === 4 || lb.f === 5 ? 0 : -0.75);
+    hatch(base, inMask, bb, angle0, passes, useLight && darkPaper ? 0.15 : 0);
+    md.fill(0);
+    for (let y = bb[1]; y <= bb[3]; y++) for (let x = bb[0]; x <= bb[2]; x++){ const i = y*W + x; if (lmap[i] === L) md[i*4+3] = 255; }
+    const mk = bleedMask();
+    tctx.save(); tctx.globalCompositeOperation = 'destination-in'; tctx.drawImage(mk, 0, 0); tctx.restore();
+    const target = useLight ? lctx : dctx;
+    target.save(); target.globalCompositeOperation = useLight ? 'source-over' : 'multiply'; target.drawImage(L_TMP, 0, 0); target.restore();
+  });
+  applyTooth(dctx, S.pressure);
+  applyTooth(lctx, S.pressure);
+
+  // ---- outlines: a face edge is drawn where what lies just outside it is a different colour (or the paper)
+  const octx = ctxOf(L_LINE); octx.clearRect(0,0,W,H);
+  const graphite = darkPaper ? [228,228,232] : [50,50,58];
+  const shadeOf = L => L < 0 ? graphite : labels[L].rgb.map(v => v * 0.42);
+  const done = new Set(), lw = 1.4 + Math.min(cs, 60) * 0.024;
+  octx.save(); octx.lineCap = 'round'; octx.lineJoin = 'round';
+  if (S.outline !== 'none') for (const fc of faces){
+    const sp = fc.sp, c0 = [(sp[0][0]+sp[1][0]+sp[2][0]+sp[3][0])/4, (sp[0][1]+sp[1][1]+sp[2][1]+sp[3][1])/4];
+    for (let e = 0; e < 4; e++){
+      const a = sp[e], b = sp[(e+1) % 4], ca = fc.corners[e], cb = fc.corners[(e+1) % 4];
+      const ek = [key(ca[0], ca[1], ca[2]), key(cb[0], cb[1], cb[2])].sort().join('_');
+      const m = [(a[0]+b[0])/2, (a[1]+b[1])/2];
+      let nx = -(b[1]-a[1]), ny = b[0]-a[0]; const nl = Math.hypot(nx, ny) || 1; nx /= nl; ny /= nl;
+      if (nx*(m[0]-c0[0]) + ny*(m[1]-c0[1]) < 0){ nx = -nx; ny = -ny; }
+      const lin = labelAt(m[0] - nx*3, m[1] - ny*3), lout = labelAt(m[0] + nx*3, m[1] + ny*3);
+      if (lin !== fc.L) continue;                           // this edge is hidden behind something nearer
+      const on = S.outline === 'silhouette' ? lout < 0 : lout !== fc.L;
+      if (!on) continue;
+      // a crease between two faces of the same colour only gets drawn when they face different ways
+      if (S.outline !== 'silhouette' && lout >= 0 && done.has(ek)) continue;
+      done.add(ek);
+      let col = graphite;
+      if (S.outlineColour !== 'graphite') col = lout < 0 ? shadeOf(fc.L) : (lum(labels[fc.L].rgb) < lum(labels[lout].rgb) ? shadeOf(fc.L) : shadeOf(lout));
+      for (let pass = 0; pass < 2; pass++) pencilLine(octx, [a, m, b], col, pass, lw, R);
+    }
+  }
+  octx.restore();
+  if (S.caption) writeCaption(octx, R, graphite, Math.max(60, anyX0 - 8), Math.min(H - 70, anyY1 + 120), Math.max(200, anyX1 - anyX0));
+  applyTooth(octx, Math.min(1, S.pressure + 0.22));
+  composite(darkPaper);
 }
 
 function pencilLine(ctx, seg, col, pass, lw, R){
@@ -681,8 +912,9 @@ function voxelGrid(vox){
 function showChonk(vox, meta){
   lastImg = null; $('removeBgRow').hidden = true;
   const g = voxelGrid(vox);
-  state.grid = g; state.label = 'Chonk #' + meta.id; state.isSample = false; state.seed = 1;
-  message = `Chonk #${meta.id}${meta.label ? ' · ' + meta.label : ''} · ${g.w}×${g.h} cells, ${g.labels.length} colours`;
+  state.grid = g; state.vox = vox; state.label = meta.name || 'Chonk #' + meta.id; state.isSample = false; state.seed = 1;
+  syncView();
+  message = `${state.label}${meta.label ? ' · ' + meta.label : ''} · ${vox.length.toLocaleString()} blocks, ${g.labels.length} colours`;
   schedule();
 }
   const INDEXER = 'https://indexer.chonks.xyz';
@@ -735,13 +967,103 @@ function showChonk(vox, meta){
     } catch (e2) { setStatus(offlineMsg, true); }
   });
 
+
+/* ---------- .glb files (e.g. a Chonk from the Ztudio): turned into blocks, then drawn ---------- */
+let threeP = null;
+function loadThree(){
+  if (window.THREE && THREE.GLTFLoader) return Promise.resolve();
+  const add = src => new Promise((ok, bad) => { const sc = document.createElement('script'); sc.src = src; sc.onload = ok; sc.onerror = () => bad(new Error('Couldn’t load the 3D reader. Check your connection.')); document.head.append(sc); });
+  return threeP || (threeP = add('https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js')
+    .then(() => add('https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/loaders/GLTFLoader.js')).catch(e => { threeP = null; throw e; }));
+}
+  const texCache = new Map();
+  function texSampler(tex) {
+    if (!tex || !tex.image) return null;
+    let s = texCache.get(tex); if (s) return s;
+    try {
+      const img = tex.image, w = img.width, h = img.height, c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d', { willReadFrequently: true }); x.drawImage(img, 0, 0);
+      const d = x.getImageData(0, 0, w, h).data;
+      s = (u, v) => { u = ((u % 1) + 1) % 1; v = ((v % 1) + 1) % 1; if (tex.flipY) v = 1 - v; const i = ((Math.min(h - 1, (v * h) | 0)) * w + Math.min(w - 1, (u * w) | 0)) * 4; return [d[i], d[i + 1], d[i + 2]]; };
+    } catch (e) { s = null; }
+    texCache.set(tex, s); return s;
+  }
+  const s2l = c => { c /= 255; return c <= 0.04045 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+  const l2s = u => Math.max(0, Math.min(255, Math.round((u <= 0.0031308 ? 12.92 * u : 1.055 * Math.pow(u, 1 / 2.4) - 0.055) * 255)));
+  function voxelizeModel(root) {
+    root.updateMatrixWorld(true);
+    const invRoot = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    const meshes = []; root.traverse(o => { if (o.isMesh && !o.userData.chonkTiles && o.geometry && o.geometry.attributes.position) meshes.push(o); });
+    const pt = (m, i, v) => { v.fromBufferAttribute(m.geometry.attributes.position, i); if (m.isSkinnedMesh && m.boneTransform) m.boneTransform(i, v); return v.applyMatrix4(m.matrixWorld).applyMatrix4(invRoot); };
+    const tris = [], box = new THREE.Box3(); let minEdge = Infinity;
+    for (const m of meshes) {
+      const g = m.geometry, ix = g.index, n = ix ? ix.count : g.attributes.position.count;
+      for (let t = 0; t + 2 < n; t += 3) {
+        const a = ix ? ix.getX(t) : t, b = ix ? ix.getX(t + 1) : t + 1, c = ix ? ix.getX(t + 2) : t + 2;
+        const pa = pt(m, a, new THREE.Vector3()), pb = pt(m, b, new THREE.Vector3()), pc = pt(m, c, new THREE.Vector3());
+        box.expandByPoint(pa); box.expandByPoint(pb); box.expandByPoint(pc);
+        for (const e of [pa.distanceTo(pb), pb.distanceTo(pc), pc.distanceTo(pa)]) if (e > 1e-6 && e < minEdge) minEdge = e;
+        tris.push({ m, a, b, c, pa, pb, pc });
+      }
+    }
+    if (!tris.length) return null;
+    const dims = box.getSize(new THREE.Vector3()), maxDim = Math.max(dims.x, dims.y, dims.z);
+    // voxel-built models (like a Chonk from the Ztudio) keep their own cube size; anything else gets about 40 cubes across
+    let size = Math.max(minEdge * 0.999, maxDim / 40); if (maxDim / size > 64) size = maxDim / 64;
+    const o = box.min, cells = new Map(), v = new THREE.Vector3(), nrm = new THREE.Vector3(), e1 = new THREE.Vector3(), e2 = new THREE.Vector3();
+    for (const T of tris) {
+      const { m, a, b, c, pa, pb, pc } = T, g = m.geometry, mat = Array.isArray(m.material) ? m.material[0] : m.material;
+      const col = g.attributes.color, uv = g.attributes.uv, samp = texSampler(mat && mat.map);
+      const base = mat && mat.color ? [mat.color.r, mat.color.g, mat.color.b] : [1, 1, 1];
+      nrm.crossVectors(e1.subVectors(pb, pa), e2.subVectors(pc, pa)); if (nrm.lengthSq() < 1e-14) continue; nrm.normalize();
+      const steps = Math.min(40, Math.max(1, Math.ceil(Math.max(pa.distanceTo(pb), pb.distanceTo(pc), pc.distanceTo(pa)) / (size * 0.5))));
+      for (let i = 0; i <= steps; i++) for (let j = 0; j <= steps - i; j++) {
+        let w1 = i / steps, w2 = j / steps, w0 = 1 - w1 - w2;
+        w0 = w0 * 0.9 + 0.1 / 3; w1 = w1 * 0.9 + 0.1 / 3; w2 = w2 * 0.9 + 0.1 / 3;   // pull samples off shared edges
+        v.set(0, 0, 0).addScaledVector(pa, w0).addScaledVector(pb, w1).addScaledVector(pc, w2);
+        const surf = v.clone(); v.addScaledVector(nrm, -size * 0.25);   // nudge inside the surface
+        const kx = Math.floor((v.x - o.x) / size + 1e-4), ky = Math.floor((v.y - o.y) / size + 1e-4), kz = Math.floor((v.z - o.z) / size + 1e-4);
+        const key = kx + ',' + ky + ',' + kz;
+        let lc = base.slice();
+        if (col) { const k = [col.getX(a) * w0 + col.getX(b) * w1 + col.getX(c) * w2, col.getY(a) * w0 + col.getY(b) * w1 + col.getY(c) * w2, col.getZ(a) * w0 + col.getZ(b) * w1 + col.getZ(c) * w2]; lc = lc.map((x, q) => x * k[q]); }
+        if (samp && uv) { const t = samp(uv.getX(a) * w0 + uv.getX(b) * w1 + uv.getX(c) * w2, uv.getY(a) * w0 + uv.getY(b) * w1 + uv.getY(c) * w2); lc = lc.map((x, q) => x * s2l(t[q])); }
+        let cell = cells.get(key);
+        if (!cell) {
+          const centre = new THREE.Vector3(o.x + (kx + 0.5) * size, o.y + (ky + 0.5) * size, o.z + (kz + 0.5) * size);
+          cell = { acc: [0, 0, 0, 0], k: [kx, ky, kz], src: { m, a, b, c, w0, w1, w2, off: centre.clone().sub(surf) } };
+          cells.set(key, cell);
+        }
+        cell.acc[0] += lc[0]; cell.acc[1] += lc[1]; cell.acc[2] += lc[2]; cell.acc[3]++;
+      }
+    }
+    const list = [...cells.values()].map(c => ({ k: c.k, src: c.src, color: (l2s(c.acc[0] / c.acc[3]) << 16) | (l2s(c.acc[1] / c.acc[3]) << 8) | l2s(c.acc[2] / c.acc[3]) }));
+    return { size, list };
+  }
+
+
+async function loadGlb(f){
+  setStatus('Reading ' + f.name + '…');
+  try {
+    await loadThree();
+    const buf = await f.arrayBuffer();
+    const gltf = await new Promise((ok, bad) => new THREE.GLTFLoader().parse(buf, '', ok, e => bad(new Error('Couldn’t read that GLB: ' + (e && e.message || 'unknown error')))));
+    gltf.scene.updateMatrixWorld(true);
+    gltf.scene.traverse(o => { if (o.isSkinnedMesh && o.skeleton) o.skeleton.update(); });   // pose skinned models before reading them
+    const V = voxelizeModel(gltf.scene);
+    if (!V || !V.list.length){ setStatus('Couldn’t find any surfaces in that file to draw.', true); return; }
+    const vox = V.list.map(c => ({ x: c.k[0], y: -c.k[1], z: c.k[2], color: c.color }));
+    markPressed(null); setStatus('');
+    showChonk(vox, { name: fileLabel(f) });
+  } catch (e){ setStatus(e.message || 'Couldn’t read that file.', true); }
+}
+const isGlb = f => /\.(glb|gltf)$/i.test(f.name);
 /* ---------- pictures (pasted or dropped images and SVGs) ---------- */
 let lastImg = null;
 function useImage(img, label){
   try {
     const g = ingestImage(img);
     lastImg = img; $('removeBgRow').hidden = false;
-    state.grid = g; state.label = label; state.isSample = false;
+    state.grid = g; state.vox = null; state.label = label; state.isSample = false; syncView();
     message = `${label} · ${g.w}×${g.h} cells, ${g.labels.length} colours` + (g.detected ? '' : ' · no pixel grid found, so it was approximated');
     markPressed(null); schedule();
   } catch (e){ say(e.message, true); }
@@ -774,7 +1096,15 @@ function schedule(){
   }, 140);
 }
 
-const outs = { pressure: v => v, density: v => v, angle: v => v + '°', wobble: v => v, bleed: v => v + ' px' };
+const outs = { pressure: v => v, density: v => v, angle: v => v + '°', wobble: v => v, bleed: v => v + ' px', turn: v => v + '°', tilt: v => v + '°' };
+function syncView(){
+  const can3d = !!state.vox;
+  $('view').querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === state.view)));
+  $('view3d').hidden = state.view !== '3d' || !can3d;
+  $('viewNote').hidden = state.view !== '3d' || can3d;
+}
+$('view').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { state.view = b.dataset.v; syncView(); schedule(); }));
+$('shadow').addEventListener('change', schedule);
 Object.keys(outs).forEach(id => {
   const el = $(id), out = $(id + 'Out');
   const upd = () => { out.textContent = outs[id](el.value); };
@@ -782,7 +1112,7 @@ Object.keys(outs).forEach(id => {
 });
 ['outline','outlineColour','caption'].forEach(id => $(id).addEventListener('change', schedule));
 $('removeBg').addEventListener('change', () => { if (lastImg) useImage(lastImg, state.label); });
-$('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) loadBlob(f, fileLabel(f)); e.target.value = ''; });
+$('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) (isGlb(f) ? loadGlb(f) : loadBlob(f, fileLabel(f))); e.target.value = ''; });
 $('redraw').addEventListener('click', () => { state.seed++; schedule(); });
 
 document.addEventListener('paste', e => {
@@ -801,8 +1131,8 @@ document.addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth
 document.addEventListener('dragover', e => e.preventDefault());
 document.addEventListener('drop', e => {
   e.preventDefault(); dragDepth = 0; stage.classList.remove('dragging');
-  const f = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('image/') || /\.svg$/i.test(f.name));
-  if (f) return loadBlob(f, fileLabel(f));
+  const f = [...(e.dataTransfer?.files || [])].find(f => f.type.startsWith('image/') || /\.(svg|glb|gltf)$/i.test(f.name));
+  if (f) return isGlb(f) ? loadGlb(f) : loadBlob(f, fileLabel(f));
   const t = e.dataTransfer?.getData('text/plain'); if (t) ingestText(t);
 });
 
