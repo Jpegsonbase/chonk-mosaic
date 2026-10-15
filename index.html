@@ -344,7 +344,10 @@
   .wall:fullscreen { border-radius: 0; padding: 0; background: var(--wall); }
   .wall:fullscreen .output { padding: 0; border-radius: 0; height: 100vh; box-shadow: none; }
   .wall:fullscreen .viewport { max-height: none; height: 100vh; aspect-ratio: auto !important; }
-  @media (max-width: 420px) { .chain-pill { display: none; } }
+  @media (max-width: 560px) { .chain-pill { display: none; } }
+  @media (max-width: 900px) { .site-nav .long { display: none; } .site-nav .short { display: inline; } .site-nav a { padding: 6px 9px; font-size: 12.5px; } }
+  @media (max-width: 760px) { .chain-pill { display: none; } }
+  @media (max-width: 460px) { .site-nav a { padding: 6px 5px; font-size: 11.5px; } }
   @media (max-width: 520px) {
     .zoombar button.txt#zoomFull { display: none; }
     .zoombar { right: 8px; bottom: 8px; padding: 2px; }
@@ -762,6 +765,7 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
         <a href="gallery.html">Gallery<span id="galBadge" hidden></span></a>
         <a href="studio.html"><span class="long">Chonkit Studio</span><span class="short">Studio</span></a>
         <a href="ascii.html">ASCII</a>
+        <a href="sketchbook.html">Sketch</a>
       </nav>
       <a class="chain-pill" id="contractLink" target="_blank" rel="noopener">Chonks on Base</a>
       <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode">
