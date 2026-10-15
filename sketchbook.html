@@ -148,6 +148,7 @@ body.chonk-mode .text-only{display:none!important}
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:12px}
 .seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
 .v3d{display:grid;gap:12px}
+.spinbox{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--soft)}
 @media (max-width:760px){.main{display:flex;flex-direction:column}.desk,.rail{width:100%}}
 @media (prefers-reduced-motion:reduce){.drop-hint{transition:none}}
 </style>
@@ -197,6 +198,12 @@ body.chonk-mode .text-only{display:none!important}
         <label class="f"><span class="lv">Turn <output id="turnOut">-35°</output></span><input type="range" id="turn" min="-180" max="180" value="-35"></label>
         <label class="f"><span class="lv">Tilt <output id="tiltOut">28°</output></span><input type="range" id="tilt" min="0" max="60" value="28"></label>
         <label class="check"><input type="checkbox" id="shadow" checked> Shadow on the paper</label>
+        <div class="spinbox">
+          <span class="hint">360° spin, drawn frame by frame like stop motion</span>
+          <div class="seg" id="spinFrames" role="group" aria-label="Frames per turn"><button type="button" data-v="8" aria-pressed="false">8 frames</button><button type="button" data-v="12" aria-pressed="true">12</button><button type="button" data-v="16" aria-pressed="false">16</button><button type="button" data-v="24" aria-pressed="false">24</button></div>
+          <div class="seg" id="spinFps" role="group" aria-label="Speed"><button type="button" data-v="5" aria-pressed="false">Slow</button><button type="button" data-v="8" aria-pressed="true">Normal</button><button type="button" data-v="12" aria-pressed="false">Quick</button></div>
+          <div class="actions"><button class="btn" id="spinPlay" type="button">Play spin</button><button class="btn ghost" id="spinGif" type="button">Save spin GIF</button></div>
+        </div>
       </div>
       <p class="hint" id="viewNote" hidden>3D needs a Chonk or a .glb file. Pictures are drawn flat.</p>
 
@@ -231,6 +238,7 @@ body.chonk-mode .text-only{display:none!important}
     </aside>
   </div>
 </div>
+<script src="vendor/gifenc.js?v=42"></script>
 <script>
 (() => {
 
@@ -420,7 +428,7 @@ function settings(){
     outline: $('outline').value,
     outlineColour: $('outlineColour').value,
     caption: $('caption').checked,
-    turn: +$('turn').value * Math.PI / 180,
+    turn: spin.turn != null ? spin.turn : +$('turn').value * Math.PI / 180,
     tilt: +$('tilt').value * Math.PI / 180,
     shadow: $('shadow').checked,
   };
@@ -677,7 +685,15 @@ function render3d(){
   if (!faces.length) return;
   faces.sort((a, b) => a.depth - b.depth);   // back to front
 
-  // layout: fit the projected Chonk into the page, leaving room for the caption and the shadow
+  // layout: fit the projected Chonk into the page, leaving room for the caption and the shadow.
+  // During a spin the frame is fitted to every angle at once, so the Chonk keeps its size and place.
+  const spinning = spin.turn != null;
+  if (spinning){
+    let rxz = 0, ymin = 1e9, ymax = -1e9;
+    for (const v of vox) for (const dx of [0, 1]) for (const dz of [0, 1]){ const r = Math.hypot(v.x + dx - mx, v.z + dz - mz); if (r > rxz) rxz = r; }
+    for (const v of vox){ if (-v.y < ymin) ymin = -v.y; if (-v.y + 1 > ymax) ymax = -v.y + 1; }
+    bx0 = -rxz; bx1 = rxz; by0 = -(ymax * ce + rxz * se); by1 = -(ymin * ce - rxz * se);
+  }
   const marginX = 150, top = 120, bottom = S.caption ? 270 : 170;
   const bw = bx1 - bx0, bh = by1 - by0;
   const cs = Math.min((W - 2*marginX) / bw, (H - top - bottom) / bh, 64);
@@ -829,7 +845,10 @@ function render3d(){
     }
   }
   octx.restore();
-  if (S.caption) writeCaption(octx, R, graphite, Math.max(60, anyX0 - 8), Math.min(H - 70, anyY1 + 120), Math.max(200, anyX1 - anyX0));
+  if (S.caption){
+    if (spinning) writeCaption(octx, R, graphite, Math.max(60, W / 2 - dw * 0.45), Math.min(H - 70, oy + by1 * cs + 110), Math.max(200, dw * 0.9));
+    else writeCaption(octx, R, graphite, Math.max(60, anyX0 - 8), Math.min(H - 70, anyY1 + 120), Math.max(200, anyX1 - anyX0));
+  }
   applyTooth(octx, Math.min(1, S.pressure + 0.22));
   composite(darkPaper);
 }
@@ -1085,6 +1104,8 @@ function ingestText(t){
 /* ---------- UI wiring ---------- */
 let timer = null;
 function schedule(){
+  if (spin.playing || spin.building) stopSpin();
+  spin.frames = null;   // settings changed: the spin gets drawn again next time
   clearTimeout(timer);
   say('Drawing…');
   timer = setTimeout(() => {
@@ -1114,6 +1135,83 @@ Object.keys(outs).forEach(id => {
 $('removeBg').addEventListener('change', () => { if (lastImg) useImage(lastImg, state.label); });
 $('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) (isGlb(f) ? loadGlb(f) : loadBlob(f, fileLabel(f))); e.target.value = ''; });
 $('redraw').addEventListener('click', () => { state.seed++; schedule(); });
+
+/* ---------- 360° spin, stop-motion style ----------
+   Every frame is drawn from scratch with a fresh hand (new strokes, a slightly different wobble), the sheet
+   shifts a hair between frames as if re-placed under the camera, and it plays at a low frame rate. */
+const spin = { frames: null, turn: null, playing: false, building: false, raf: 0, n: 12, fps: 8, token: 0 };
+const FRAME = 900;
+const wait = () => new Promise(r => setTimeout(r, 0));
+async function buildSpin(){
+  const n = spin.n, token = ++spin.token, base = +$('turn').value * Math.PI / 180, seed0 = state.seed;
+  const frames = [], jr = rng(seed0 * 31 + n);
+  spin.building = true; $('spinPlay').textContent = 'Stop';
+  try {
+    for (let f = 0; f < n; f++){
+      say(`Drawing frame ${f + 1} of ${n}…`);
+      await wait(); if (token !== spin.token) return null;
+      spin.turn = base + f / n * Math.PI * 2; state.seed = seed0 * 1000 + f + 1;
+      try { render3d(); } finally { spin.turn = null; state.seed = seed0; }
+      const c = document.createElement('canvas'); c.width = c.height = FRAME;
+      const x = c.getContext('2d');
+      // hand-placed under the camera: a tiny nudge and twist each frame
+      const dx = (jr() - 0.5) * 6, dy = (jr() - 0.5) * 6, a = (jr() - 0.5) * 0.006, k = FRAME / W * 1.012;
+      x.translate(FRAME / 2 + dx, FRAME / 2 + dy); x.rotate(a); x.scale(k, k); x.drawImage(sheet, -W / 2, -H / 2);
+      frames.push(c);
+    }
+    return frames;
+  } finally { if (token === spin.token) spin.building = false; }
+}
+function playFrames(){
+  let i = 0, last = 0;
+  spin.playing = true; $('spinPlay').textContent = 'Stop';
+  say(`${message} · spinning, ${spin.n} frames`);
+  const step = now => {
+    if (!spin.playing) return;
+    if (now - last >= 1000 / spin.fps){ last = now; sctx.drawImage(spin.frames[i], 0, 0, W, H); i = (i + 1) % spin.frames.length; }
+    spin.raf = requestAnimationFrame(step);
+  };
+  spin.raf = requestAnimationFrame(step);
+}
+function stopSpin(){
+  spin.token++; spin.playing = false; spin.building = false; cancelAnimationFrame(spin.raf);
+  $('spinPlay').textContent = 'Play spin';
+}
+async function ensureFrames(){
+  if (!spin.frames || spin.frames.length !== spin.n){ const fr = await buildSpin(); if (!fr) return false; spin.frames = fr; }
+  return true;
+}
+$('spinPlay').addEventListener('click', async () => {
+  if (spin.playing || spin.building){ stopSpin(); render(); say(message); return; }
+  if (!state.vox) return;
+  if (await ensureFrames()) playFrames();
+});
+$('spinGif').addEventListener('click', async () => {
+  if (!state.vox || spin.building) return;
+  if (!window.gifenc){ say('The GIF maker didn’t load. Reload and try again.', true); return; }
+  const wasPlaying = spin.playing; if (wasPlaying){ spin.playing = false; cancelAnimationFrame(spin.raf); }
+  if (!(await ensureFrames())) return;
+  say('Making the GIF…'); await wait();
+  const { GIFEncoder, quantize, applyPalette } = window.gifenc, G = 600;
+  const c = document.createElement('canvas'); c.width = c.height = G;
+  const x = c.getContext('2d', { willReadFrequently: true }); x.imageSmoothingQuality = 'high';
+  const px = spin.frames.map(fr => { x.drawImage(fr, 0, 0, G, G); return x.getImageData(0, 0, G, G).data; });
+  const step = 4, per = Math.ceil(G * G / step), smp = new Uint8Array(px.length * per * 4);
+  px.forEach((d, k) => { for (let i = 0, o = k * per * 4; i < G * G; i += step, o += 4){ const q = i * 4; smp[o] = d[q]; smp[o+1] = d[q+1]; smp[o+2] = d[q+2]; smp[o+3] = 255; } });
+  const palette = quantize(smp, 256, { format: 'rgb565' }), gif = GIFEncoder(), delay = Math.round(1000 / spin.fps);
+  px.forEach((d, k) => gif.writeFrame(applyPalette(d, palette, 'rgb565'), G, G, k ? { delay } : { palette, delay, repeat: 0 }));
+  gif.finish();
+  const blob = new Blob([gif.bytes()], { type: 'image/gif' }), url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = (state.label || 'chonk').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-pencil-spin.gif';
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 4000);
+  if (wasPlaying) playFrames();
+  say(`Saved the spin GIF · ${(blob.size / 1048576).toFixed(1)} MB`);
+});
+for (const [id, key] of [['spinFrames', 'n'], ['spinFps', 'fps']]) $(id).querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  spin[key] = +b.dataset.v; $(id).querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  if (key === 'n' && (spin.playing || spin.building)){ stopSpin(); render(); say(message); }
+}));
+
 
 document.addEventListener('paste', e => {
   const cd = e.clipboardData; if (!cd) return;
