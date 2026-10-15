@@ -133,9 +133,9 @@ body.chonk-mode .text-only{display:none!important}
 .drop-hint b{font:400 44px "Reenie Beanie",cursive;background:var(--surface);color:var(--ink);padding:6px 22px;border:2px dashed var(--blue);border-radius:8px}
 .sk-status{font:12.5px var(--mono);color:var(--muted);text-align:center;margin-top:14px;min-height:1.5em}
 .sk-status.err{color:#c0392b}
-.rail label.f{display:grid;gap:4px;font-size:13.5px}
-.rail label.f .lv{display:flex;justify-content:space-between;gap:8px}
-.rail label.f output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
+label.f{display:grid;gap:4px;font-size:13.5px}
+label.f .lv{display:flex;justify-content:space-between;gap:8px}
+label.f output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tabular-nums}
 .papers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .swatch{aspect-ratio:1;border-radius:8px;border:2px solid var(--edge,var(--line));cursor:pointer;padding:0}
 .swatch[aria-pressed="true"]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--blue)}
@@ -149,7 +149,8 @@ body.chonk-mode .text-only{display:none!important}
 .seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
 .v3d{display:grid;gap:12px}
 .spinbox{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--soft)}
-@media (max-width:760px){.main{display:flex;flex-direction:column}.desk,.rail{width:100%}}
+@media (max-width:760px){.desk{order:1;width:100%}}
+.rail > label.btn{display:flex;justify-content:center;width:100%}
 @media (prefers-reduced-motion:reduce){.drop-hint{transition:none}}
 </style>
 <link rel="stylesheet" href="chonky.css?v=1">
@@ -171,10 +172,56 @@ body.chonk-mode .text-only{display:none!important}
     <p>Load any Chonk by number or wallet and it gets redrawn by hand, cell by cell, in coloured pencil on real-feeling paper.</p>
   </div>
   <div class="main">
-    <div class="desk" id="stage">
-      <canvas id="sheet" class="sheet" width="1200" height="1200" aria-label="Coloured pencil drawing of the loaded Chonk"></canvas>
-      <div class="drop-hint"><b>drop it on the paper</b></div>
-      <div class="sk-status" id="skStatus" role="status">Loading…</div>
+    <div class="left">
+      <div class="desk" id="stage">
+        <canvas id="sheet" class="sheet" width="1200" height="1200" aria-label="Coloured pencil drawing of the loaded Chonk"></canvas>
+        <div class="drop-hint"><b>drop it on the paper</b></div>
+        <div class="sk-status" id="skStatus" role="status">Loading…</div>
+      </div>
+
+      <section class="look" aria-label="Drawing settings">
+        <div class="col">
+          <h2>View</h2>
+          <div class="seg" id="view" role="group" aria-label="View"><button type="button" data-v="3d" aria-pressed="true">3D</button><button type="button" data-v="front" aria-pressed="false">Front (pixel art)</button></div>
+          <div id="view3d" class="v3d">
+            <label class="f"><span class="lv">Turn <output id="turnOut">-35°</output></span><input type="range" id="turn" min="-180" max="180" value="-35"></label>
+            <label class="f"><span class="lv">Tilt <output id="tiltOut">28°</output></span><input type="range" id="tilt" min="0" max="60" value="28"></label>
+            <label class="check"><input type="checkbox" id="shadow" checked> Shadow on the paper</label>
+            <div class="spinbox">
+              <span class="hint">360° spin, drawn frame by frame like stop motion</span>
+              <div class="seg" id="spinFrames" role="group" aria-label="Frames per turn"><button type="button" data-v="8" aria-pressed="false">8</button><button type="button" data-v="12" aria-pressed="true">12</button><button type="button" data-v="16" aria-pressed="false">16</button><button type="button" data-v="24" aria-pressed="false">24</button></div>
+              <div class="seg" id="spinFps" role="group" aria-label="Speed"><button type="button" data-v="5" aria-pressed="false">Slow</button><button type="button" data-v="8" aria-pressed="true">Normal</button><button type="button" data-v="12" aria-pressed="false">Quick</button></div>
+              <button class="btn" id="spinPlay" type="button">Play spin</button>
+            </div>
+          </div>
+          <p class="hint" id="viewNote" hidden>3D needs a Chonk or a .glb file. Pictures are drawn flat.</p>
+        </div>
+        <div class="col">
+          <h2>Pencils</h2>
+          <label class="f"><span class="lv">Pressure <output id="pressureOut">60</output></span><input type="range" id="pressure" min="15" max="100" value="60"></label>
+          <label class="f"><span class="lv">Stroke density <output id="densityOut">6</output></span><input type="range" id="density" min="1" max="10" value="6"></label>
+          <label class="f"><span class="lv">Hatch angle <output id="angleOut">35°</output></span><input type="range" id="angle" min="-80" max="80" value="35"></label>
+          <label class="f"><span class="lv">Shaky hand <output id="wobbleOut">45</output></span><input type="range" id="wobble" min="0" max="100" value="45"></label>
+          <label class="f"><span class="lv">Colouring outside the lines <output id="bleedOut">2 px</output></span><input type="range" id="bleed" min="0" max="10" value="2"></label>
+        </div>
+        <div class="col">
+          <h2>Lines &amp; paper</h2>
+          <label class="f">Outline
+            <select id="outline">
+              <option value="silhouette">Around the silhouette</option>
+              <option value="all">Every colour edge</option>
+              <option value="none">No outline</option>
+            </select></label>
+          <label class="f">Outline pencil
+            <select id="outlineColour">
+              <option value="graphite">Graphite</option>
+              <option value="shade">Darker shade of each colour</option>
+            </select></label>
+          <div class="papers" id="papers"></div>
+          <p class="paper-name" id="paperName"></p>
+          <label class="check"><input type="checkbox" id="caption" checked> Write the Chonk number on the page</label>
+        </div>
+      </section>
     </div>
     <aside class="rail">
       <h2>Load a Chonk</h2>
@@ -189,51 +236,13 @@ body.chonk-mode .text-only{display:none!important}
       <div class="tags" id="walletChonks"></div>
       <div class="tags"><span class="hint">Samples</span><span id="samples" class="tags"></span></div>
       <div class="status" id="status" role="status"></div>
-      <div class="filerow"><label class="btn ghost sm" for="file">Or load a .glb or picture…</label><input type="file" id="file" accept="image/*,.svg,.glb,.gltf,model/gltf-binary" hidden></div>
+      <label class="btn ghost" for="file">Load a .glb or picture</label><input type="file" id="file" accept="image/*,.svg,.glb,.gltf,model/gltf-binary" hidden>
       <label class="check" id="removeBgRow" hidden><input type="checkbox" id="removeBg" checked> Remove the picture's background colour</label>
 
-      <h2>View</h2>
-      <div class="seg" id="view" role="group" aria-label="View"><button type="button" data-v="3d" aria-pressed="true">3D</button><button type="button" data-v="front" aria-pressed="false">Front (pixel art)</button></div>
-      <div id="view3d" class="v3d">
-        <label class="f"><span class="lv">Turn <output id="turnOut">-35°</output></span><input type="range" id="turn" min="-180" max="180" value="-35"></label>
-        <label class="f"><span class="lv">Tilt <output id="tiltOut">28°</output></span><input type="range" id="tilt" min="0" max="60" value="28"></label>
-        <label class="check"><input type="checkbox" id="shadow" checked> Shadow on the paper</label>
-        <div class="spinbox">
-          <span class="hint">360° spin, drawn frame by frame like stop motion</span>
-          <div class="seg" id="spinFrames" role="group" aria-label="Frames per turn"><button type="button" data-v="8" aria-pressed="false">8 frames</button><button type="button" data-v="12" aria-pressed="true">12</button><button type="button" data-v="16" aria-pressed="false">16</button><button type="button" data-v="24" aria-pressed="false">24</button></div>
-          <div class="seg" id="spinFps" role="group" aria-label="Speed"><button type="button" data-v="5" aria-pressed="false">Slow</button><button type="button" data-v="8" aria-pressed="true">Normal</button><button type="button" data-v="12" aria-pressed="false">Quick</button></div>
-          <div class="actions"><button class="btn" id="spinPlay" type="button">Play spin</button><button class="btn ghost" id="spinGif" type="button">Save spin GIF</button></div>
-        </div>
-      </div>
-      <p class="hint" id="viewNote" hidden>3D needs a Chonk or a .glb file. Pictures are drawn flat.</p>
-
-      <h2>Pencils</h2>
-      <label class="f"><span class="lv">Pressure <output id="pressureOut">60</output></span><input type="range" id="pressure" min="15" max="100" value="60"></label>
-      <label class="f"><span class="lv">Stroke density <output id="densityOut">6</output></span><input type="range" id="density" min="1" max="10" value="6"></label>
-      <label class="f"><span class="lv">Hatch angle <output id="angleOut">35°</output></span><input type="range" id="angle" min="-80" max="80" value="35"></label>
-      <label class="f"><span class="lv">Shaky hand <output id="wobbleOut">45</output></span><input type="range" id="wobble" min="0" max="100" value="45"></label>
-      <label class="f"><span class="lv">Colouring outside the lines <output id="bleedOut">2 px</output></span><input type="range" id="bleed" min="0" max="10" value="2"></label>
-      <label class="f">Outline
-        <select id="outline">
-          <option value="silhouette">Around the silhouette</option>
-          <option value="all">Every colour edge</option>
-          <option value="none">No outline</option>
-        </select></label>
-      <label class="f">Outline pencil
-        <select id="outlineColour">
-          <option value="graphite">Graphite</option>
-          <option value="shade">Darker shade of each colour</option>
-        </select></label>
-
-      <h2>Paper</h2>
-      <div class="papers" id="papers"></div>
-      <p class="paper-name" id="paperName"></p>
-      <label class="check"><input type="checkbox" id="caption" checked> Write the Chonk number on the page</label>
-
-      <div class="actions">
-        <button class="btn ghost" id="redraw" type="button">Draw it again</button>
-        <button class="btn" id="save" type="button">Save PNG</button>
-      </div>
+      <h2>Export</h2>
+      <button class="btn" id="save" type="button">Save PNG</button>
+      <button class="btn ghost" id="spinGif" type="button">Save spin GIF</button>
+      <button class="btn ghost" id="redraw" type="button">Draw it again</button>
       <p class="hint">Chonks load from the Chonks indexer, which mirrors each Chonk’s onchain voxel data. Or get a GLB from <a href="https://ztudio.chonks.xyz" target="_blank" rel="noopener">ztudio.chonks.xyz</a>. Chonks are CC0. Everything runs in your browser; nothing is uploaded.</p>
     </aside>
   </div>
