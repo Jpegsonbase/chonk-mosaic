@@ -148,6 +148,9 @@ label.f output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tab
 .seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:12px}
 .seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
 .v3d{display:grid;gap:12px}
+.captionOpts{display:grid;gap:10px;padding-left:24px}
+.captionOpts input[type=text]{width:100%;font:inherit;font-size:14px;padding:8px 10px;border-radius:10px;border:2px solid var(--line);background:var(--soft);color:var(--ink)}
+.captionOpts input[type=text]:focus{border-color:var(--edge,var(--blue));outline:none}
 .spinbox{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--soft)}
 /* three columns on wide screens: settings | drawing | load, paper and export. The drawing stays in view. */
 .wrap.sk-wide{max-width:1600px}
@@ -237,7 +240,12 @@ label.f output{font:12px var(--mono);color:var(--muted);font-variant-numeric:tab
         </select></label>
       <div class="papers" id="papers"></div>
       <p class="paper-name" id="paperName"></p>
-      <label class="check"><input type="checkbox" id="caption" checked> Write the Chonk number on the page</label>
+      <label class="check"><input type="checkbox" id="caption" checked> Write a title on the page</label>
+      <div class="captionOpts" id="captionOpts">
+        <label class="f">Title
+          <input type="text" id="titleText" maxlength="40" placeholder="Chonk #42" spellcheck="false" autocomplete="off"></label>
+        <label class="check"><input type="checkbox" id="dateOn" checked> Add today’s date</label>
+      </div>
 
       <h2>Export</h2>
       <button class="btn" id="save" type="button">Save PNG</button>
@@ -618,7 +626,7 @@ function paintPaper(paper, darkPaper){
 
 }
 function writeCaption(octx, R, graphite, x, y, dw){
-  const text = state.isSample ? 'sample chonk' : state.label;
+  const text = ($('titleText').value.trim() || (state.isSample ? 'sample chonk' : state.label)).slice(0, 40);
   octx.save();
   octx.translate(x, y);
   octx.rotate(-0.03 + (R() - 0.5) * 0.02);
@@ -627,10 +635,12 @@ function writeCaption(octx, R, graphite, x, y, dw){
   octx.font = '88px "Reenie Beanie", "Segoe Print", cursive';
   octx.fillText(text, 0, 0);
   const textW = octx.measureText(text).width;   // measured in the big font, so the date never overlaps it
-  octx.font = '56px "Reenie Beanie", "Segoe Print", cursive';
-  const date = new Date().toLocaleDateString('en-GB');
-  const dwid = octx.measureText(date).width;
-  octx.fillText(date, Math.max(textW + 40, dw + 16 - dwid), 0);
+  if ($('dateOn').checked){
+    octx.font = '56px "Reenie Beanie", "Segoe Print", cursive';
+    const date = new Date().toLocaleDateString('en-GB');
+    const dwid = octx.measureText(date).width;
+    octx.fillText(date, Math.max(textW + 40, dw + 16 - dwid), 0);
+  }
   octx.restore();
 }
 function composite(darkPaper){
@@ -941,6 +951,7 @@ function showChonk(vox, meta){
   lastImg = null; $('removeBgRow').hidden = true;
   const g = voxelGrid(vox);
   state.grid = g; state.vox = vox; state.label = meta.name || 'Chonk #' + meta.id; state.isSample = false; state.seed = 1;
+  $('titleText').placeholder = state.label;
   syncView();
   message = `${state.label}${meta.label ? ' · ' + meta.label : ''} · ${vox.length.toLocaleString()} blocks, ${g.labels.length} colours`;
   schedule();
@@ -1140,7 +1151,10 @@ Object.keys(outs).forEach(id => {
   const upd = () => { out.textContent = outs[id](el.value); };
   el.addEventListener('input', () => { upd(); schedule(); }); upd();
 });
-['outline','outlineColour','caption'].forEach(id => $(id).addEventListener('change', schedule));
+['outline','outlineColour','caption','dateOn'].forEach(id => $(id).addEventListener('change', schedule));
+$('titleText').addEventListener('input', schedule);
+const syncCaption = () => { $('captionOpts').hidden = !$('caption').checked; };
+$('caption').addEventListener('change', syncCaption); syncCaption();
 $('removeBg').addEventListener('change', () => { if (lastImg) useImage(lastImg, state.label); });
 $('file').addEventListener('change', e => { const f = e.target.files[0]; if (f) (isGlb(f) ? loadGlb(f) : loadBlob(f, fileLabel(f))); e.target.value = ''; });
 $('redraw').addEventListener('click', () => { state.seed++; schedule(); });
