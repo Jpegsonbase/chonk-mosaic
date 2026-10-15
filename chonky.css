@@ -13,6 +13,7 @@
 :root[data-theme="dark"] { --paper: #0D1024; --edge: #3A427A; --pop: #262C58; --frame: #05060F; }
 
 /* header */
+@media (max-width: 400px) { .site-nav a { padding: 6px 5px; font-size: 11.5px; } }
 .site-nav { border: 2px solid var(--edge); box-shadow: 3px 3px 0 var(--pop); }
 .site-nav a[aria-current="page"] { background: var(--yellow); color: #12142B; }
 .logo { font-size: 24px; }
