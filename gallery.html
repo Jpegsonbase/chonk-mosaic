@@ -1609,7 +1609,7 @@ function buildChonkStatue(k, x, z, item) {
     if (a < x0) x0 = a; if (a > x1) x1 = a; if (b < y0) y0 = b; if (b > y1) y1 = b; if (c < z0) z0 = c; if (c > z1) z1 = c; }
   const s = Math.min(HEIGHT / (y1 - y0 + 1), (COL_W - 0.05) / Math.max(1, z1 - z0 + 1) * 2.2);
   const g = new THREE.Group(); g.position.set(x, COL_H, z);
-  g.rotation.y = x > 0 ? -Math.PI / 2 : Math.PI / 2;      // square to the room, facing its middle (like the laptop opposite)
+  g.rotation.y = 0;                                        // turned to face the hologram on the stand in front of it (10, 4)
   k.g.add(g);
   const tex = new THREE.Texture(item.statueImg); tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.LinearFilter; tex.generateMipmaps = false; tex.needsUpdate = true;
   const m = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
