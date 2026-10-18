@@ -4,6 +4,12 @@
     "poster": "videos/gm-rainy-street-61137.jpg",
     "title": "GM, Rainy Street",
     "chonk": 61137,
-    "width": 1080, "height": 1080, "fps": 30, "frames": 300
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "frames": 300,
+    "gif": "videos/gm-rainy-street-61137.gif",
+    "gifBytes": 14622216,
+    "mp4Bytes": 6085831
   }
 ]

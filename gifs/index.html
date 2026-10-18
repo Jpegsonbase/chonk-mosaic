@@ -14,8 +14,7 @@
 <link rel="apple-touch-icon" href="../apple-touch-icon.png">
 <link rel="manifest" href="../site.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="preload" href="../fonts/sangyo.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preconnect" href="https://fonts<link rel="preload" href="../fonts/sangyo.woff2" as="font" type="font/woff2" crossorigin>
 <style>@font-face { font-family: "Sangyo"; src: url("../fonts/sangyo.woff2") format("woff2"); font-weight: 400 900; font-display: swap; } html { font-synthesis-weight: none; }.logo .logo-mark{display:block;flex:none;width:33px;height:21px}
 .logo .logo-mark.hat{display:none;width:30px;height:33px}
 </style>
@@ -116,8 +115,6 @@ footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px
 /* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
 @media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
 button,a,label,input,select{touch-action:manipulation}
-.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:12px}
-.seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
 /* Chonks mode: a 3D view made of real Chonks instead of text */
 .chonk-only{display:none}
 body.chonk-mode .chonk-only{display:block}
@@ -133,21 +130,8 @@ body.chonk-mode .text-only{display:none!important}
 .card h2{margin:0;font:400 22px/1.1 var(--display)}
 .card .meta{margin:-6px 0 0;color:var(--muted);font-size:13px}
 .card .btn{width:100%;text-align:center;text-decoration:none;display:inline-flex;justify-content:center;align-items:center}
-.gifbox{display:grid;gap:8px;padding:12px;border-radius:14px;background:var(--soft)}
-.gifbox .lbl{font-size:12.5px;color:var(--muted)}
-.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:3px;padding:3px;border-radius:12px}
-.seg button{font:700 12.5px var(--body);padding:7px 4px;border-radius:9px;border:0;background:transparent;color:var(--fg);cursor:pointer}
-.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:var(--blue);transition:width .15s}
-.gstat{font-size:12.5px;color:var(--muted);min-height:1.3em}
-.gstat.err{color:#e5484d}
-.result{display:grid;gap:8px}
-.result img{width:100%;border-radius:10px;border:1px solid var(--line)}
-.drop{border:2px dashed var(--line);border-radius:22px;padding:22px;display:grid;gap:10px;justify-items:center;text-align:center;color:var(--muted)}
-.drop.on{border-color:var(--blue);background:var(--soft)}
-.drop b{color:var(--ink);font:400 20px var(--display)}
-.drop .btn{width:auto}
-.own{margin-top:8px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.card .meta.sizes{margin:-4px 0 0;font-size:12.5px}
 footer.foot{margin-top:8px}
 </style>
 <link rel="stylesheet" href="../chonky.css?v=2">
@@ -166,132 +150,42 @@ footer.foot{margin-top:8px}
 <div class="wrap">
   <div class="intro">
     <h1>Chonk <span>GIFs</span></h1>
-    <p>Chonk animations made in Blender. Download the original MP4, or make a GIF at the size and smoothness you want. GIFs are made right here in your browser.</p>
+    <p>Chonk animations made in Blender. Download the original MP4 at full quality, or a GIF sized to post (under 15 MB).</p>
   </div>
   <div class="grid" id="grid"><p class="hint">Loading…</p></div>
 
-  <section class="own">
-    <label class="drop" id="drop" for="ownFile">
-      <b>Make a GIF from your own MP4</b>
-      <span>Drop a video here or choose one. It stays on your device; nothing is uploaded.</span>
-      <span class="btn ghost">Choose an MP4</span>
-      <input type="file" id="ownFile" accept="video/mp4,video/webm,video/quicktime,video/*" hidden>
-    </label>
-    <div class="grid" id="ownGrid" style="margin-top:20px"></div>
-  </section>
 </div>
 <footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="../">chonkit.xyz</a></footer>
 
-<script src="../vendor/gifenc.js?v=42"></script>
 <script>
 (() => {
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
   const slug = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-  const mb = (b) => b >= 1048576 ? (b / 1048576).toFixed(1) + " MB" : Math.round(b / 1024) + " KB";
-  const pause = () => new Promise((r) => setTimeout(r, 0));
-  const once = (el, ev) => new Promise((res, rej) => { const ok = () => { off(); res(); }, bad = () => { off(); rej(new Error("The video couldn't be read.")); };
-    const off = () => { el.removeEventListener(ev, ok); el.removeEventListener("error", bad); }; el.addEventListener(ev, ok); el.addEventListener("error", bad); });
+  const mb = (b) => b >= 1e6 ? (b / 1e6).toFixed(1) + " MB" : Math.round(b / 1e3) + " KB";
 
   // Videos only play while they're on screen
   const io = "IntersectionObserver" in window ? new IntersectionObserver((es) => es.forEach((e) => { const v = e.target; if (e.isIntersecting) v.play().catch(() => {}); else v.pause(); }), { threshold: 0.25 }) : null;
 
-  /* ---------- the GIF maker: steps through the video frame by frame ----------
-     One shared 256-colour palette, picked from frames across the whole clip so colours don't flicker,
-     plus a light ordered dither so gradients (sky, lights, rain) don't band. */
-  const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v / 16 - 0.47) * 14);
-  async function makeGif(src, { size, fps }, onProgress, cancelled) {
-    if (!window.gifenc) throw new Error("The GIF maker didn't load. Reload the page and try again.");
-    const { GIFEncoder, quantize, applyPalette } = window.gifenc;
-    const v = document.createElement("video");
-    v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = src;
-    await once(v, "loadeddata");
-    const vw = v.videoWidth, vh = v.videoHeight, dur = v.duration;
-    if (!vw || !isFinite(dur)) throw new Error("The video couldn't be read.");
-    const W = Math.min(size, vw) & ~1, H = Math.max(2, Math.round(W * vh / vw) & ~1);
-    const n = Math.max(1, Math.round(dur * fps));
-    const c = document.createElement("canvas"); c.width = W; c.height = H;
-    const x = c.getContext("2d", { willReadFrequently: true }); x.imageSmoothingQuality = "high";
-    const grab = async (i) => {
-      const t = Math.min(dur - 0.001, (i + 0.5) / fps);
-      if (Math.abs(v.currentTime - t) > 1e-4) { v.currentTime = t; await once(v, "seeked"); }
-      x.drawImage(v, 0, 0, W, H);
-      return x.getImageData(0, 0, W, H).data;
-    };
-    // palette from 12 frames spread through the clip
-    const S = Math.min(12, n), step = Math.max(1, Math.floor(W * H / 60000)), per = Math.ceil(W * H / step), smp = new Uint8Array(S * per * 4);
-    for (let k = 0; k < S; k++) {
-      const d = await grab(Math.floor(k * n / S));
-      for (let i = 0, o = k * per * 4; i < W * H; i += step, o += 4) { const q = i * 4; smp[o] = d[q]; smp[o + 1] = d[q + 1]; smp[o + 2] = d[q + 2]; smp[o + 3] = 255; }
-      onProgress(0.08 * (k + 1) / S, "Choosing colours…"); await pause(); if (cancelled()) return null;
-    }
-    const palette = quantize(smp, 256, { format: "rgb565" });
-    const gif = GIFEncoder();
-    let shown = 0;
-    for (let f = 0; f < n; f++) {
-      const d = await grab(f);
-      for (let y = 0, p = 0; y < H; y++) { const row = (y & 3) << 2;
-        for (let xx = 0; xx < W; xx++, p += 4) { const b = BAYER[row | (xx & 3)];
-          d[p] = Math.max(0, Math.min(255, d[p] + b)); d[p + 1] = Math.max(0, Math.min(255, d[p + 1] + b)); d[p + 2] = Math.max(0, Math.min(255, d[p + 2] + b)); } }
-      const idx = applyPalette(d, palette, "rgb565");
-      // GIF delays are in hundredths of a second: spread them so the loop keeps the video's real length
-      const delay = (Math.round((f + 1) * 100 / fps) - Math.round(f * 100 / fps)) * 10;
-      gif.writeFrame(idx, W, H, f ? { delay } : { palette, delay, repeat: 0 });
-      onProgress(0.08 + 0.92 * (f + 1) / n, `Frame ${f + 1} of ${n}`);
-      if (performance.now() - shown > 60) { shown = performance.now(); await pause(); }
-      if (cancelled()) return null;
-    }
-    gif.finish();
-    v.removeAttribute("src"); v.load();
-    return { blob: new Blob([gif.bytes()], { type: "image/gif" }), W, H, n };
-  }
-
   /* ---------- a card per video ---------- */
-  function card(item, own = false) {
+  function card(item) {
     const el = document.createElement("article");
     el.className = "card";
     el.style.setProperty("--ar", `${item.width || 1} / ${item.height || 1}`);
     const name = item.title + (item.chonk ? ` · Chonk #${item.chonk}` : "");
+    const base = slug(item.title) + (item.chonk ? "-chonk-" + item.chonk : "");
     const secs = item.frames && item.fps ? (item.frames / item.fps) : null;
     el.innerHTML = `
-      <video muted loop playsinline preload="${own ? "auto" : "none"}" ${item.poster ? `poster="${esc(item.poster)}"` : ""} src="${esc(item.file)}" aria-label="${esc(name)}"></video>
+      <video muted loop playsinline preload="none" ${item.poster ? `poster="${esc(item.poster)}"` : ""} src="${esc(item.file)}" aria-label="${esc(name)}"></video>
       <div class="body">
         <h2>${esc(item.title)}</h2>
         <p class="meta">${item.chonk ? `Chonk #${item.chonk} · ` : ""}${item.width ? `${item.width}×${item.height}` : ""}${secs ? ` · ${secs.toFixed(secs % 1 ? 1 : 0)} s` : ""}${item.fps ? ` · ${item.fps} fps` : ""}</p>
-        ${own ? "" : `<a class="btn" href="${esc(item.file)}" download="${esc(slug(item.title) + (item.chonk ? "-chonk-" + item.chonk : ""))}.mp4">Download MP4</a>`}
-        <div class="gifbox">
-          <span class="lbl">GIF size</span>
-          <div class="seg" data-k="size"><button type="button" data-v="480" aria-pressed="false">Small</button><button type="button" data-v="720" aria-pressed="true">Medium</button><button type="button" data-v="1080" aria-pressed="false">Large</button></div>
-          <span class="lbl">Smoothness</span>
-          <div class="seg" data-k="fps"><button type="button" data-v="15" aria-pressed="true">15 fps</button><button type="button" data-v="30" aria-pressed="false">30 fps</button></div>
-          <button class="btn ${own ? "" : "ghost"}" type="button" data-act="make">Make GIF</button>
-          <div class="bar" hidden><i></i></div>
-          <div class="gstat" role="status">Bigger and smoother GIFs take longer and can be very large files.</div>
-          <div class="result" hidden></div>
+        <div class="actions">
+          <a class="btn" href="${esc(item.file)}" download="${esc(base)}.mp4">Download MP4</a>
+          ${item.gif ? `<a class="btn ghost" href="${esc(item.gif)}" download="${esc(base)}.gif">Download GIF</a>` : ""}
         </div>
+        <p class="meta sizes">${item.mp4Bytes ? `MP4 ${mb(item.mp4Bytes)}, full quality` : ""}${item.gifBytes ? ` · GIF ${mb(item.gifBytes)}` : ""}</p>
       </div>`;
-    const opt = { size: 720, fps: 15 };
-    el.querySelectorAll(".seg").forEach((s) => s.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
-      opt[s.dataset.k] = +b.dataset.v; s.querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
-    })));
-    const makeBtn = el.querySelector('[data-act="make"]'), bar = el.querySelector(".bar"), fill = bar.firstElementChild, stat = el.querySelector(".gstat"), result = el.querySelector(".result");
-    let busy = false, stop = false, lastUrl = null;
-    makeBtn.addEventListener("click", async () => {
-      if (busy) { stop = true; return; }
-      busy = true; stop = false; makeBtn.textContent = "Cancel"; bar.hidden = false; fill.style.width = "0"; stat.className = "gstat"; result.hidden = true;
-      try {
-        const out = await makeGif(item.file, opt, (p, msg) => { fill.style.width = (p * 100).toFixed(1) + "%"; stat.textContent = msg; }, () => stop);
-        if (!out) { stat.textContent = "Cancelled."; return; }
-        if (lastUrl) URL.revokeObjectURL(lastUrl);
-        lastUrl = URL.createObjectURL(out.blob);
-        const fname = `${slug(item.title)}${item.chonk ? "-chonk-" + item.chonk : ""}-${out.W}px-${opt.fps}fps.gif`;
-        stat.textContent = `Ready: ${out.W}×${out.H}, ${out.n} frames, ${mb(out.blob.size)}`;
-        result.innerHTML = `<a class="btn" href="${lastUrl}" download="${esc(fname)}">Download GIF (${mb(out.blob.size)})</a>`;
-        result.hidden = false;
-      } catch (e) {
-        stat.textContent = e.message || "Couldn't make the GIF."; stat.className = "gstat err";
-      } finally { busy = false; makeBtn.textContent = "Make GIF"; bar.hidden = true; }
-    });
     const vid = el.querySelector("video");
     if (io) io.observe(vid); else vid.autoplay = true;
     return el;
@@ -303,20 +197,6 @@ footer.foot{margin-top:8px}
     for (const item of list) grid.append(card(item));
   }).catch(() => { $("grid").innerHTML = '<p class="hint">Couldn’t load the animations. Refresh to try again.</p>'; });
 
-  /* ---------- your own MP4: converted on your device ---------- */
-  const drop = $("drop"), ownGrid = $("ownGrid");
-  async function useOwn(f) {
-    if (!f || !/^video\//.test(f.type) && !/\.(mp4|m4v|mov|webm)$/i.test(f.name)) return;
-    const url = URL.createObjectURL(f), probe = document.createElement("video");
-    probe.muted = true; probe.preload = "metadata"; probe.src = url;
-    try { await once(probe, "loadedmetadata"); } catch { alert("That video couldn't be read. Try an MP4 (H.264)."); return; }
-    const item = { file: url, title: f.name.replace(/\.[a-z0-9]+$/i, ""), width: probe.videoWidth, height: probe.videoHeight };
-    ownGrid.prepend(card(item, true));
-  }
-  $("ownFile").addEventListener("change", (e) => { useOwn(e.target.files[0]); e.target.value = ""; });
-  ["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("on"); }));
-  ["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("on"); }));
-  drop.addEventListener("drop", (e) => useOwn(e.dataTransfer.files[0]));
 })();
 </script>
 </body>
