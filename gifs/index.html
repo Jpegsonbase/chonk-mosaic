@@ -172,14 +172,14 @@ footer.foot{margin-top:8px}
     const el = document.createElement("article");
     el.className = "card";
     el.style.setProperty("--ar", `${item.width || 1} / ${item.height || 1}`);
-    const name = item.title + (item.chonk ? ` · Chonk #${item.chonk}` : "");
+    const name = item.title;
     const base = slug(item.title) + (item.chonk ? "-chonk-" + item.chonk : "");
     const secs = item.frames && item.fps ? (item.frames / item.fps) : null;
     el.innerHTML = `
       <video muted loop playsinline preload="none" ${item.poster ? `poster="${esc(item.poster)}"` : ""} src="${esc(item.file)}" aria-label="${esc(name)}"></video>
       <div class="body">
         <h2>${esc(item.title)}</h2>
-        <p class="meta">${item.chonk ? `Chonk #${item.chonk} · ` : ""}${item.width ? `${item.width}×${item.height}` : ""}${secs ? ` · ${secs.toFixed(secs % 1 ? 1 : 0)} s` : ""}${item.fps ? ` · ${item.fps} fps` : ""}</p>
+        <p class="meta">${item.width ? `${item.width}×${item.height}` : ""}${secs ? ` · ${secs.toFixed(secs % 1 ? 1 : 0)} s` : ""}${item.fps ? ` · ${item.fps} fps` : ""}</p>
         <div class="actions">
           <a class="btn" href="${esc(item.file)}" download="${esc(base)}.mp4">Download MP4</a>
           ${item.gif ? `<a class="btn ghost" href="${esc(item.gif)}" download="${esc(base)}.gif">Download GIF</a>` : ""}
