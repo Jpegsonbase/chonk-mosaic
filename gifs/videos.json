@@ -1,5 +1,18 @@
 [
   {
+    "file": "videos/workflow-test-42.mp4",
+    "poster": "videos/workflow-test-42.jpg",
+    "title": "Workflow Test",
+    "chonk": 42,
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "frames": 90,
+    "gif": "videos/workflow-test-42.gif",
+    "gifBytes": 13199105,
+    "mp4Bytes": 1878599
+  },
+  {
     "file": "videos/gm-rainy-street-61137.mp4",
     "poster": "videos/gm-rainy-street-61137.jpg",
     "title": "GM, Rainy Street",
