@@ -1,5 +1,29 @@
 [
   {
+    "file": "videos/gm-train.mp4",
+    "poster": "videos/gm-train.jpg",
+    "title": "GM Train",
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "frames": 300,
+    "gif": "videos/gm-train.gif",
+    "gifBytes": 13957588,
+    "mp4Bytes": 2943663
+  },
+  {
+    "file": "videos/gm-hotel.mp4",
+    "poster": "videos/gm-hotel.jpg",
+    "title": "GM Hotel",
+    "width": 1080,
+    "height": 1080,
+    "fps": 30,
+    "frames": 360,
+    "gif": "videos/gm-hotel.gif",
+    "gifBytes": 14377673,
+    "mp4Bytes": 3915087
+  },
+  {
     "file": "videos/gm-park.mp4",
     "poster": "videos/gm-park.jpg",
     "title": "GM Park",
