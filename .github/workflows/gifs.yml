@@ -1,0 +1,40 @@
+# Chonkit GIFs: when a video is uploaded to gifs/inbox, put it on chonkit.xyz/gifs with an MP4 and a GIF download.
+name: Add GIFs
+
+on:
+  push:
+    branches: [main]
+    paths: ["gifs/inbox/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: add-gifs
+  cancel-in-progress: false
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ffmpeg and gifsicle
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg gifsicle
+      - name: Make the MP4s, GIFs and posters
+        run: python3 .github/scripts/ingest_gifs.py
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "Chonkit GIFs"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A gifs
+          if git diff --cached --quiet; then echo "Nothing to publish."; exit 0; fi
+          git commit -m "GIFs: add new animation(s) from the inbox"
+          git pull --rebase origin main
+          git push origin HEAD:main
+          # make sure GitHub Pages picks it up straight away
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" >/dev/null || true
