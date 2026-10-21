@@ -115,18 +115,12 @@ footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px
 /* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
 @media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
 button,a,label,input,select{touch-action:manipulation}
-/* Wars page: the game in a 16:9 box that fits the screen */
-.game{position:relative;width:100%;max-width:calc((100svh - 330px) * 16 / 9);min-width:min(100%,520px);margin:0 auto;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:#0b0d1c;border:2px solid var(--edge,var(--line));box-shadow:6px 6px 0 var(--pop,transparent)}
+/* Wars page: the game fills the screen under the menu bar */
+html,body{height:100%;overflow:hidden}
+body{display:flex;flex-direction:column;height:100svh}
+header.top{flex:none;padding-top:max(10px,env(safe-area-inset-top));padding-bottom:10px}
+.game{flex:1;min-height:0;position:relative;background:#0b0d1c;border-top:2px solid var(--edge,var(--line))}
 .game iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;max-width:calc((100svh - 330px) * 16 / 9);min-width:min(100%,520px);width:100%;margin:0 auto}
-.bar form{display:flex;gap:8px;flex:1 1 320px;max-width:520px}
-.bar input{flex:1;min-width:0;font:inherit;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
-.bar input:focus{border-color:var(--blue);outline:none}
-.bar .btns{display:flex;gap:8px;flex-wrap:wrap}
-.bar .btn{width:auto;padding:10px 16px;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
-.bar .hint{flex-basis:100%}
-@media (max-width:560px){.bar form{flex-basis:100%;max-width:none}.bar .btns{width:100%}.bar .btns .btn{flex:1;justify-content:center}}
-footer.foot{margin-top:8px}
 </style>
 <link rel="stylesheet" href="../chonky.css?v=3">
 </head>
@@ -143,48 +137,17 @@ footer.foot{margin-top:8px}
     <a href="./" aria-current="page">Wars</a>
   </nav>
 </header>
-<div class="wrap">
-  <div class="intro">
-    <h1>Chonk <span>Wars</span></h1>
-    <p>200 onchain Chonks battle over the live Bitcoin price. Every trade is a blow. Rendered straight from Base.</p>
-  </div>
-  <div class="game" id="game">
-    <iframe id="frame" src="https://jpegsonbase.github.io/Chonk-Wars/" title="Chonk Wars" allow="autoplay; fullscreen" allowfullscreen></iframe>
-  </div>
-  <div class="bar">
-    <form id="armyForm">
-      <input id="wallet" type="text" placeholder="Wallet or name, e.g. yourname.base.eth" aria-label="Wallet address or name" autocomplete="off" spellcheck="false">
-      <button class="btn" type="submit">Load army</button>
-    </form>
-    <div class="btns">
-      <button class="btn ghost" id="fsBtn" type="button">Full screen</button>
-      <a class="btn ghost" id="openLink" href="https://jpegsonbase.github.io/Chonk-Wars/" target="_blank" rel="noopener">Open in new tab</a>
-    </div>
-    <p class="hint">Click inside the game once to turn on the keyboard (WASD, Space, M) and the music. Type a wallet to see that holder’s army.</p>
-  </div>
-</div>
-<footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="https://github.com/Jpegsonbase/Chonk-Wars" target="_blank" rel="noopener">Source</a> · <a href="../">chonkit.xyz</a></footer>
+<main class="game">
+  <iframe id="frame" src="https://jpegsonbase.github.io/Chonk-Wars/" title="Chonk Wars" allow="autoplay; fullscreen" allowfullscreen></iframe>
+</main>
 
 <script>
+// chonkit.xyz/wars?wallet=… opens straight to that holder's army
 (() => {
-  const GAME = "https://jpegsonbase.github.io/Chonk-Wars/";
-  const frame = document.getElementById("frame"), input = document.getElementById("wallet"), open = document.getElementById("openLink");
-  const urlFor = (w) => w ? GAME + "?wallet=" + encodeURIComponent(w) : GAME;
-  function load(w, push) {
-    w = (w || "").trim();
-    const u = urlFor(w);
-    if (frame.src !== u) frame.src = u;
-    open.href = u;
-    if (push) { const p = new URL(location.href); w ? p.searchParams.set("wallet", w) : p.searchParams.delete("wallet"); history.replaceState(null, "", p); }
-  }
-  // chonkit.xyz/wars?wallet=… opens straight to that army
-  const start = new URLSearchParams(location.search).get("wallet") || "";
-  if (start) { input.value = start; load(start, false); }
-  document.getElementById("armyForm").addEventListener("submit", (e) => { e.preventDefault(); load(input.value, true); frame.focus(); });
-  document.getElementById("fsBtn").addEventListener("click", () => {
-    const el = document.getElementById("game");
-    (el.requestFullscreen || el.webkitRequestFullscreen || (() => window.open(open.href, "_blank"))).call(el);
-  });
+  const frame = document.getElementById("frame");
+  const w = (new URLSearchParams(location.search).get("wallet") || "").trim();
+  if (w) frame.src = "https://jpegsonbase.github.io/Chonk-Wars/?wallet=" + encodeURIComponent(w);
+  frame.focus();
 })();
 </script>
 </body>
