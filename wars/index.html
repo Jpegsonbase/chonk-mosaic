@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Chonk Wars</title>
+<meta name="description" content="200 onchain Chonks battle over the live Bitcoin price. Every trade is a blow. Rendered straight from Base.">
+<meta property="og:title" content="Chonk Wars · Chonkit">
+<meta property="og:description" content="200 onchain Chonks battle over the live Bitcoin price. Every trade is a blow.">
+<meta property="og:image" content="https://jpegsonbase.github.io/Chonk-Wars/og.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="../apple-touch-icon.png">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="manifest" href="../site.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="../fonts/sangyo.woff2" as="font" type="font/woff2" crossorigin>
+<style>@font-face { font-family: "Sangyo"; src: url("../fonts/sangyo.woff2") format("woff2"); font-weight: 400 900; font-display: swap; } html { font-synthesis-weight: none; }.logo .logo-mark{display:block;flex:none;width:33px;height:21px}
+.logo .logo-mark.hat{display:none;width:30px;height:33px}
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script>
+  try { var t = localStorage.getItem("chonk-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<style>
+/* Chonkit look: same palette, fonts and menu as the mosaic maker, gallery and studio */
+:root{
+  --paper:#FAFBFF; --surface:#FFFFFF; --ink:#0E1230; --muted:#5B6185; --line:#E3E6F2; --soft:#F1F3FB; --quiet-hover:#E4E8F7;
+  --blue:#0052FF; --yellow:#FFC93C;
+  --display:"Sangyo","Arial Black",sans-serif; --body:"Manrope",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  /* names the tool below uses */
+  --bg:var(--paper); --panel:var(--surface); --fg:var(--ink); --accent:var(--blue); --accent-ink:#ffffff; --stage:#14111c;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#0D1024; --surface:#161A33; --ink:#EEF0FF; --muted:#9BA2C8; --line:#262B4D; --soft:#1E2340; --quiet-hover:#262C50; --blue:#3D7BFF; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#0D1024; --surface:#161A33; --ink:#EEF0FF; --muted:#9BA2C8; --line:#262B4D; --soft:#1E2340; --quiet-hover:#262C50; --blue:#3D7BFF; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.5 var(--body)}
+a{color:var(--blue)}
+header.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px clamp(16px,3vw,32px)}
+.logo{display:flex;align-items:center;gap:10px;font:800 22px var(--display);color:var(--ink);text-decoration:none}
+.logo .sq{width:22px;height:22px;border-radius:6px;background:var(--yellow);box-shadow:inset -4px -4px 0 #E8A91F}
+.logo small{font:500 13px var(--body);color:var(--muted)}
+@media (max-width:440px){.logo .logo-text{display:none}}
+.site-nav{display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--surface);border:1px solid var(--line)}
+.site-nav a{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;font:700 13.5px var(--body);color:var(--muted);text-decoration:none;white-space:nowrap}
+.site-nav a:hover{color:var(--ink)}
+.site-nav a[aria-current="page"]{background:var(--ink);color:var(--paper)}
+.site-nav .short{display:none}
+.site-nav #galBadge{min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:var(--yellow);color:#0E1230;font:800 10.5px/18px var(--body);text-align:center}
+@media (max-width:640px){.site-nav .long{display:none}.site-nav .short{display:inline}.site-nav a{padding:6px 9px;font-size:12.5px}}
+.wrap{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:0 clamp(16px,3vw,32px) 32px}
+.intro h1{font:800 clamp(26px,4.4vw,40px)/1.1 var(--display);letter-spacing:-.02em;margin:4px 0 6px}
+.intro h1 span{color:var(--blue)}
+.intro p{margin:0;color:var(--muted);max-width:62ch}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px;align-items:start}
+.stage{background:var(--stage);transition:background .2s;border:1px solid var(--line);border-radius:22px;position:relative;overflow:hidden;min-height:320px;display:grid;place-items:center;cursor:grab;touch-action:none}
+.stage.drag{outline:2px dashed var(--accent);outline-offset:-8px}
+.stage:active{cursor:grabbing}
+#out{margin:0;padding:14px;font-family:var(--mono);line-height:1;white-space:pre;color:inherit;user-select:text;letter-spacing:0}
+.badge{position:absolute;left:14px;bottom:10px;color:#9a93ad;font:12px var(--body);pointer-events:none}
+.rail{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;gap:14px;font-size:14px}
+.rail h2{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 0}
+.inrow{display:flex;gap:6px;margin:0}
+.inrow input{flex:1;min-width:0;font:inherit;padding:9px 11px;border-radius:11px;border:1.5px solid transparent;background:var(--soft);color:var(--fg)}
+.inrow input:focus{border-color:var(--blue);background:var(--surface);outline:none}
+.btn.sm{width:auto;padding:9px 14px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;align-items:center}
+.tags button{font:700 12px var(--body);padding:5px 10px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.tags button:hover,.tags button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.tags:empty{display:none}
+label.f{display:grid;gap:6px;font-size:13px;font-weight:500}
+label.f .row{display:flex;justify-content:space-between;color:var(--muted)}
+label.f .row b{color:var(--fg);font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent)}
+select,input[type=text]{width:100%;font:inherit;padding:9px 11px;border-radius:11px;border:1.5px solid transparent;background:var(--soft);color:var(--fg)}
+.checks{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;user-select:none}
+.chip input{accent-color:var(--accent);margin:0}
+.btn{font:700 14px var(--body);border:0;border-radius:12px;padding:11px 12px;cursor:pointer;background:var(--accent);color:var(--accent-ink);width:100%}
+.btn:hover:not(:disabled){filter:brightness(1.08)}
+.btn.ghost{background:var(--soft);color:var(--fg);border:1.5px solid transparent;font-weight:700}
+.btn.ghost:hover:not(:disabled){background:var(--quiet-hover);filter:none}
+.btn:focus-visible,select:focus-visible,input:focus-visible,.chip:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.swatches{display:flex;flex-wrap:wrap;gap:8px}
+.sw{display:inline-flex;align-items:center;gap:8px;font-size:13px;padding:4px 10px 4px 4px;border:1px solid var(--line);border-radius:999px;cursor:pointer}
+.sw input{width:26px;height:26px;border:0;padding:0;background:none;border-radius:50%;cursor:pointer}
+.presets{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.pre{font:700 11.5px var(--body);padding:7px 0;border-radius:10px;border:1px solid var(--line);background:var(--b);color:var(--i);cursor:pointer}
+.gifout{display:grid;gap:6px}.gifout img{border-radius:10px;border:1px solid var(--line);width:100%}
+.btn:disabled{opacity:.6;cursor:progress}
+.hint{color:var(--muted);font-size:12.5px;line-height:1.5;margin:0}
+.hint a{color:var(--accent)}
+.status{font-size:13px;min-height:1.2em;color:var(--muted)}
+.status.err{color:#d23a52}
+.left{display:grid;gap:18px;min-width:0}
+.look{background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px 24px;font-size:14px}
+.look .col{display:grid;gap:12px;align-content:start;min-width:0}
+.look-foot{grid-column:1/-1;display:flex;justify-content:flex-end}
+.look-foot .btn{width:auto;padding:9px 16px}
+@media (max-width:760px){.look-foot .btn{width:100%}}
+.look h2{font:700 12px var(--display);text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:4px 0 0}
+@media (max-width:1060px){.look{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+  .main{display:flex;flex-direction:column;min-width:0}
+  .stage,.rail,.look{width:100%;min-width:0}
+  .left{display:contents}
+  .stage{order:1}.rail{order:2}.look{order:3;grid-template-columns:minmax(0,1fr)}
+}
+footer.foot{max-width:1240px;margin:0 auto;padding:4px clamp(16px,3vw,32px) 28px;color:var(--muted);font-size:13px}
+/* iPhone: 16px text boxes so Safari doesn't zoom in when you tap one */
+@media (pointer:coarse){input[type=text],input[type=number],select{font-size:16px!important}}
+button,a,label,input,select{touch-action:manipulation}
+/* Wars page: the game in a 16:9 box that fits the screen */
+.game{position:relative;width:100%;max-width:calc((100svh - 330px) * 16 / 9);min-width:min(100%,520px);margin:0 auto;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:#0b0d1c;border:2px solid var(--edge,var(--line));box-shadow:6px 6px 0 var(--pop,transparent)}
+.game iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;max-width:calc((100svh - 330px) * 16 / 9);min-width:min(100%,520px);width:100%;margin:0 auto}
+.bar form{display:flex;gap:8px;flex:1 1 320px;max-width:520px}
+.bar input{flex:1;min-width:0;font:inherit;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.bar input:focus{border-color:var(--blue);outline:none}
+.bar .btns{display:flex;gap:8px;flex-wrap:wrap}
+.bar .btn{width:auto;padding:10px 16px;text-decoration:none;display:inline-flex;align-items:center;white-space:nowrap}
+.bar .hint{flex-basis:100%}
+@media (max-width:560px){.bar form{flex-basis:100%;max-width:none}.bar .btns{width:100%}.bar .btns .btn{flex:1;justify-content:center}}
+footer.foot{margin-top:8px}
+</style>
+<link rel="stylesheet" href="../chonky.css?v=3">
+</head>
+<body>
+<header class="top">
+  <a class="logo" href="../"><svg class="logo-mark plain sm" viewBox="0 0 11 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#FDCB58" d="M2 0h8v1h-8zM1 1h10v5h-10zM2 6h8v1h-8z"/><path fill="#F4900C" d="M0 3h1v2h-1zM5 4h3v1h-3z"/><path fill="#E6E7E8" d="M3 3h1v2h-1zM8 3h1v2h-1z"/><path fill="#31373D" d="M4 3h1v2h-1zM9 3h1v2h-1z"/></svg><svg class="logo-mark hat sm" viewBox="0 0 11 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#7B3FE4" d="M6 0h1v1h-1zM5 1h2v1h-2zM4 2h4v1h-4zM3 3h1v1h-1zM7 3h1v1h-1zM0 4h11v1h-11z"/><path fill="#FF8A1F" d="M4 3h3v1h-3z"/><path fill="#FDCB58" d="M2 5h8v1h-8zM1 6h10v5h-10zM2 11h8v1h-8z"/><path fill="#F4900C" d="M0 8h1v2h-1zM5 9h3v1h-3z"/><path fill="#E6E7E8" d="M3 8h1v2h-1zM8 8h1v2h-1z"/><path fill="#31373D" d="M4 8h1v2h-1zM9 8h1v2h-1z"/></svg><span class="logo-text">Chonk Wars <small>· live onchain battle</small></span></a>
+  <nav class="site-nav" aria-label="Chonkit">
+    <a href="../"><span class="long">Mosaic maker</span><span class="short">Mosaic</span></a>
+    <a href="../gallery.html">Gallery</a>
+    <a href="../studio.html"><span class="long">Chonkit Studio</span><span class="short">Studio</span></a>
+    <a href="../ascii.html">ASCII</a>
+    <a href="../sketchbook.html">Sketch</a>
+    <a href="../gifs/">GIFs</a>
+    <a href="./" aria-current="page">Wars</a>
+  </nav>
+</header>
+<div class="wrap">
+  <div class="intro">
+    <h1>Chonk <span>Wars</span></h1>
+    <p>200 onchain Chonks battle over the live Bitcoin price. Every trade is a blow. Rendered straight from Base.</p>
+  </div>
+  <div class="game" id="game">
+    <iframe id="frame" src="https://jpegsonbase.github.io/Chonk-Wars/" title="Chonk Wars" allow="autoplay; fullscreen" allowfullscreen></iframe>
+  </div>
+  <div class="bar">
+    <form id="armyForm">
+      <input id="wallet" type="text" placeholder="Wallet or name, e.g. yourname.base.eth" aria-label="Wallet address or name" autocomplete="off" spellcheck="false">
+      <button class="btn" type="submit">Load army</button>
+    </form>
+    <div class="btns">
+      <button class="btn ghost" id="fsBtn" type="button">Full screen</button>
+      <a class="btn ghost" id="openLink" href="https://jpegsonbase.github.io/Chonk-Wars/" target="_blank" rel="noopener">Open in new tab</a>
+    </div>
+    <p class="hint">Click inside the game once to turn on the keyboard (WASD, Space, M) and the music. Type a wallet to see that holder’s army.</p>
+  </div>
+</div>
+<footer class="foot">Made by <a href="https://x.com/jpegsonbase" target="_blank" rel="noopener">@jpegsonbase</a> · Chonks are CC0 · <a href="https://github.com/Jpegsonbase/Chonk-Wars" target="_blank" rel="noopener">Source</a> · <a href="../">chonkit.xyz</a></footer>
+
+<script>
+(() => {
+  const GAME = "https://jpegsonbase.github.io/Chonk-Wars/";
+  const frame = document.getElementById("frame"), input = document.getElementById("wallet"), open = document.getElementById("openLink");
+  const urlFor = (w) => w ? GAME + "?wallet=" + encodeURIComponent(w) : GAME;
+  function load(w, push) {
+    w = (w || "").trim();
+    const u = urlFor(w);
+    if (frame.src !== u) frame.src = u;
+    open.href = u;
+    if (push) { const p = new URL(location.href); w ? p.searchParams.set("wallet", w) : p.searchParams.delete("wallet"); history.replaceState(null, "", p); }
+  }
+  // chonkit.xyz/wars?wallet=… opens straight to that army
+  const start = new URLSearchParams(location.search).get("wallet") || "";
+  if (start) { input.value = start; load(start, false); }
+  document.getElementById("armyForm").addEventListener("submit", (e) => { e.preventDefault(); load(input.value, true); frame.focus(); });
+  document.getElementById("fsBtn").addEventListener("click", () => {
+    const el = document.getElementById("game");
+    (el.requestFullscreen || el.webkitRequestFullscreen || (() => window.open(open.href, "_blank"))).call(el);
+  });
+})();
+</script>
+</body>
+</html>
