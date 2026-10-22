@@ -683,7 +683,8 @@
   function showWalletNote() {
     const n = state.walletIdx.length;
     const shortAddr = `${state.walletAddr.slice(0, 6)}…${state.walletAddr.slice(-4)}`;
-    const short = state.walletName ? `${state.walletName} (${shortAddr})` : shortAddr;
+    const escText = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+    const short = escText(state.walletName ? `${state.walletName} (${shortAddr})` : shortAddr);   // typed names are shown as text, never markup
     el.poolNote.innerHTML = n
       ? `<span class="ok">${n.toLocaleString()} Chonk${n === 1 ? "" : "s"}</span> found in ${short}.` +
         (n < 40 ? " Mosaics look best with 40 or more, so expect lots of repeats." : "")
