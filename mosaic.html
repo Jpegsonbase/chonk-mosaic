@@ -541,6 +541,16 @@
 .site-nav a[aria-current="page"] { background: var(--yellow); color: #12142B; }
 .theme-btn { width: 42px; height: 42px; }
 .logo { font-size: 24px; }
+/* breadcrumb header: house + Chonkit go home, then the page you're on */
+.crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.crumb-home { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--muted); font: 400 21px var(--display); padding: 5px 10px 5px 8px; margin-left: -10px; border-radius: 12px; border: 2px solid transparent; transition: color .15s, background .15s, border-color .15s; }
+.crumb-home svg { width: 18px; height: 18px; flex: none; }
+.crumb-home:hover { color: var(--ink); background: var(--soft); border-color: var(--edge); }
+.crumb-sep { color: var(--muted); font: 400 22px var(--display); opacity: .7; }
+.crumb-here { font: 400 24px var(--display); color: var(--ink); }
+.crumb-sub { color: var(--muted); font: 500 13px var(--body); margin-left: 4px; }
+@media (max-width: 560px) { .crumb-sub { display: none; } .crumb-home { font-size: 18px; } .crumb-here { font-size: 21px; } }
+
 
 /* buttons: chunky keys */
 .btn {
@@ -759,9 +769,8 @@ dialog#termDialog::backdrop { background: rgba(14, 18, 48, .55); backdrop-filter
 <body>
 <div class="wrap">
   <nav>
-    <a class="logo" href="./"><svg class="logo-mark plain" viewBox="0 0 11 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#FDCB58" d="M2 0h8v1h-8zM1 1h10v5h-10zM2 6h8v1h-8z"/><path fill="#F4900C" d="M0 3h1v2h-1zM5 4h3v1h-3z"/><path fill="#E6E7E8" d="M3 3h1v2h-1zM8 3h1v2h-1z"/><path fill="#31373D" d="M4 3h1v2h-1zM9 3h1v2h-1z"/></svg><svg class="logo-mark hat" viewBox="0 0 11 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#7B3FE4" d="M6 0h1v1h-1zM5 1h2v1h-2zM4 2h4v1h-4zM3 3h1v1h-1zM7 3h1v1h-1zM0 4h11v1h-11z"/><path fill="#FF8A1F" d="M4 3h3v1h-3z"/><path fill="#FDCB58" d="M2 5h8v1h-8zM1 6h10v5h-10zM2 11h8v1h-8z"/><path fill="#F4900C" d="M0 8h1v2h-1zM5 9h3v1h-3z"/><path fill="#E6E7E8" d="M3 8h1v2h-1zM8 8h1v2h-1z"/><path fill="#31373D" d="M4 8h1v2h-1zM9 8h1v2h-1z"/></svg><span class="logo-text">Chonkit</span></a>
+    <nav class="crumbs" aria-label="Breadcrumb"><a class="crumb-home" href="./"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg><span>Chonkit</span></a><span class="crumb-sep" aria-hidden="true">›</span><span class="crumb-here" aria-current="page">Mosaic maker</span></nav>
     <div class="nav-right">
-      <nav class="site-nav" aria-label="Chonkit"><a class="home" href="./"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Home</a></nav>
       <a class="chain-pill" id="contractLink" target="_blank" rel="noopener">Chonks on Base</a>
       <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch to dark mode">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>

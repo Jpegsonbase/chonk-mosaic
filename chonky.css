@@ -25,6 +25,16 @@
 .site-nav a[aria-current="page"] { background: var(--yellow); color: #12142B; }
 .logo { font-size: 24px; }
 
+/* breadcrumb header: house + Chonkit go home, then the page you're on */
+.crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.crumb-home { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--muted); font: 400 21px var(--display); padding: 5px 10px 5px 8px; margin-left: -10px; border-radius: 12px; border: 2px solid transparent; transition: color .15s, background .15s, border-color .15s; }
+.crumb-home svg { width: 18px; height: 18px; flex: none; }
+.crumb-home:hover { color: var(--ink); background: var(--soft); border-color: var(--edge); }
+.crumb-sep { color: var(--muted); font: 400 22px var(--display); opacity: .7; }
+.crumb-here { font: 400 24px var(--display); color: var(--ink); }
+.crumb-sub { color: var(--muted); font: 500 13px var(--body); margin-left: 4px; }
+@media (max-width: 560px) { .crumb-sub { display: none; } .crumb-home { font-size: 18px; } .crumb-here { font-size: 21px; } }
+
 /* panels */
 .panel, .board, .rail, .look {
   border: 2px solid var(--edge); border-radius: 20px; box-shadow: 6px 6px 0 var(--pop);
