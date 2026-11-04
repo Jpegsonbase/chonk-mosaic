@@ -48,7 +48,7 @@
   .site-nav a:hover { color: var(--ink); }
   .site-nav a[aria-current="page"] { background: var(--ink); color: var(--paper); }
   .site-nav .short { display: none; }
-.site-nav a.home { color: inherit; }
+.site-nav a.home { color: inherit; display: inline-flex; align-items: center; gap: 6px; }
   .site-nav #galBadge { min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--yellow); color: #0E1230; font: 800 10.5px/18px var(--body); text-align: center; }
   @media (max-width: 640px) { .site-nav .long { display: none; } .site-nav .short { display: inline; } .site-nav a { padding: 6px 9px; font-size: 12.5px; } }
   .studio { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 22px; padding: 0 clamp(16px, 3vw, 32px) 32px; max-width: 1400px; margin: 0 auto; align-items: start; }
@@ -160,7 +160,7 @@ button, a, label, input, select { touch-action: manipulation; }
 <div class="loading" id="loading">Loading Chonks…</div>
 <header class="top">
   <a class="logo" href="./"><svg class="logo-mark plain sm" viewBox="0 0 11 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#FDCB58" d="M2 0h8v1h-8zM1 1h10v5h-10zM2 6h8v1h-8z"/><path fill="#F4900C" d="M0 3h1v2h-1zM5 4h3v1h-3z"/><path fill="#E6E7E8" d="M3 3h1v2h-1zM8 3h1v2h-1z"/><path fill="#31373D" d="M4 3h1v2h-1zM9 3h1v2h-1z"/></svg><svg class="logo-mark hat sm" viewBox="0 0 11 12" shape-rendering="crispEdges" aria-hidden="true"><path fill="#7B3FE4" d="M6 0h1v1h-1zM5 1h2v1h-2zM4 2h4v1h-4zM3 3h1v1h-1zM7 3h1v1h-1zM0 4h11v1h-11z"/><path fill="#FF8A1F" d="M4 3h3v1h-3z"/><path fill="#FDCB58" d="M2 5h8v1h-8zM1 6h10v5h-10zM2 11h8v1h-8z"/><path fill="#F4900C" d="M0 8h1v2h-1zM5 9h3v1h-3z"/><path fill="#E6E7E8" d="M3 8h1v2h-1zM8 8h1v2h-1z"/><path fill="#31373D" d="M4 8h1v2h-1zM9 8h1v2h-1z"/></svg><span class="logo-text">Chonkit Studio <small>· every pixel is a Chonk</small></span></a>
-  <nav class="site-nav" aria-label="Chonkit"><a class="home" href="./"><span aria-hidden="true">←</span> All tools</a></nav>
+  <nav class="site-nav" aria-label="Chonkit"><a class="home" href="./"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Home</a></nav>
 </header>
 
 <main class="studio">

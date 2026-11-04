@@ -113,7 +113,7 @@ body.top-busy .empty-note { display: none; }
 .site-nav a:hover { color: var(--fg); }
 .site-nav a[aria-current="page"] { background: var(--skin); color: var(--ink); }
 .site-nav .short { display: none; }
-.site-nav a.home { color: inherit; }
+.site-nav a.home { color: inherit; display: inline-flex; align-items: center; gap: 6px; }
 .panel-nav { display: none; margin-top: 12px; align-self: flex-start; }
 @media (max-width: 760px) { .hud-left .site-nav { display: none; } .panel-nav { display: inline-flex; } .panel-nav a { padding: 6px 9px; font-size: 10px; } }
 /* touch controls */
@@ -280,7 +280,7 @@ body.cutscene .hud-top, body.cutscene .keys, body.cutscene #joy, body.cutscene .
 <div class="hud-top walk-only">
   <div class="hud-left">
   <div class="pill"><span class="dot"></span><span class="brand">Chonkit Gallery</span><span class="where" id="where">Your mosaics</span></div>
-  <nav class="site-nav" aria-label="Chonkit"><a class="home" href="./"><span aria-hidden="true">←</span> All tools</a></nav>
+  <nav class="site-nav" aria-label="Chonkit"><a class="home" href="./"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Home</a></nav>
   </div>
   <div class="hud-right">
   <div class="dl-prompt" id="dlPrompt" hidden role="dialog" aria-live="polite">
@@ -385,7 +385,7 @@ body.cutscene .hud-top, body.cutscene .keys, body.cutscene #joy, body.cutscene .
     <button id="closeSettings" type="button">Done</button>
   </header>
   <div class="rail-body">
-    <nav class="site-nav panel-nav" aria-label="Chonkit"><a class="home" href="./"><span aria-hidden="true">←</span> All tools</a></nav>
+    <nav class="site-nav panel-nav" aria-label="Chonkit"><a class="home" href="./"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h5v-6h4v6h5V10"/></svg>Home</a></nav>
     <section>
       <h2>Sound</h2>
       <label class="slider" for="volMusic">Music <input type="range" id="volMusic" min="0" max="100" step="1" value="15"><output id="volMusicOut">15%</output></label>
