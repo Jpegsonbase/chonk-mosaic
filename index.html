@@ -236,7 +236,9 @@ function render() {
   const q = $("q").value.trim().toLowerCase();
   const list = TOOLS.map((t, i) => ({ ...t, n: i + 1 })).filter((t) => (group === "all" || t.group === group) && (!q || (t.name + " " + t.cat + " " + t.desc + " " + t.keys).toLowerCase().includes(q)));
   // the featured tool gets its own full-width tile; the rest go in the grid
-  const ft = list.find((t) => t.id === FEATURED), rest = list.filter((t) => t.id !== FEATURED), fe = $("feature");
+  // the big tile only shows on the full "Everything" view; when filtering or searching, the featured tool is a normal tile
+  const showcase = group === "all" && !q;
+  const ft = showcase ? list.find((t) => t.id === FEATURED) : null, rest = ft ? list.filter((t) => t !== ft) : list, fe = $("feature");
   fe.hidden = !ft;
   if (ft) {
     fe.href = link(ft); fe.style.setProperty("--tint", `var(${ft.tint})`);
@@ -244,7 +246,7 @@ function render() {
       <div class="side"><span class="cat">${esc(ft.cat)} · ${pad(ft.n)}</span><h2>${esc(ft.name)}</h2><p>${esc(ft.desc)}</p>
       ${ft.points ? `<ul class="points">${ft.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}<span class="cta">${esc(ft.cta || "Open")} ↗</span></div>`;
   }
-  $("allLabel").textContent = ft ? "More tools" : "All tools";
+  $("allLabel").textContent = ft ? "More tools" : group === "all" ? "All tools" : GROUPS.find((g) => g.id === group).name;
   $("allLabel").parentElement.hidden = !rest.length;
   $("grid").innerHTML = rest.map((t, k) => `<a class="tile" style="--i:${k + 1};--tint:var(${t.tint})" href="${link(t)}"${/^https?:/.test(t.href) ? ' target="_blank" rel="noopener"' : ""}>
       <div class="panel">${t.live ? '<span class="dot"></span>' : ""}<img src="img/hub/${t.id}.webp" alt="" ${k > 7 ? 'loading="lazy"' : ""}>${t.isNew ? '<span class="badge">NEW</span>' : ""}</div>
