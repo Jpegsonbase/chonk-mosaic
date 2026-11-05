@@ -109,7 +109,27 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .lbList li span small{color:var(--muted);margin-left:6px}
 .lbList li em{font:400 14px var(--display);font-style:normal;color:var(--glow)}
 .lbList li.me{outline:1px solid var(--glow);background:rgba(255,179,71,.12)}
-#lbPanel{justify-content:center;background:rgba(10,7,16,.45)}
+#lbPanel,#chPanel{justify-content:center;background:rgba(10,7,16,.45)}
+#chPanel .card{text-align:center;width:min(460px,100%)}
+#chPanel .two .btn,#menu .two .btn{width:100%}
+.mis{display:grid;gap:8px;margin-top:14px;text-align:left}
+.mis div{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13px}
+.mis div.done{border-color:var(--good);color:var(--good)}
+.mis i{display:block;height:5px;margin-top:6px;border-radius:3px;background:rgba(255,255,255,.1);overflow:hidden}
+.mis i u{display:block;height:100%;background:var(--glow)}
+.mis div.done i u{background:var(--good)}
+.mis small{float:right;color:var(--muted)}
+.badges{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:14px}
+.badges div{background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:8px 6px;font-size:11px;color:var(--muted);line-height:1.3}
+.badges div b{display:block;font:400 11px var(--display);color:var(--fg);margin-bottom:3px}
+.badges div.got{border-color:var(--glow);background:rgba(255,179,71,.1)}
+.badges div:not(.got){opacity:.55}
+.daily{margin-top:14px}
+.daily .big{font:400 26px var(--display);color:var(--glow)}
+.prog{margin-top:10px;text-align:left}
+.prog .mis{margin-top:6px}
+.prog .new{font:400 11px var(--display);letter-spacing:.08em;color:var(--good);margin-top:8px}
+@media (max-width:700px){.badges{grid-template-columns:repeat(2,1fr)}}
 #lbPanel .card{text-align:center}
 .mobilehint{display:none}
 @media (hover:none) and (pointer:coarse){ .deskhint{display:none} .mobilehint{display:block} }
@@ -181,7 +201,7 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <div class="keys deskhint"><kbd>←</kbd><kbd>→</kbd> switch lanes, and turn at corners · <kbd>↑</kbd>/<kbd>Space</kbd> jump · <kbd>↓</kbd> slide · <kbd>P</kbd> pause · <kbd>M</kbd> sound</div>
     <div class="keys mobilehint">Swipe left or right to switch lanes and to turn at corners. Swipe up to jump, down to slide.</div>
     <div class="keys" id="bestLine"></div>
-    <button class="btn" id="lbBtn" type="button" style="margin-top:10px;width:100%" hidden>LEADERBOARD</button>
+    <div class="two" style="margin-top:10px"><button class="btn" id="chBtn" type="button">CHALLENGES</button><button class="btn" id="lbBtn" type="button" hidden>LEADERBOARD</button></div>
   </div>
 </div>
 
@@ -191,6 +211,7 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <p class="reason" id="reason"></p>
     <div class="stats"><div><small>SCORE</small><b id="oScore">0</b></div><div><small>COINS</small><b id="oCoins">0</b></div><div><small>BEST</small><b id="oBest">0</b></div></div>
     <div class="newbest" id="newBest" hidden>NEW BEST!</div>
+    <div class="prog" id="progOver"></div>
     <div class="lb" id="lbOver" hidden>
       <div class="row" id="submitRow"><input id="nameIn" type="text" maxlength="16" placeholder="Your name" autocomplete="nickname" aria-label="Name for the leaderboard"><button class="btn" id="submitBtn" type="button">SUBMIT</button></div>
       <div class="status" id="lbStatus"></div>
@@ -209,6 +230,16 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <ol class="lbList" id="lbListMenu"></ol>
     <div class="status" id="lbMenuStatus"></div>
     <button class="play alt" id="lbClose" type="button">BACK</button>
+  </div>
+</div>
+
+<div id="chPanel" class="overlay" hidden>
+  <div class="card">
+    <h2>CHALLENGES</h2>
+    <p class="reason" id="chRank"></p>
+    <div class="seg" id="chTabs" style="grid-template-columns:repeat(3,1fr);margin-top:12px"><button type="button" data-t="daily" aria-pressed="true">DAILY</button><button type="button" data-t="missions" aria-pressed="false">MISSIONS</button><button type="button" data-t="badges" aria-pressed="false">BADGES</button></div>
+    <div id="chBody"></div>
+    <button class="play alt" id="chClose" type="button">BACK</button>
   </div>
 </div>
 
@@ -850,7 +881,11 @@ async function lbSubmit(entry) { return lbFetch(LEADERBOARD.table, { method: "PO
 /* =====================================================================
    3. Small helpers
    ===================================================================== */
-const R = Math.random;
+// Randomness: Math.random normally; a seeded generator while building the Daily Run, so everyone gets the same track.
+let R = Math.random;
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function hashSeed(...parts) { let h = 2166136261; for (const ch of parts.join("|")) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
+function withSeed(seed, fn) { if (seed == null) return fn(); const prev = R; R = mulberry32(seed); try { return fn(); } finally { R = prev; } }
 const rand = (a, b) => a + R() * (b - a);
 const randi = (a, b) => Math.floor(rand(a, b + 1));
 const pick = (a) => a[Math.floor(R() * a.length)];
@@ -1932,8 +1967,10 @@ function themeFor(dist) { if (G.mode !== "mix") return G.mode; const m = dist % 
 let live = new Set(), buildQueue = [];
 
 class Run {
-  constructor(idx, origin, k, dist, parent) {
+  constructor(idx, origin, k, dist, parent, dir = "") {
     this.idx = idx; this.origin = origin.clone(); this.k = k; this.dist = dist; this.parent = parent;
+    this.seed = parent ? (parent.seed != null ? hashSeed(parent.seed, dir) : null) : G.seed ?? null; // a stretch's layout depends only on the path taken to it
+    const prevR = R; if (this.seed != null) R = mulberry32(this.seed);
     this.f = new THREE.Vector3(k, 0, k === 0 ? -1 : 0);
     this.r = new THREE.Vector3(-this.f.z, 0, this.f.x);
     this.theme = themeFor(dist);
@@ -1949,11 +1986,12 @@ class Run {
     else if (idx >= 2 && parent && parent.theme === this.theme && parent.style === "normal" && this.L >= 150 && dist > 250 && R() < 0.42)
       this.style = THEMES[this.theme].piece;
     if (this.style !== "normal") this.zone = { s0: 28, s1: this.L - W - 14, open: this.style !== "tunnel" };
+    R = prevR;
   }
   world(s, x, y, out) { return out.copy(this.origin).addScaledVector(this.f, s).addScaledVector(this.r, x).setY(y); }
   child(dir) {
     if (this.next[dir]) return this.next[dir];
-    const r = new Run(this.idx + 1, this.origin.clone().addScaledVector(this.f, this.L - HALF), this.k + (dir === "R" ? 1 : -1), this.dist + this.L, this);
+    const r = new Run(this.idx + 1, this.origin.clone().addScaledVector(this.f, this.L - HALF), this.k + (dir === "R" ? 1 : -1), this.dist + this.L, this, dir);
     this.next[dir] = r; return r;
   }
 }
@@ -2209,7 +2247,8 @@ const SPECIALS = {
 };
 function coinLineAt(run, lane, s0, s1, y, step = 2.1) { for (let s = s0; s <= s1; s += step) run.coins.push({ s, x: LANES[lane], y, top: true }); }
 
-function buildRun(run) {
+function buildRun(run) { return withSeed(run.seed != null ? hashSeed(run.seed, "build") : null, () => buildRunInner(run)); }
+function buildRunInner(run) {
   if (run.built) return;
   run.built = true;
   const T = THEMES[run.theme], b = new Builder();
@@ -2370,6 +2409,7 @@ function resetWorld() {
   camYaw = 0; playerYaw = Math.PI;
   applyEnv(cur.theme, true);
   G.score = 0; G.coins = 0; G.dist = 0; G.speed = SPEED0; G.runMs = 0; G.submitted = false;
+  G.rs = { jumps: 0, slides: 0, turns: 0, powers: 0, pieces: 0, shieldSaves: 0, worlds: new Set([cur.theme]), loop: false, sawSpace: false };
   for (const k of Object.keys(powerEls)) { powerEls[k].remove(); delete powerEls[k]; }
 }
 
@@ -2548,7 +2588,8 @@ function startRun() {
   if (G.state !== "menu" || pl.s > 3) resetWorld();
   G.state = "count"; G.countT = 3; G.countShown = 0; menuBlend = 1; anim.play("idle");
   menu.hidden = true; over.hidden = true; pauseEl.hidden = true; hud.hidden = false;
-  showBanner(THEMES[cur.theme].name); $("world").textContent = THEMES[cur.theme].name;
+  showBanner(G.daily ? "Daily Run" : THEMES[cur.theme].name); $("world").textContent = THEMES[cur.theme].name;
+  touchStreak();
 }
 function countTick(dt) {
   G.countT -= dt;
@@ -2560,7 +2601,7 @@ function countTick(dt) {
   if (G.countT <= 0) { G.state = "run"; anim.play("run"); if (store.get("chonkrun.tips", "0") !== "1") { store.set("chonkrun.tips", "1"); const touch = matchMedia("(pointer: coarse)").matches; [[300, touch ? "SWIPE ← → TO SWITCH LANES" : "← → TO SWITCH LANES"], [2600, touch ? "SWIPE UP TO JUMP, DOWN TO SLIDE" : "↑ JUMP   ↓ SLIDE"], [5200, "TURN AT CORNERS WITH ← →"]].forEach(([ms, m]) => setTimeout(() => { if (G.state === "run") tip(m); }, ms)); } setTimeout(() => { if (G.state !== "count") el.textContent = ""; }, 700); }
 }
 function toMenu() {
-  $("count").textContent = "";
+  $("count").textContent = ""; if (G.daily) endDaily();
   G.state = "menu"; resetWorld(); anim.play("wave"); setTimeout(() => { if (G.state === "menu") anim.play("idle"); }, 2200);
   menu.hidden = false; over.hidden = true; pauseEl.hidden = true; hud.hidden = true;
 }
@@ -2578,12 +2619,12 @@ function gameOver() {
   const sc = Math.floor(G.score), isBest = sc > G.best;
   if (isBest) { G.best = sc; store.set("chonkrun.best", String(sc)); }
   $("reason").textContent = G.reason; $("oScore").textContent = sc.toLocaleString(); $("oCoins").textContent = G.coins; $("oBest").textContent = G.best.toLocaleString();
-  $("newBest").hidden = !isBest; over.hidden = false; hud.hidden = true; updateBestLine(); lbOnGameOver(sc);
+  $("newBest").hidden = !isBest; over.hidden = false; hud.hidden = true; updateBestLine(); progressOnGameOver(sc); lbOnGameOver(sc);
   setTimeout(() => $("againBtn").focus({ preventScroll: true }), 50);
 }
 function crash(reason) {
   if (pl.inv > 0 || pl.dead) return;
-  if (pl.shield) { pl.shield = false; pl.inv = 1.6; SFX.shieldPop(); flashVig("shield"); toast("SHIELD SAVED YOU"); removePower("shield"); return; }
+  if (pl.shield) { G.rs.shieldSaves++; pl.shield = false; pl.inv = 1.6; SFX.shieldPop(); flashVig("shield"); toast("SHIELD SAVED YOU"); removePower("shield"); return; }
   die(reason);
 }
 function stumble() {
@@ -2615,7 +2656,8 @@ function doTurn(dir) {
   const old = cur; cur = nr;
   if (pendingDispose) flushDispose();
   pendingDispose = { old, others: old.opts.filter((d) => d !== dir).map((d) => old.next[d]) };
-  ensureAhead(cur, 2); SFX.turn(dir === "L" ? -1 : 1); G.score += 25 * (pl.dbl > 0 ? 2 : 1);
+  ensureAhead(cur, 2); SFX.turn(dir === "L" ? -1 : 1); G.rs.turns++;
+  if (cur.theme === "space") G.rs.sawSpace = true; if (G.rs.sawSpace && cur.theme === "jungle") G.rs.loop = true; G.rs.worlds.add(cur.theme); G.score += 25 * (pl.dbl > 0 ? 2 : 1);
   if (cur.theme !== envKey) { applyEnv(cur.theme); showBanner(THEMES[cur.theme].name); $("world").textContent = THEMES[cur.theme].name; }
   else if (cur.style !== "normal") showBanner(THEMES[cur.theme].pieceName);
 }
@@ -2634,10 +2676,10 @@ function handle(a) {
     if (nl !== pl.lane) { pl.from = pl.lane; pl.lane = nl; SFX.lane(a === "left" ? -1 : 1); }
     else { SFX.stumble(); shake = 0.12; }
   } else if (a === "up") {
-    if (pl.ground || pl.coyote > 0) { pl.coyote = 0; pl.vy = JUMP; pl.ground = false; pl.slide = 0; SFX.jump(); }
+    if (pl.ground || pl.coyote > 0) { G.rs.jumps++; pl.coyote = 0; pl.vy = JUMP; pl.ground = false; pl.slide = 0; SFX.jump(); }
   } else if (a === "down") {
     if (!pl.ground) { pl.vy = Math.min(pl.vy, -24); pl.slideQ = true; }
-    else { if (pl.slide <= 0.15) SFX.slide(); pl.slide = 0.6; }
+    else { if (pl.slide <= 0.15) { SFX.slide(); G.rs.slides++; } pl.slide = 0.6; }
   }
 }
 
@@ -2702,13 +2744,14 @@ function step(dt) {
   for (const p of run.powers) {
     if (p.got) continue;
     if (Math.abs(p.s - pl.s) < 1.0 && Math.abs(p.x - pl.x) < 1.0 && Math.abs(p.y - cy) < 1.3) {
-      p.got = true; p.mesh.visible = false; SFX.power(); toast(POWER_INFO[p.type].label);
+      p.got = true; p.mesh.visible = false; SFX.power(); G.rs.powers++; toast(POWER_INFO[p.type].label);
       if (p.type === "magnet") pl.magnet = POWER_INFO.magnet.dur; else if (p.type === "double") pl.dbl = POWER_INFO.double.dur; else pl.shield = true;
       addPower(p.type);
     }
   }
   pl.inv = Math.max(0, pl.inv - dt); pl.magnet = Math.max(0, pl.magnet - dt); pl.dbl = Math.max(0, pl.dbl - dt);
   if (pendingDispose && pl.s > 30) flushDispose();
+  if (run.zone && !run.zoneDone && pl.s > run.zone.s1) { run.zoneDone = true; G.rs.pieces++; }
 }
 
 /* =====================================================================
@@ -2890,7 +2933,7 @@ $("quitBtn").onclick = toMenu;
 $("pauseBtn").onclick = () => setPaused(true);
 $("muteBtn").onclick = () => { audioInit(); setMuted(!AU.muted); };
 setMuted(AU.muted);
-const WORLD_LABEL = (m) => (m === "mix" ? "Journey" : THEMES[m]?.name || m);
+const WORLD_LABEL = (m) => (m === "mix" ? "Journey" : m.startsWith("daily-") ? "Daily Run" : THEMES[m]?.name || m);
 const escHtml = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function lbRender(el, rows, meName, meScore) {
   el.innerHTML = rows.length ? rows.map((r, i) => `<li class="${r.name === meName && r.score === meScore ? "me" : ""}"><b>${i + 1}</b><span>${escHtml(r.name)}${r.chonk_id ? `<small>#${r.chonk_id}</small>` : ""}</span><em>${r.score.toLocaleString()}</em></li>`).join("")
@@ -2899,10 +2942,10 @@ function lbRender(el, rows, meName, meScore) {
 let lastRun = null;
 function lbOnGameOver(sc) {
   $("lbOver").hidden = !lbOn(); if (!lbOn()) return;
-  lastRun = { score: sc, distance: Math.floor(G.dist), coins: G.coins, duration_ms: Math.max(1, Math.round(G.runMs)), mode: G.mode, chonk_id: currentId ? +currentId : null };
+  lastRun = { score: sc, distance: Math.floor(G.dist), coins: G.coins, duration_ms: Math.max(1, Math.round(G.runMs)), mode: boardMode(), chonk_id: currentId ? +currentId : null };
   $("nameIn").value = store.get("chonkrun.name", ""); $("submitRow").hidden = sc < 50 || G.submitted; $("submitBtn").disabled = false;
-  $("lbStatus").textContent = sc < 50 ? "Score 50 or more to get on the board." : `${WORLD_LABEL(G.mode)} · top 10`; $("lbStatus").className = "status";
-  lbTop(G.mode, "all").then((rows) => lbRender($("lbListOver"), rows)).catch(() => { $("lbStatus").textContent = "Couldn't reach the leaderboard."; $("lbStatus").className = "status err"; });
+  $("lbStatus").textContent = sc < 50 ? "Score 50 or more to get on the board." : `${WORLD_LABEL(boardMode())} · top 10`; $("lbStatus").className = "status";
+  lbTop(boardMode(), "all").then((rows) => lbRender($("lbListOver"), rows)).catch(() => { $("lbStatus").textContent = "Couldn't reach the leaderboard."; $("lbStatus").className = "status err"; });
 }
 $("submitBtn").onclick = async () => {
   const name = $("nameIn").value.trim().replace(/\s+/g, " ").slice(0, 16);
@@ -2927,7 +2970,132 @@ $("lbBtn").hidden = !lbOn();
 $("lbBtn").onclick = () => { menu.hidden = true; $("lbPanel").hidden = false; lbShowMenu(); };
 $("lbClose").onclick = () => { $("lbPanel").hidden = true; menu.hidden = false; };
 for (const btn of $("lbPeriod").children) btn.onclick = () => { lbPeriod = btn.dataset.p; for (const b of $("lbPeriod").children) b.setAttribute("aria-pressed", b === btn ? "true" : "false"); lbShowMenu(); };
-function updateBestLine() { $("bestLine").textContent = G.best ? `Best run: ${G.best.toLocaleString()}` : ""; }
+/* =====================================================================
+   Challenges: Daily Run, missions, badges, streak. Saved in this browser.
+   ===================================================================== */
+const todayUTC = () => new Date().toISOString().slice(0, 10);
+const localDay = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const boardMode = () => (G.daily ? `daily-${G.dailyDate}` : G.mode);
+const PROFILE = (() => { try { return JSON.parse(store.get("chonkrun.profile", "null")) || null; } catch { return null; } })() || {};
+PROFILE.totals ??= { runs: 0, dist: 0, coins: 0, jumps: 0, slides: 0, turns: 0, powers: 0, pieces: 0, daily: 0 };
+PROFILE.stars ??= 0; PROFILE.badges ??= {}; PROFILE.streak ??= { last: null, n: 0 }; PROFILE.daily ??= { date: null, best: 0 }; PROFILE.missions ??= [];
+const saveProfile = () => store.set("chonkrun.profile", JSON.stringify(PROFILE));
+
+const RANKS = [[0, "Rookie"], [3, "Jogger"], [6, "Runner"], [10, "Sprinter"], [15, "Dasher"], [21, "Speedster"], [28, "Legend"], [36, "Chonk Champion"]];
+const rankOf = (st) => { let r = RANKS[0], next = null; for (let i = 0; i < RANKS.length; i++) if (st >= RANKS[i][0]) { r = RANKS[i]; next = RANKS[i + 1] || null; } return { name: r[1], next }; };
+const MISSION_POOL = [
+  { k: "dist", stat: "dist", scope: "run", lv: [500, 800, 1200, 1800, 2600, 3600], text: (n) => `Run ${n.toLocaleString()} m in one run` },
+  { k: "coins", stat: "coins", scope: "run", lv: [40, 80, 140, 220, 350, 500], text: (n) => `Collect ${n} coins in one run` },
+  { k: "coinsT", stat: "coins", scope: "total", lv: [250, 500, 900, 1600, 2800, 4500], text: (n) => `Collect ${n.toLocaleString()} coins in total` },
+  { k: "jumps", stat: "jumps", scope: "run", lv: [15, 25, 40, 60, 80, 110], text: (n) => `Jump ${n} times in one run` },
+  { k: "slides", stat: "slides", scope: "run", lv: [6, 12, 20, 30, 45, 60], text: (n) => `Slide ${n} times in one run` },
+  { k: "turns", stat: "turns", scope: "run", lv: [3, 5, 8, 12, 16, 22], text: (n) => `Take ${n} corners in one run` },
+  { k: "powers", stat: "powers", scope: "total", lv: [3, 6, 10, 15, 25, 40], text: (n) => `Grab ${n} power-ups in total` },
+  { k: "pieces", stat: "pieces", scope: "run", lv: [1, 1, 2, 2, 3, 4], text: (n) => `Cross ${n} special stretch${n > 1 ? "es" : ""} in one run` },
+  { k: "worlds", stat: "worlds", scope: "run", lv: [2, 2, 3, 4, 5, 7], text: (n) => `Reach ${n} worlds in one Journey run` },
+  { k: "score", stat: "score", scope: "run", lv: [1000, 2000, 4000, 7000, 11000, 16000], text: (n) => `Score ${n.toLocaleString()} in one run` },
+  { k: "daily", stat: "daily", scope: "run", lv: [1, 1, 1, 1, 1, 1], text: () => "Play today's Daily Run" },
+];
+function newMission(exclude) {
+  const lvl = Math.min(5, Math.floor(PROFILE.stars / 4)), pool = MISSION_POOL.filter((m) => !exclude.includes(m.k));
+  const m = pool[Math.floor(Math.random() * pool.length)];
+  return { k: m.k, target: m.lv[lvl], prog: 0, done: false };
+}
+function fillMissions() {
+  PROFILE.missions = PROFILE.missions.filter((m) => !m.done && MISSION_POOL.some((p) => p.k === m.k));
+  while (PROFILE.missions.length < 3) PROFILE.missions.push(newMission(PROFILE.missions.map((m) => m.k)));
+}
+fillMissions(); saveProfile();
+const missionDef = (m) => MISSION_POOL.find((p) => p.k === m.k);
+function runStat(stat) {
+  const rs = G.rs || {};
+  return { dist: Math.floor(G.dist), coins: G.coins, score: Math.floor(G.score), jumps: rs.jumps || 0, slides: rs.slides || 0, turns: rs.turns || 0, powers: rs.powers || 0,
+    pieces: rs.pieces || 0, worlds: G.mode === "mix" && rs.worlds ? rs.worlds.size : 0, daily: G.daily ? 1 : 0 }[stat] || 0;
+}
+// during a run: tick off run-scoped missions as soon as they're met
+function checkMissionsLive() {
+  if (G.state !== "run" || !G.rs) return;
+  for (const m of PROFILE.missions) {
+    const d = missionDef(m); if (m.done || !d || d.scope !== "run") continue;
+    const v = runStat(d.stat); if (v >= m.target) { m.done = true; m.prog = m.target; PROFILE.stars++; m.fresh = true; saveProfile(); tip("MISSION COMPLETE!"); SFX.power(); }
+  }
+}
+setInterval(checkMissionsLive, 500);
+const BADGES = [
+  ["first", "First Steps", "Finish your first run", (p) => p.totals.runs >= 1],
+  ["k1", "One K", "Run 1,000 m in one run", (p, r) => r.dist >= 1000],
+  ["k5", "Five K", "Run 5,000 m in one run", (p, r) => r.dist >= 5000],
+  ["k10", "Ten K", "Run 10,000 m in one run", (p, r) => r.dist >= 10000],
+  ["c1k", "Pocket Change", "Collect 1,000 coins in total", (p) => p.totals.coins >= 1000],
+  ["c10k", "Coin Hoarder", "Collect 10,000 coins in total", (p) => p.totals.coins >= 10000],
+  ["tour", "World Tour", "Reach Star Station in a Journey run", (p, r) => r.sawSpace],
+  ["loop", "Round Again", "Get back to the jungle in a Journey run", (p, r) => r.loop],
+  ["sp25", "Set Piece Pro", "Cross 25 special stretches", (p) => p.totals.pieces >= 25],
+  ["daily", "Daily Dasher", "Play a Daily Run", (p) => p.totals.daily >= 1],
+  ["streak7", "On Fire", "Play 7 days in a row", (p) => p.streak.n >= 7],
+  ["m10", "Taskmaster", "Complete 10 missions", (p) => p.stars >= 10],
+  ["pure", "Purist", "Run 2,000 m without a power-up", (p, r) => r.dist >= 2000 && r.powers === 0],
+  ["shield", "Close Call", "Get saved by a shield", (p, r) => r.shieldSaves > 0],
+  ["r100", "Regular", "Play 100 runs", (p) => p.totals.runs >= 100],
+];
+function touchStreak() {
+  const today = localDay(), y = new Date(); y.setDate(y.getDate() - 1);
+  const st = PROFILE.streak; if (st.last === today) return;
+  st.n = st.last === localDay(y) ? st.n + 1 : 1; st.last = today; saveProfile(); updateBestLine();
+}
+function progressOnGameOver(sc) {
+  if (!G.rs) return;
+  const T = PROFILE.totals, run = { dist: Math.floor(G.dist), coins: G.coins, ...G.rs };
+  T.runs++; T.dist += run.dist; T.coins += G.coins; T.jumps += run.jumps; T.slides += run.slides; T.turns += run.turns; T.powers += run.powers; T.pieces += run.pieces; if (G.daily) T.daily++;
+  if (G.daily) { if (PROFILE.daily.date !== G.dailyDate) PROFILE.daily = { date: G.dailyDate, best: 0 }; PROFILE.daily.best = Math.max(PROFILE.daily.best, sc); }
+  // missions: run-scoped ones were ticked live; totals tick here
+  for (const m of PROFILE.missions) {
+    const d = missionDef(m); if (!d || m.done) continue;
+    if (d.scope === "total") { m.prog += d.stat === "coins" ? G.coins : run[d.stat] || 0; if (m.prog >= m.target) { m.prog = m.target; m.done = true; m.fresh = true; PROFILE.stars++; } }
+    else { const v = runStat(d.stat); m.prog = Math.max(m.prog, Math.min(m.target, v)); if (v >= m.target) { m.done = true; m.fresh = true; PROFILE.stars++; } }
+  }
+  const newBadges = [];
+  for (const [id, name, , test] of BADGES) if (!PROFILE.badges[id] && test(PROFILE, run)) { PROFILE.badges[id] = Date.now(); newBadges.push(name); }
+  // show this run's missions, then swap finished ones for new ones
+  const shown = PROFILE.missions.map((m) => ({ ...m }));
+  fillMissions(); saveProfile();
+  $("progOver").innerHTML = `<div class="mis">${shown.map(missionRow).join("")}</div>` + (newBadges.length ? `<div class="new">NEW BADGE${newBadges.length > 1 ? "S" : ""}: ${newBadges.map(escHtml).join(", ").toUpperCase()}</div>` : "");
+}
+function missionRow(m) {
+  const d = missionDef(m); if (!d) return "";
+  const pct = Math.min(100, Math.round((m.done ? 1 : m.prog / m.target) * 100));
+  return `<div class="${m.done ? "done" : ""}">${m.done ? "✓ " : ""}${escHtml(d.text(m.target))}<small>${m.done ? "DONE" : d.scope === "total" ? `${m.prog.toLocaleString()} / ${m.target.toLocaleString()}` : `best ${m.prog.toLocaleString()}`}</small><i><u style="width:${pct}%"></u></i></div>`;
+}
+function startDaily() {
+  G.daily = true; G.dailyDate = todayUTC(); G.seed = hashSeed("chonkrun-daily", G.dailyDate); G.modeSaved = G.mode; G.mode = "mix";
+  $("chPanel").hidden = true; resetWorld(); startRun();
+}
+function endDaily() { G.daily = false; G.seed = null; G.mode = G.modeSaved || store.get("chonkrun.world", "mix"); }
+let chTab = "daily";
+function renderChallenges() {
+  const r = rankOf(PROFILE.stars);
+  $("chRank").textContent = `${r.name} · ${PROFILE.stars} mission${PROFILE.stars === 1 ? "" : "s"} done${r.next ? ` · ${r.next[0] - PROFILE.stars} to ${r.next[1]}` : ""}${PROFILE.streak.n > 1 ? ` · ${PROFILE.streak.n}-day streak` : ""}`;
+  for (const b of $("chTabs").children) b.setAttribute("aria-pressed", b.dataset.t === chTab ? "true" : "false");
+  const body = $("chBody");
+  if (chTab === "daily") {
+    const d = todayUTC(), mine = PROFILE.daily.date === d ? PROFILE.daily.best : 0;
+    body.innerHTML = `<div class="daily"><p class="lede" style="display:block;margin:0 0 8px">Same track for everyone today. New one at midnight UTC.</p>
+      <small class="lab" style="margin:0">YOUR BEST TODAY</small><div class="big">${mine ? mine.toLocaleString() : "–"}</div>
+      <button class="play" id="dailyGo" type="button">▶&#xFE0E; PLAY DAILY RUN</button>
+      <ol class="lbList" id="dailyList"></ol><div class="status" id="dailyStatus"></div></div>`;
+    $("dailyGo").onclick = startDaily;
+    if (lbOn()) lbTop(`daily-${d}`, "all").then((rows) => lbRender($("dailyList"), rows)).catch(() => { $("dailyStatus").textContent = "Couldn't reach the leaderboard."; });
+  } else if (chTab === "missions") {
+    body.innerHTML = `<div class="mis">${PROFILE.missions.map(missionRow).join("")}</div><p class="keys">Finish missions to rank up. Finished ones are swapped for new, harder ones after your run.</p>`;
+  } else {
+    const got = BADGES.filter(([id]) => PROFILE.badges[id]).length;
+    body.innerHTML = `<p class="keys">${got} of ${BADGES.length} collected</p><div class="badges">${BADGES.map(([id, name, desc]) => `<div class="${PROFILE.badges[id] ? "got" : ""}"><b>${escHtml(name)}</b>${escHtml(desc)}</div>`).join("")}</div>`;
+  }
+}
+$("chBtn").onclick = () => { menu.hidden = true; $("chPanel").hidden = false; chTab = "daily"; renderChallenges(); };
+$("chClose").onclick = () => { $("chPanel").hidden = true; menu.hidden = false; };
+for (const b of $("chTabs").children) b.onclick = () => { chTab = b.dataset.t; renderChallenges(); };
+function updateBestLine() { const st = PROFILE.streak; $("bestLine").textContent = [G.best ? `Best run: ${G.best.toLocaleString()}` : "", `${rankOf(PROFILE.stars).name}`, st.n > 1 && st.last === localDay() ? `${st.n}-day streak` : ""].filter(Boolean).join(" · "); }
 updateBestLine();
 
 /* =====================================================================
