@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <title>Chonk Run</title>
-<meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=IBM+Plex+Mono:wght@400;500;700&display=swap">
@@ -129,6 +129,27 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .prog{margin-top:10px;text-align:left}
 .prog .mis{margin-top:6px}
 .prog .new{font:400 11px var(--display);letter-spacing:.08em;color:var(--good);margin-top:8px}
+.bank{font:400 13px var(--display);letter-spacing:.04em;color:var(--glow);text-align:center;margin:2px 0 4px}
+.bank small{display:block;font:400 10.5px var(--sans,inherit);letter-spacing:0;color:var(--muted);margin-top:3px}
+#stPanel,#revive{justify-content:center;background:rgba(10,7,16,.45)}
+#stPanel .card,#revive .card{text-align:center;width:min(460px,100%)}
+.wallet{font:400 22px var(--display);color:var(--glow);margin-top:6px}
+.coin.sm{display:inline-block;width:.8em;height:.8em;box-shadow:0 0 0 1.5px #7a4d00 inset;vertical-align:-.05em;margin-right:5px}
+.shop{display:grid;gap:8px;margin-top:14px;text-align:left}
+.shop>div{display:grid;grid-template-columns:1fr auto;gap:4px 10px;align-items:center;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:10px;padding:10px 11px}
+.shop b{font:400 13px var(--display);letter-spacing:.03em}
+.shop p{margin:0;grid-column:1;font-size:12px;color:var(--muted)}
+.shop .btn{grid-row:1/span 3;grid-column:2;min-width:92px}
+.shop .btn:disabled{opacity:.4;cursor:default}
+.shop .btn.on{border-color:var(--good);color:var(--good)}
+.pips{display:flex;gap:4px;grid-column:1}
+.pips i{width:16px;height:5px;border-radius:3px;background:rgba(255,255,255,.14)}
+.pips i.on{background:var(--glow)}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:7px;vertical-align:-1px}
+.hs{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;font-size:12px;color:var(--muted);cursor:pointer}
+.hs input{accent-color:var(--glow);width:16px;height:16px}
+.rvbar{height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:14px}
+.rvbar u{display:block;height:100%;background:var(--glow);transform-origin:left}
 @media (max-width:700px){.badges{grid-template-columns:repeat(2,1fr)}}
 #lbPanel .card{text-align:center}
 .mobilehint{display:none}
@@ -201,7 +222,9 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <div class="keys deskhint"><kbd>←</kbd><kbd>→</kbd> switch lanes, and turn at corners · <kbd>↑</kbd>/<kbd>Space</kbd> jump · <kbd>↓</kbd> slide · <kbd>P</kbd> pause · <kbd>M</kbd> sound</div>
     <div class="keys mobilehint">Swipe left or right to switch lanes and to turn at corners. Swipe up to jump, down to slide.</div>
     <div class="keys" id="bestLine"></div>
-    <div class="two" style="margin-top:10px"><button class="btn" id="chBtn" type="button">CHALLENGES</button><button class="btn" id="lbBtn" type="button" hidden>LEADERBOARD</button></div>
+    <label class="hs" id="hsRow" hidden><input type="checkbox" id="hsIn"> <span id="hsText">Use a Head Start</span></label>
+    <div class="two" style="margin-top:10px"><button class="btn" id="chBtn" type="button">CHALLENGES</button><button class="btn" id="stBtn" type="button">STORE</button></div>
+    <button class="btn" id="lbBtn" type="button" hidden style="width:100%;margin-top:8px">LEADERBOARD</button>
   </div>
 </div>
 
@@ -240,6 +263,27 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <div class="seg" id="chTabs" style="grid-template-columns:repeat(3,1fr);margin-top:12px"><button type="button" data-t="daily" aria-pressed="true">DAILY</button><button type="button" data-t="missions" aria-pressed="false">MISSIONS</button><button type="button" data-t="badges" aria-pressed="false">BADGES</button></div>
     <div id="chBody"></div>
     <button class="play alt" id="chClose" type="button">BACK</button>
+  </div>
+</div>
+
+<div id="stPanel" class="overlay" hidden>
+  <div class="card">
+    <h2>STORE</h2>
+    <div class="wallet"><i class="coin sm"></i><span id="stWallet">0</span></div>
+    <div class="seg" id="stTabs" style="grid-template-columns:repeat(3,1fr);margin-top:12px"><button type="button" data-t="upg" aria-pressed="true">UPGRADES</button><button type="button" data-t="items" aria-pressed="false">ITEMS</button><button type="button" data-t="trails" aria-pressed="false">TRAILS</button></div>
+    <div id="stBody"></div>
+    <p class="keys" id="stNote"></p>
+    <button class="play alt" id="stClose" type="button">BACK</button>
+  </div>
+</div>
+
+<div id="revive" class="overlay" hidden>
+  <div class="card">
+    <h2>KEEP GOING?</h2>
+    <p class="reason" id="rvReason"></p>
+    <button class="play" id="rvBtn" type="button">REVIVE</button>
+    <div class="rvbar"><u id="rvBar"></u></div>
+    <button class="play alt" id="rvSkip" type="button">NO THANKS</button>
   </div>
 </div>
 
@@ -2015,7 +2059,7 @@ function groundAt(run, s, x, y, ghost) {
 function addSolid(run, x0, x1, s0, s1, top, ramp = 0) { const o = { x0, x1, s0, s1, top, ramp }; run.solids.push(o); return o; }
 function coinLine(run, lane, s0, s1, y = 0.9, top = false) {
   for (let s = s0; s <= s1; s += 2.1) run.coins.push({ s, x: LANES[lane], y, top });
-  if (R() < 0.07) run.powerSpots.push({ s: s1 + 3, x: LANES[lane], y: y + 0.2 });
+  if (R() < 0.07 * (1 + 0.2 * upLvl("luck"))) run.powerSpots.push({ s: s1 + 3, x: LANES[lane], y: y + 0.2 });
 }
 function coinArc(run, lane, sc, span = 8) { for (let i = 0; i <= 6; i++) { const t = i / 6; run.coins.push({ s: sc - span / 2 + span * t, x: LANES[lane], y: 0.9 + 1.25 * Math.sin(t * Math.PI), arc: true }); } }
 
@@ -2317,7 +2361,7 @@ function buildRunInner(run) {
   // power-ups
   let np = 0;
   for (const p of shuffle(run.powerSpots)) {
-    if (np >= 2 || p.s > run.L - W - 10) break;
+    if (np >= 2 + (upLvl("luck") >= 3) + (upLvl("luck") >= 5) || p.s > run.L - W - 10) break;
     const pg = groundAt(run, p.s, p.x, 99, false); if (pg > 0.3 || pg < -50) continue;
     const type = weighted({ magnet: 4, double: 3.5, shield: 2.5 });
     const m = makePower(type); m.position.set(p.x, p.y, -p.s); run.group.add(m);
@@ -2351,7 +2395,9 @@ function updateCoins(run, t) {
   });
   run.coinMesh.instanceMatrix.needsUpdate = true;
 }
-const POWER_INFO = { magnet: { label: "MAGNET", color: "#ff5d73", dur: 10 }, double: { label: "2X SCORE", color: "#c08bff", dur: 12 }, shield: { label: "SHIELD", color: "#5fd7ff", dur: 0 } };
+// store upgrades never apply in the Daily Run, so it stays the same for everyone
+function upLvl(k) { if (G.daily) return 0; try { return (PROFILE.upg && PROFILE.upg[k]) | 0; } catch { return 0; } }
+const POWER_INFO = { magnet: { label: "MAGNET", color: "#ff5d73", get dur() { return 10 + 2 * upLvl("magnet"); } }, double: { label: "2X SCORE", color: "#c08bff", get dur() { return 12 + 2 * upLvl("double"); } }, shield: { label: "SHIELD", color: "#5fd7ff", dur: 0 } };
 const powMats = {
   red: new THREE.MeshStandardMaterial({ color: 0xff4050, emissive: 0x801020, roughness: 0.4 }),
   steel: new THREE.MeshStandardMaterial({ color: 0xe6e9ef, emissive: 0x333333, metalness: 0.6, roughness: 0.3 }),
@@ -2392,7 +2438,7 @@ blob.rotation.x = -Math.PI / 2; scene.add(blob);
 
 const pl = {};
 function resetPlayer() {
-  Object.assign(pl, { s: 2, x: 0, lane: 1, from: 1, y: 0, vy: 0, ground: true, slide: 0, slideQ: false, inv: 0, shield: false, magnet: 0, dbl: 0, lastStumble: -99, dead: false, deathT: 0 });
+  Object.assign(pl, { s: 2, x: 0, lane: 1, from: 1, y: 0, vy: 0, ground: true, slide: 0, slideQ: false, inv: 0, shield: false, magnet: 0, dbl: 0, lastStumble: -99, dead: false, deathT: 0, rev: 0 });
 }
 let cur = null, pendingDispose = null, queue = [];
 let camYaw = 0, playerYaw = Math.PI, shake = 0, menuBlend = 1, viewOff = 0;
@@ -2410,6 +2456,7 @@ function resetWorld() {
   applyEnv(cur.theme, true);
   G.score = 0; G.coins = 0; G.dist = 0; G.speed = SPEED0; G.runMs = 0; G.submitted = false;
   G.rs = { jumps: 0, slides: 0, turns: 0, powers: 0, pieces: 0, shieldSaves: 0, worlds: new Set([cur.theme]), loop: false, sawSpace: false };
+  G.revived = false; G.headDone = false; G.earned = []; trailReset();
   for (const k of Object.keys(powerEls)) { powerEls[k].remove(); delete powerEls[k]; }
 }
 
@@ -2598,7 +2645,7 @@ function countTick(dt) {
     G.countShown = n; el.textContent = n > 0 ? String(n) : "GO!"; el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop");
     if (n > 0) tone(660, 0.14, "square", 0.12); else tone(1320, 0.3, "square", 0.12);
   }
-  if (G.countT <= 0) { G.state = "run"; anim.play("run"); if (store.get("chonkrun.tips", "0") !== "1") { store.set("chonkrun.tips", "1"); const touch = matchMedia("(pointer: coarse)").matches; [[300, touch ? "SWIPE ← → TO SWITCH LANES" : "← → TO SWITCH LANES"], [2600, touch ? "SWIPE UP TO JUMP, DOWN TO SLIDE" : "↑ JUMP   ↓ SLIDE"], [5200, "TURN AT CORNERS WITH ← →"]].forEach(([ms, m]) => setTimeout(() => { if (G.state === "run") tip(m); }, ms)); } setTimeout(() => { if (G.state !== "count") el.textContent = ""; }, 700); }
+  if (G.countT <= 0) { G.state = "run"; anim.play("run"); applyHeadStart(); if (store.get("chonkrun.tips", "0") !== "1") { store.set("chonkrun.tips", "1"); const touch = matchMedia("(pointer: coarse)").matches; [[300, touch ? "SWIPE ← → TO SWITCH LANES" : "← → TO SWITCH LANES"], [2600, touch ? "SWIPE UP TO JUMP, DOWN TO SLIDE" : "↑ JUMP   ↓ SLIDE"], [5200, "TURN AT CORNERS WITH ← →"]].forEach(([ms, m]) => setTimeout(() => { if (G.state === "run") tip(m); }, ms)); } setTimeout(() => { if (G.state !== "count") el.textContent = ""; }, 700); }
 }
 function toMenu() {
   $("count").textContent = ""; if (G.daily) endDaily();
@@ -2612,7 +2659,8 @@ function setPaused(p) {
 function die(reason) {
   if (pl.dead) return;
   pl.dead = true; pl.deathT = 0; G.state = "dead"; G.reason = reason; anim.play("idle"); SFX.crash(); shake = 0.6;
-  setTimeout(gameOver, 1200);
+  const id = (G.deathId = (G.deathId || 0) + 1);
+  setTimeout(() => { if (G.deathId !== id || G.state !== "dead") return; if (canRevive()) offerRevive(); else setTimeout(() => { if (G.deathId === id && G.state === "dead") gameOver(); }, 300); }, 900);
 }
 function gameOver() {
   G.state = "over";
@@ -2717,7 +2765,8 @@ function step(dt) {
     if (gL > pl.y + STEP) { stumble(); pl.lane = pl.from; if (pl.dead) return; } else pl.x = nx;
   }
   // vertical
-  const g0 = groundAt(run, pl.s, pl.x, pl.y, pl.inv > 0), g = g0 - pl.y > STEP ? -100 : g0; // once you've dropped below a ledge, you keep falling
+  const g0 = groundAt(run, pl.s, pl.x, pl.y, pl.inv > 0); let g = g0 - pl.y > STEP ? -100 : g0; // once you've dropped below a ledge, you keep falling
+  if (pl.rev > 0 && g < -50 && pl.s < run.L - 0.5) g = Math.max(0, pl.y); // just revived: float over gaps until it wears off
   if (pl.vy > 0 || pl.y > g + 1e-3) {
     if (pl.ground && pl.vy <= 0) pl.coyote = 0.1; pl.coyote = Math.max(0, (pl.coyote || 0) - dt);
     pl.vy += GRAV * dt; pl.y += pl.vy * dt; pl.ground = false;
@@ -2749,7 +2798,7 @@ function step(dt) {
       addPower(p.type);
     }
   }
-  pl.inv = Math.max(0, pl.inv - dt); pl.magnet = Math.max(0, pl.magnet - dt); pl.dbl = Math.max(0, pl.dbl - dt);
+  pl.inv = Math.max(0, pl.inv - dt); pl.rev = Math.max(0, pl.rev - dt); pl.magnet = Math.max(0, pl.magnet - dt); pl.dbl = Math.max(0, pl.dbl - dt);
   if (pendingDispose && pl.s > 30) flushDispose();
   if (run.zone && !run.zoneDone && pl.s > run.zone.s1) { run.zoneDone = true; G.rs.pieces++; }
 }
@@ -2781,6 +2830,7 @@ function place(dt) {
   const fwd = tmpV.set(-Math.sin(camYaw), 0, -Math.cos(camYaw));
   const gameEye = tmpV2.copy(P).addScaledVector(fwd, -6.6); gameEye.y = 3.6 + Math.max(0, pl.y) * 0.55;
   const gameLook = P.clone().addScaledVector(fwd, 7); gameLook.y = 1.1 + Math.max(0, pl.y) * 0.7;
+  if (G.snapCam) { G.snapCam = false; camPos.copy(gameEye); camLook.copy(gameLook); }
   if (G.state === "menu") {
     const a = Math.sin(t * 0.25) * 0.55;
     const narrow = innerWidth <= 700, dist = narrow ? 5.4 : 4.6;
@@ -2857,6 +2907,7 @@ const KEYMAP = { ArrowLeft: "left", KeyA: "left", ArrowRight: "right", KeyD: "ri
 addEventListener("keydown", (e) => {
   if (e.target instanceof HTMLInputElement) { if (e.key === "Enter") { if (e.target.id === "idIn") $("idBtn").click(); if (e.target.id === "walletIn") $("walletBtn").click(); } return; }
   if (e.code === "KeyM") { setMuted(!AU.muted); return; }
+  if (G.state === "revive") { if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); doRevive(); } else if (e.code === "Escape") skipRevive(); return; }
   if (e.code === "KeyP" || e.code === "Escape") { setPaused(G.state === "run"); return; }
   if (e.code === "Enter" && (G.state === "over" || G.state === "menu")) { e.preventDefault(); startRun(); return; }
   const a = KEYMAP[e.code];
@@ -2979,7 +3030,160 @@ const boardMode = () => (G.daily ? `daily-${G.dailyDate}` : G.mode);
 const PROFILE = (() => { try { return JSON.parse(store.get("chonkrun.profile", "null")) || null; } catch { return null; } })() || {};
 PROFILE.totals ??= { runs: 0, dist: 0, coins: 0, jumps: 0, slides: 0, turns: 0, powers: 0, pieces: 0, daily: 0 };
 PROFILE.stars ??= 0; PROFILE.badges ??= {}; PROFILE.streak ??= { last: null, n: 0 }; PROFILE.daily ??= { date: null, best: 0 }; PROFILE.missions ??= [];
+PROFILE.bank ??= 0; PROFILE.upg ??= { magnet: 0, double: 0, luck: 0 }; PROFILE.items ??= { revive: 0, head: 0 }; PROFILE.trails ??= { own: ["none"], on: "none" }; PROFILE.useHead ??= true;
 const saveProfile = () => store.set("chonkrun.profile", JSON.stringify(PROFILE));
+/* ---------- wallet, rewards and the store ---------- */
+const DAILY_PAY = 250, BADGE_PAY = 500, REVIVE_COST = 300;
+const missionPay = () => 150 + 50 * Math.min(5, Math.floor(PROFILE.stars / 4));
+function earn(n, why) { n = Math.max(0, Math.floor(n)); if (!n) return; PROFILE.bank += n; (G.earned ||= []).push([why, n]); }
+const fmt = (n) => Math.floor(n).toLocaleString();
+function bankLine() {
+  const by = {}; for (const [k, n] of G.earned || []) by[k] = (by[k] || 0) + n;
+  const tot = Object.values(by).reduce((a, b) => a + b, 0);
+  const parts = [["run", "coins"], ["mission", "missions"], ["badge", "badges"], ["daily", "daily bonus"]].filter(([k]) => by[k]).map(([k, l]) => `${l} ${fmt(by[k])}`);
+  return `<div class="bank">+${fmt(tot)} COINS BANKED · WALLET ${fmt(PROFILE.bank)}${parts.length > 1 ? `<small>${parts.join(" · ")}</small>` : ""}</div>`;
+}
+const UPGRADES = [
+  ["magnet", "Magnet", "Magnets last", (l) => `${10 + 2 * l} s`],
+  ["double", "2X Score", "2X Score lasts", (l) => `${12 + 2 * l} s`],
+  ["luck", "Lucky Finds", "Power-ups on the track", (l) => l ? `+${20 * l}%` : "normal"],
+];
+const UPG_COST = [500, 1000, 2000, 4000, 8000];
+const ITEMS = [
+  ["revive", "Revive", "Keep going after a crash, once per run. You get a few seconds of safety to find your feet.", REVIVE_COST],
+  ["head", "Head Start", "Start a run with a shield and a magnet already on.", 200],
+];
+const TRAILS = [
+  ["none", "No trail", null, 0],
+  ["ember", "Ember", ["#ff7a1a", "#ffcf4a"], 1500],
+  ["frost", "Frost", ["#7fe3ff", "#ffffff"], 1500],
+  ["toxic", "Toxic", ["#5cff6a", "#d6ff3a"], 2000],
+  ["royal", "Royal", ["#a46bff", "#ff6bd8"], 2500],
+  ["gold", "Gold Rush", ["#ffd34a", "#fff4b8"], 3500],
+  ["rainbow", "Rainbow", "rainbow", 5000],
+];
+const noDaily = () => G.daily ? "Store items are switched off in the Daily Run so it's fair for everyone." : "";
+let stTab = "upg";
+function buy(cost, fn) { if (PROFILE.bank < cost) return; PROFILE.bank -= cost; fn(); saveProfile(); SFX.coin(); setTimeout(() => SFX.coin(), 90); renderStore(); refreshMenuStore(); }
+function renderStore() {
+  $("stWallet").textContent = fmt(PROFILE.bank);
+  for (const b of $("stTabs").children) b.setAttribute("aria-pressed", b.dataset.t === stTab ? "true" : "false");
+  const body = $("stBody"), cost = (c) => `<i class="coin sm"></i>${fmt(c)}`;
+  if (stTab === "upg") {
+    body.innerHTML = `<div class="shop">${UPGRADES.map(([k, name, what, val]) => {
+      const l = PROFILE.upg[k] | 0, max = l >= UPG_COST.length, c = UPG_COST[l];
+      return `<div><b>${name}</b><button class="btn" type="button" data-up="${k}" ${max || PROFILE.bank < c ? "disabled" : ""}>${max ? "MAX" : cost(c)}</button><span class="pips">${UPG_COST.map((_, i) => `<i class="${i < l ? "on" : ""}"></i>`).join("")}</span><p>${what} ${val(l)}${max ? "" : ` → ${val(l + 1)}`}</p></div>`;
+    }).join("")}</div>`;
+    body.querySelectorAll("[data-up]").forEach((b) => (b.onclick = () => { const k = b.dataset.up, l = PROFILE.upg[k] | 0; buy(UPG_COST[l], () => (PROFILE.upg[k] = l + 1)); }));
+  } else if (stTab === "items") {
+    body.innerHTML = `<div class="shop">${ITEMS.map(([k, name, desc, c]) => `<div><b>${name} <small style="color:var(--muted)">· you have ${PROFILE.items[k] | 0}</small></b><button class="btn" type="button" data-it="${k}" ${PROFILE.bank < c || (PROFILE.items[k] | 0) >= 99 ? "disabled" : ""}>${cost(c)}</button><p>${desc}</p></div>`).join("")}</div>`;
+    body.querySelectorAll("[data-it]").forEach((b) => (b.onclick = () => { const it = ITEMS.find((i) => i[0] === b.dataset.it); buy(it[3], () => (PROFILE.items[it[0]] = (PROFILE.items[it[0]] | 0) + 1)); }));
+  } else {
+    body.innerHTML = `<div class="shop">${TRAILS.map(([k, name, col, c]) => {
+      const own = PROFILE.trails.own.includes(k), on = PROFILE.trails.on === k;
+      const sw = col === "rainbow" ? "background:conic-gradient(#f55,#fb4,#ef4,#5e6,#4cf,#86f,#f5c,#f55)" : col ? `background:radial-gradient(${col[1]},${col[0]})` : "background:transparent;border:1px solid var(--line)";
+      return `<div><b><span class="swatch" style="${sw}"></span>${name}</b><button class="btn ${on ? "on" : ""}" type="button" data-tr="${k}" ${!own && PROFILE.bank < c ? "disabled" : ""}>${on ? "ON" : own ? "WEAR" : cost(c)}</button></div>`;
+    }).join("")}</div>`;
+    body.querySelectorAll("[data-tr]").forEach((b) => (b.onclick = () => {
+      const t = TRAILS.find((x) => x[0] === b.dataset.tr), k = t[0];
+      if (PROFILE.trails.own.includes(k)) { PROFILE.trails.on = k; saveProfile(); renderStore(); trailReset(); }
+      else buy(t[3], () => { PROFILE.trails.own.push(k); PROFILE.trails.on = k; trailReset(); });
+    }));
+  }
+  $("stNote").textContent = "Earn coins on every run. Missions pay 150 to 400, badges 500, and your first Daily Run each day 250.";
+}
+function refreshMenuStore() {
+  $("stBtn").innerHTML = `STORE · <i class="coin sm"></i>${fmt(PROFILE.bank)}`;
+  const n = PROFILE.items.head | 0; $("hsRow").hidden = n <= 0; $("hsIn").checked = !!PROFILE.useHead; $("hsText").textContent = `Use a Head Start (${n} left)`;
+}
+$("hsIn").onchange = () => { PROFILE.useHead = $("hsIn").checked; saveProfile(); };
+$("stBtn").onclick = () => { menu.hidden = true; $("stPanel").hidden = false; stTab = "upg"; renderStore(); };
+$("stClose").onclick = () => { $("stPanel").hidden = true; menu.hidden = false; refreshMenuStore(); };
+for (const b of $("stTabs").children) b.onclick = () => { stTab = b.dataset.t; renderStore(); };
+refreshMenuStore();
+
+function applyHeadStart() {
+  if (G.headDone) return; G.headDone = true;
+  if (G.daily || !PROFILE.useHead || (PROFILE.items.head | 0) <= 0) return;
+  PROFILE.items.head--; saveProfile(); refreshMenuStore();
+  pl.shield = true; addPower("shield"); pl.magnet = POWER_INFO.magnet.dur; addPower("magnet"); SFX.power(); toast("HEAD START!");
+}
+
+// ---- revive ----
+const canRevive = () => !G.daily && !G.revived && G.rs && ((PROFILE.items.revive | 0) > 0 || PROFILE.bank >= REVIVE_COST);
+let rvTimer = 0;
+function offerRevive() {
+  G.state = "revive"; const tok = PROFILE.items.revive | 0;
+  $("rvReason").textContent = G.reason;
+  $("rvBtn").innerHTML = tok > 0 ? `REVIVE <small style="opacity:.7;font-size:12px">(${tok} left)</small>` : `REVIVE · <i class="coin sm"></i>${REVIVE_COST}`;
+  $("revive").hidden = false; const bar = $("rvBar"); bar.style.transition = "none"; bar.style.transform = "scaleX(1)"; void bar.offsetWidth; bar.style.transition = "transform 4s linear"; bar.style.transform = "scaleX(0)";
+  clearTimeout(rvTimer); rvTimer = setTimeout(skipRevive, 4000);
+  setTimeout(() => $("rvBtn").focus({ preventScroll: true }), 30);
+}
+function skipRevive() { if (G.state !== "revive") return; clearTimeout(rvTimer); $("revive").hidden = true; G.state = "dead"; gameOver(); }
+function laneClear(run, s, x) {
+  for (let d = -1; d <= 16; d++) if (groundAt(run, s + d, x, 0, false) !== 0) return false;
+  for (const bm of run.beams) if (s + 18 > bm.s0 && s - 2 < bm.s1 && x + PW > bm.x0 && x - PW < bm.x1) return false;
+  for (const o of run.movers) if (o.s1 > s - 3 && o.s0 < s + 160 && x + PW > o.x0 && x - PW < o.x1) return false;
+  return true;
+}
+function safeOn(run, from) {
+  for (let s = Math.max(from, 2); s < run.L - W - 16; s += 1) {
+    if (run.zone && s > run.zone.s0 - 8 && s < run.zone.s1 + 2) continue;
+    for (const lane of [pl.lane, 1, 0, 2]) if (laneClear(run, s, LANES[lane])) return { s, lane };
+  }
+  return null;
+}
+function doRevive() {
+  if (G.state !== "revive") return;
+  clearTimeout(rvTimer); $("revive").hidden = true;
+  if ((PROFILE.items.revive | 0) > 0) PROFILE.items.revive--; else if (PROFILE.bank >= REVIVE_COST) PROFILE.bank -= REVIVE_COST; else { skipRevive(); return; }
+  saveProfile(); G.revived = true;
+  let spot = safeOn(cur, pl.s + 2);
+  if (!spot && cur.opts.length) { // crashed at a corner: take it for them
+    pl.s = cur.L - 1; pl.lane = 1; pl.x = 0; doTurn(cur.opts.includes("L") && (!cur.opts.includes("R") || Math.random() < 0.5) ? "L" : cur.opts.includes("R") ? "R" : cur.opts[0]);
+    spot = safeOn(cur, Math.max(pl.s, 0) + 4);
+  }
+  if (spot) { pl.s = spot.s; pl.lane = pl.from = spot.lane; pl.x = LANES[spot.lane]; }
+  pl.y = Math.max(0, groundAt(cur, pl.s, pl.x, 99, false)); pl.vy = 0; pl.ground = true; pl.slide = 0; pl.slideQ = false;
+  pl.dead = false; pl.deathT = 0; pl.inv = 3.4; pl.rev = 3.4; queue.length = 0;
+  for (const o of cur.movers) if (o.active && o.s0 < pl.s + 40 && o.s1 > pl.s - 4) { o.vel = 0; } // a train that just hit you stays put
+  SFX.shieldPop(); flashVig("shield"); toast("REVIVED!");
+  G.state = "count"; G.countT = 2; G.countShown = 0; menuBlend = 0; G.snapCam = true; anim.play("idle");
+}
+$("rvBtn").onclick = doRevive; $("rvSkip").onclick = skipRevive;
+
+// ---- trails: a little stream of glowing sparks behind the Chonk ----
+const TRAIL_N = 90, trail = { pos: new Float32Array(TRAIL_N * 3), col: new Float32Array(TRAIL_N * 3), life: new Float32Array(TRAIL_N), base: new Float32Array(TRAIL_N * 3), i: 0, acc: 0 };
+const trailTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.35, "rgba(255,255,255,.6)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute("position", new THREE.BufferAttribute(trail.pos, 3)); trailGeo.setAttribute("color", new THREE.BufferAttribute(trail.col, 3));
+const trailPts = new THREE.Points(trailGeo, new THREE.PointsMaterial({ size: 0.42, map: trailTex, vertexColors: true, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: true }));
+trailPts.frustumCulled = false; scene.add(trailPts);
+function trailReset() { trail.life.fill(0); trail.col.fill(0); trail.pos.fill(0); trailGeo.attributes.color.needsUpdate = true; trailGeo.attributes.position.needsUpdate = true; }
+const tc = new THREE.Color(), tc2 = new THREE.Color();
+function trailTick(dt) {
+  const def = TRAILS.find((t) => t[0] === PROFILE.trails.on);
+  const on = def && def[2] && G.state === "run";
+  if (on && !pl.dead && G.state !== "paused") {
+    trail.acc += dt * (G.state === "run" ? 75 : 30);
+    while (trail.acc >= 1) {
+      trail.acc -= 1; const i = trail.i = (trail.i + 1) % TRAIL_N;
+      const p = playerRoot.position, j = i * 3;
+      trail.pos[j] = p.x + (Math.random() - 0.5) * 0.5; trail.pos[j + 1] = p.y + 0.35 + Math.random() * 0.9 * (pl.slide > 0 ? 0.4 : 1); trail.pos[j + 2] = p.z + (Math.random() - 0.5) * 0.5;
+      if (def[2] === "rainbow") tc.setHSL((G.time * 0.6 + i * 0.013) % 1, 1, 0.6); else tc.set(def[2][0]).lerp(tc2.set(def[2][1]), Math.random());
+      trail.base[j] = tc.r; trail.base[j + 1] = tc.g; trail.base[j + 2] = tc.b; trail.life[i] = 1;
+    }
+  }
+  for (let i = 0; i < TRAIL_N; i++) {
+    if (trail.life[i] <= 0) continue;
+    if (G.state !== "paused") { trail.life[i] = Math.max(0, trail.life[i] - dt * 2.2); trail.pos[i * 3 + 1] += dt * 0.5; }
+    const k = trail.life[i] * trail.life[i], j = i * 3;
+    trail.col[j] = trail.base[j] * k; trail.col[j + 1] = trail.base[j + 1] * k; trail.col[j + 2] = trail.base[j + 2] * k;
+  }
+  trailGeo.attributes.position.needsUpdate = true; trailGeo.attributes.color.needsUpdate = true;
+}
+
 
 const RANKS = [[0, "Rookie"], [3, "Jogger"], [6, "Runner"], [10, "Sprinter"], [15, "Dasher"], [21, "Speedster"], [28, "Legend"], [36, "Chonk Champion"]];
 const rankOf = (st) => { let r = RANKS[0], next = null; for (let i = 0; i < RANKS.length; i++) if (st >= RANKS[i][0]) { r = RANKS[i]; next = RANKS[i + 1] || null; } return { name: r[1], next }; };
@@ -3017,7 +3221,7 @@ function checkMissionsLive() {
   if (G.state !== "run" || !G.rs) return;
   for (const m of PROFILE.missions) {
     const d = missionDef(m); if (m.done || !d || d.scope !== "run") continue;
-    const v = runStat(d.stat); if (v >= m.target) { m.done = true; m.prog = m.target; PROFILE.stars++; m.fresh = true; saveProfile(); tip("MISSION COMPLETE!"); SFX.power(); }
+    const v = runStat(d.stat); if (v >= m.target) { const pay = missionPay(); m.done = true; m.prog = m.target; PROFILE.stars++; m.fresh = true; earn(pay, "mission"); saveProfile(); tip(`MISSION COMPLETE! +${pay}`); SFX.power(); }
   }
 }
 setInterval(checkMissionsLive, 500);
@@ -3047,19 +3251,20 @@ function progressOnGameOver(sc) {
   if (!G.rs) return;
   const T = PROFILE.totals, run = { dist: Math.floor(G.dist), coins: G.coins, ...G.rs };
   T.runs++; T.dist += run.dist; T.coins += G.coins; T.jumps += run.jumps; T.slides += run.slides; T.turns += run.turns; T.powers += run.powers; T.pieces += run.pieces; if (G.daily) T.daily++;
-  if (G.daily) { if (PROFILE.daily.date !== G.dailyDate) PROFILE.daily = { date: G.dailyDate, best: 0 }; PROFILE.daily.best = Math.max(PROFILE.daily.best, sc); }
+  if (G.daily) { if (PROFILE.daily.date !== G.dailyDate) { PROFILE.daily = { date: G.dailyDate, best: 0 }; earn(DAILY_PAY, "daily"); } PROFILE.daily.best = Math.max(PROFILE.daily.best, sc); }
+  earn(G.coins, "run");
   // missions: run-scoped ones were ticked live; totals tick here
   for (const m of PROFILE.missions) {
     const d = missionDef(m); if (!d || m.done) continue;
-    if (d.scope === "total") { m.prog += d.stat === "coins" ? G.coins : run[d.stat] || 0; if (m.prog >= m.target) { m.prog = m.target; m.done = true; m.fresh = true; PROFILE.stars++; } }
-    else { const v = runStat(d.stat); m.prog = Math.max(m.prog, Math.min(m.target, v)); if (v >= m.target) { m.done = true; m.fresh = true; PROFILE.stars++; } }
+    if (d.scope === "total") { m.prog += d.stat === "coins" ? G.coins : run[d.stat] || 0; if (m.prog >= m.target) { m.prog = m.target; m.done = true; m.fresh = true; earn(missionPay(), "mission"); PROFILE.stars++; } }
+    else { const v = runStat(d.stat); m.prog = Math.max(m.prog, Math.min(m.target, v)); if (v >= m.target) { m.done = true; m.fresh = true; earn(missionPay(), "mission"); PROFILE.stars++; } }
   }
   const newBadges = [];
-  for (const [id, name, , test] of BADGES) if (!PROFILE.badges[id] && test(PROFILE, run)) { PROFILE.badges[id] = Date.now(); newBadges.push(name); }
+  for (const [id, name, , test] of BADGES) if (!PROFILE.badges[id] && test(PROFILE, run)) { PROFILE.badges[id] = Date.now(); newBadges.push(name); earn(BADGE_PAY, "badge"); }
   // show this run's missions, then swap finished ones for new ones
   const shown = PROFILE.missions.map((m) => ({ ...m }));
   fillMissions(); saveProfile();
-  $("progOver").innerHTML = `<div class="mis">${shown.map(missionRow).join("")}</div>` + (newBadges.length ? `<div class="new">NEW BADGE${newBadges.length > 1 ? "S" : ""}: ${newBadges.map(escHtml).join(", ").toUpperCase()}</div>` : "");
+  $("progOver").innerHTML = bankLine() + `<div class="mis">${shown.map(missionRow).join("")}</div>` + (newBadges.length ? `<div class="new">NEW BADGE${newBadges.length > 1 ? "S" : ""}: ${newBadges.map(escHtml).join(", ").toUpperCase()}</div>` : "");
 }
 function missionRow(m) {
   const d = missionDef(m); if (!d) return "";
@@ -3118,11 +3323,11 @@ renderer.setAnimationLoop((now) => {
   ambTick(dt);
   if (buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); }
   else { const want = [...live].map((r) => r.theme).find((k) => !HORIZONS[k]); if (want) HORIZONS[want] = buildHorizon(want); }
-  place(dt);
+  place(dt); trailTick(dt);
   if (G.state === "run" || G.state === "count") hudTick();
   renderer.render(scene, camera);
 });
-if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live,
+if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, refreshMenuStore, renderStore,
   sim(sec, bot) { for (let t = 0; t < sec && G.state === "run"; t += 1 / 30) { if (bot) bot(this); update(1 / 30); while (buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); } place(1 / 30); } stepEnv(1); } };
 
 (async () => {
