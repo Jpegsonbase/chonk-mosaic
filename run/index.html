@@ -127,6 +127,14 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .lbList li span small{color:var(--muted);margin-left:6px}
 .lbList li em{font:400 14px var(--display);font-style:normal;color:var(--glow)}
 .lbList li.me{outline:1px solid var(--glow);background:rgba(255,179,71,.12)}
+.lbList .vf{font-style:normal;color:#7dffb0;margin-left:5px;font-size:11px}
+.lbList .hd{font:400 8.5px var(--display);font-style:normal;letter-spacing:.08em;color:#0d0a14;background:linear-gradient(90deg,#5fd7ff,#c08bff);border-radius:4px;padding:2px 4px;margin-left:6px;vertical-align:1px}
+.claimBox{margin-top:12px;padding:10px;border:1px dashed var(--line);border-radius:10px;text-align:left;font-size:12px;color:var(--muted)}
+.claimBox .row{margin-top:8px}
+.claimBox b{color:var(--fg,#fff);font-weight:400}
+.linkbtn{background:none;border:0;padding:4px 0;color:var(--glow);font:inherit;font-size:12px;text-decoration:underline;cursor:pointer}
+#worldSeg button.locked{opacity:.5;position:relative}
+#worldSeg button.locked::after{content:"\1F512\FE0E";position:absolute;top:1px;right:3px;font-size:11px}
 #lbPanel,#chPanel{justify-content:center;background:rgba(10,7,16,.45)}
 #chPanel .card{text-align:center;width:min(460px,100%)}
 #chPanel .two .btn,#menu .two .btn{width:100%}
@@ -258,6 +266,7 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <div class="prog" id="progOver"></div>
     <div class="lb" id="lbOver" hidden>
       <div class="row" id="submitRow"><input id="nameIn" type="text" maxlength="16" placeholder="Your name" autocomplete="nickname" aria-label="Name for the leaderboard"><button class="btn" id="submitBtn" type="button">SUBMIT</button></div>
+      <button class="linkbtn" id="claimOverBtn" type="button" hidden>Lock this name to your wallet (free, no gas)</button>
       <div class="status" id="lbStatus"></div>
       <ol class="lbList" id="lbListOver"></ol>
     </div>
@@ -273,6 +282,11 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <div class="seg" id="lbPeriod" style="grid-template-columns:1fr 1fr;margin-top:12px"><button type="button" data-p="all" aria-pressed="true">ALL TIME</button><button type="button" data-p="week" aria-pressed="false">THIS WEEK</button></div>
     <ol class="lbList" id="lbListMenu"></ol>
     <div class="status" id="lbMenuStatus"></div>
+    <div class="claimBox" id="claimBox">
+      <div id="claimInfo">Lock your name to your wallet so nobody else can post under it. Chonk holders get a HOLDER badge, +25% coins every run and a holder-only trail. You only sign a message: it's free and sends no transaction.</div>
+      <div class="row"><input id="claimIn" type="text" maxlength="16" placeholder="Your name" autocomplete="nickname" aria-label="Name to claim"><button class="btn" id="claimBtn" type="button">SIGN</button></div>
+      <div class="status" id="claimStatus"></div>
+    </div>
     <button class="play alt" id="lbClose" type="button">BACK</button>
   </div>
 </div>
@@ -305,6 +319,16 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <button class="play" id="rvBtn" type="button">REVIVE</button>
     <div class="rvbar"><u id="rvBar"></u></div>
     <button class="play alt" id="rvSkip" type="button">NO THANKS</button>
+  </div>
+</div>
+
+<div id="wlPanel" class="overlay" hidden>
+  <div class="card">
+    <h2 id="wlTitle">LOCKED</h2>
+    <p class="reason" id="wlText"></p>
+    <button class="play" id="wlBuy" type="button">UNLOCK</button>
+    <p class="keys" id="wlNote"></p>
+    <button class="play alt" id="wlBack" type="button">BACK</button>
   </div>
 </div>
 
@@ -2811,7 +2835,7 @@ function doTurn(dir) {
   if (pendingDispose) flushDispose();
   pendingDispose = { old, others: old.opts.filter((d) => d !== dir).map((d) => old.next[d]) };
   ensureAhead(cur, 2); SFX.turn(dir === "L" ? -1 : 1); G.rs.turns++;
-  if (cur.theme === "space") G.rs.sawSpace = true; if (G.rs.sawSpace && cur.theme === "jungle") G.rs.loop = true; G.rs.worlds.add(cur.theme); G.score += 25 * (pl.dbl > 0 ? 2 : 1);
+  if (cur.theme === "space") G.rs.sawSpace = true; if (G.rs.sawSpace && cur.theme === "jungle") G.rs.loop = true; G.rs.worlds.add(cur.theme); if (G.mode === "mix") unlockWorld(cur.theme); G.score += 25 * (pl.dbl > 0 ? 2 : 1);
   if (cur.theme !== envKey) { applyEnv(cur.theme); showBanner(THEMES[cur.theme].name); $("world").textContent = THEMES[cur.theme].name; }
   else if (cur.style !== "normal") showBanner(THEMES[cur.theme].pieceName);
 }
@@ -3086,6 +3110,7 @@ $("walletBtn").onclick = async () => {
 for (const btn of $("worldSeg").children) {
   btn.setAttribute("aria-pressed", btn.dataset.w === G.mode ? "true" : "false");
   btn.onclick = () => {
+    if (!worldOpen(btn.dataset.w)) { showWorldLock(btn.dataset.w); return; }
     G.mode = btn.dataset.w; store.set("chonkrun.world", G.mode);
     for (const b of $("worldSeg").children) b.setAttribute("aria-pressed", b === btn ? "true" : "false");
     if (G.state === "menu") resetWorld();
@@ -3095,21 +3120,22 @@ $("playBtn").onclick = startRun;
 $("againBtn").onclick = startRun;
 $("menuBtn").onclick = toMenu;
 $("resumeBtn").onclick = () => setPaused(false);
-$("quitBtn").onclick = () => { if (G.coins > 0) { earn(G.coins, "run"); saveProfile(); toast(`+${G.coins} COINS BANKED`); } toMenu(); };
+$("quitBtn").onclick = () => { if (G.coins > 0) { earn(G.coins, "run"); if (isHolder()) earn(Math.round(G.coins * 0.25), "holder"); saveProfile(); toast(`+${G.coins} COINS BANKED`); } toMenu(); };
 $("pauseBtn").onclick = () => setPaused(true);
 $("muteBtn").onclick = () => { audioInit(); setMuted(!AU.muted); };
 setMuted(AU.muted);
 const WORLD_LABEL = (m) => (m === "mix" ? "Journey" : m.startsWith("daily-") ? "Daily Run" : THEMES[m]?.name || m);
 const escHtml = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function lbRender(el, rows, meName, meScore) {
-  el.innerHTML = rows.length ? rows.map((r, i) => `<li class="${meName && nameKey(r.name) === nameKey(meName) ? "me" : ""}"><b>${i + 1}</b><span>${escHtml(r.name)}${r.chonk_id ? `<small>#${r.chonk_id}</small>` : ""}</span><em>${r.score.toLocaleString()}</em></li>`).join("")
+  el.innerHTML = rows.length ? rows.map((r, i) => `<li class="${meName && nameKey(r.name) === nameKey(meName) ? "me" : ""}"><b>${i + 1}</b><span>${escHtml(r.name)}${r.verified ? `<i class="vf" title="Name locked to a wallet">✓</i>` : ""}${r.holder ? `<i class="hd" title="Chonk holder">HOLDER</i>` : ""}${r.chonk_id ? `<small>#${r.chonk_id}</small>` : ""}</span><em>${r.score.toLocaleString()}</em></li>`).join("")
     : `<li><b>–</b><span>No scores yet. Be the first!</span><em></em></li>`;
 }
 let lastRun = null;
 function lbOnGameOver(sc) {
   $("lbOver").hidden = !lbOn(); if (!lbOn()) return;
   lastRun = { score: sc, distance: Math.floor(G.dist), coins: G.coins, duration_ms: Math.max(1, Math.round(G.runMs)), mode: boardMode(), chonk_id: currentId ? +currentId : null };
-  $("nameIn").value = store.get("chonkrun.name", ""); $("submitRow").hidden = sc < 50 || G.submitted; $("submitBtn").disabled = false;
+  $("nameIn").value = (PROFILE.claim && PROFILE.claim.name) || store.get("chonkrun.name", ""); $("submitRow").hidden = sc < 50 || G.submitted; $("submitBtn").disabled = false;
+  $("claimOverBtn").hidden = sc < 50 || G.submitted || !!PROFILE.claim;
   $("lbStatus").textContent = sc < 50 ? "Score 50 or more to get on the board." : `${WORLD_LABEL(boardMode())} · top 10`; $("lbStatus").className = "status";
   lbTop(boardMode(), "all").then((rows) => lbRender($("lbListOver"), rows)).catch(() => { $("lbStatus").textContent = "Couldn't reach the leaderboard."; $("lbStatus").className = "status err"; });
 }
@@ -3119,13 +3145,19 @@ $("submitBtn").onclick = async () => {
   if (!lastRun || G.submitted) return;
   store.set("chonkrun.name", name); $("submitBtn").disabled = true; $("lbStatus").textContent = "Submitting…"; $("lbStatus").className = "status";
   try {
-    await lbSubmit({ ...lastRun, name }); G.submitted = true; $("submitRow").hidden = true;
+    const cl = PROFILE.claim, mine = cl && nameKey(cl.name) === nameKey(name);
+    await lbSubmit({ ...lastRun, name: mine ? cl.name : name, ...(mine ? { claim_token: cl.token } : {}) }); G.submitted = true; $("submitRow").hidden = true; $("claimOverBtn").hidden = true;
     const [rows, me] = await Promise.all([lbTop(lastRun.mode, "all"), lbRank(lastRun.mode, name, lastRun.score).catch(() => null)]);
     lbRender($("lbListOver"), rows, name);
     const where = me ? `You're #${me.rank.toLocaleString()} in ${WORLD_LABEL(lastRun.mode)}` : "";
     $("lbStatus").textContent = !me ? "Score submitted!" : me.best > lastRun.score ? `Your best of ${me.best.toLocaleString()} still stands. ${where}.` : lastRun.score > 0 && me.best === lastRun.score ? `${where}!` : `${where}.`;
     $("lbStatus").className = "status ok";
-  } catch (e) { $("submitBtn").disabled = false; $("lbStatus").textContent = "Couldn't submit that score. Try again."; $("lbStatus").className = "status err"; }
+  } catch (e) {
+    $("submitBtn").disabled = false; $("lbStatus").className = "status err";
+    const cl = PROFILE.claim, mine = cl && nameKey(cl.name) === nameKey(name);
+    if (/name_claimed/.test(e.message)) { $("lbStatus").textContent = mine ? "Your wallet needs to sign again on this device. Tap the link above." : `"${name}" is locked to someone's wallet. Pick another name, or sign with your wallet if it's yours.`; $("claimOverBtn").hidden = false; }
+    else $("lbStatus").textContent = "Couldn't submit that score. Try again.";
+  }
 };
 $("nameIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("submitBtn").click(); } });
 let lbPeriod = "all";
@@ -3157,7 +3189,7 @@ const fmt = (n) => Math.floor(n).toLocaleString();
 function bankLine() {
   const by = {}; for (const [k, n] of G.earned || []) by[k] = (by[k] || 0) + n;
   const tot = Object.values(by).reduce((a, b) => a + b, 0);
-  const parts = [["run", "coins"], ["mission", "missions"], ["badge", "badges"], ["daily", "daily bonus"]].filter(([k]) => by[k]).map(([k, l]) => `${l} ${fmt(by[k])}`);
+  const parts = [["run", "coins"], ["holder", "holder bonus"], ["mission", "missions"], ["badge", "badges"], ["daily", "daily bonus"]].filter(([k]) => by[k]).map(([k, l]) => `${l} ${fmt(by[k])}`);
   return `<div class="bank">+${fmt(tot)} COINS BANKED · WALLET ${fmt(PROFILE.bank)}${parts.length > 1 ? `<small>${parts.join(" · ")}</small>` : ""}</div>`;
 }
 const UPGRADES = [
@@ -3178,6 +3210,7 @@ const TRAILS = [
   ["royal", "Royal", ["#a46bff", "#ff6bd8"], 2500],
   ["gold", "Gold Rush", ["#ffd34a", "#fff4b8"], 3500],
   ["rainbow", "Rainbow", "rainbow", 5000],
+  ["holder", "Holder Aura", ["#5fd7ff", "#c08bff"], 0, true],
 ];
 const noDaily = () => G.daily ? "Store items are switched off in the Daily Run so it's fair for everyone." : "";
 let stTab = "upg";
@@ -3196,14 +3229,15 @@ function renderStore() {
     body.innerHTML = `<div class="shop">${ITEMS.map(([k, name, desc, c]) => `<div><b>${name} <small style="color:var(--muted)">· you have ${PROFILE.items[k] | 0}</small></b><button class="btn" type="button" data-it="${k}" ${PROFILE.bank < c || (PROFILE.items[k] | 0) >= 99 ? "disabled" : ""}>${cost(c)}</button><p>${desc}</p></div>`).join("")}</div>`;
     body.querySelectorAll("[data-it]").forEach((b) => (b.onclick = () => { const it = ITEMS.find((i) => i[0] === b.dataset.it); buy(it[3], () => (PROFILE.items[it[0]] = (PROFILE.items[it[0]] | 0) + 1)); }));
   } else {
-    body.innerHTML = `<div class="shop">${TRAILS.map(([k, name, col, c]) => {
-      const own = PROFILE.trails.own.includes(k), on = PROFILE.trails.on === k;
+    body.innerHTML = `<div class="shop">${TRAILS.map(([k, name, col, c, holderOnly]) => {
+      const own = holderOnly ? isHolder() : PROFILE.trails.own.includes(k), on = PROFILE.trails.on === k;
+      if (holderOnly && !own) return `<div><b><span class="swatch" style="background:radial-gradient(${col[1]},${col[0]})"></span>${name}</b><button class="btn" type="button" disabled>HOLDERS</button><p>For wallets holding a Chonk. Lock your name in the Leaderboard to verify.</p></div>`;
       const sw = col === "rainbow" ? "background:conic-gradient(#f55,#fb4,#ef4,#5e6,#4cf,#86f,#f5c,#f55)" : col ? `background:radial-gradient(${col[1]},${col[0]})` : "background:transparent;border:1px solid var(--line)";
       return `<div><b><span class="swatch" style="${sw}"></span>${name}</b><button class="btn ${on ? "on" : ""}" type="button" data-tr="${k}" ${!own && PROFILE.bank < c ? "disabled" : ""}>${on ? "ON" : own ? "WEAR" : cost(c)}</button></div>`;
     }).join("")}</div>`;
     body.querySelectorAll("[data-tr]").forEach((b) => (b.onclick = () => {
       const t = TRAILS.find((x) => x[0] === b.dataset.tr), k = t[0];
-      if (PROFILE.trails.own.includes(k)) { PROFILE.trails.on = k; saveProfile(); renderStore(); trailReset(); }
+      if (PROFILE.trails.own.includes(k) || (t[4] && isHolder())) { PROFILE.trails.on = k; saveProfile(); renderStore(); trailReset(); }
       else buy(t[3], () => { PROFILE.trails.own.push(k); PROFILE.trails.on = k; trailReset(); });
     }));
   }
@@ -3338,7 +3372,7 @@ trailPts.frustumCulled = false; scene.add(trailPts);
 function trailReset() { trail.life.fill(0); trail.col.fill(0); trail.pos.fill(0); trailGeo.attributes.color.needsUpdate = true; trailGeo.attributes.position.needsUpdate = true; }
 const tc = new THREE.Color(), tc2 = new THREE.Color();
 function trailTick(dt) {
-  const def = TRAILS.find((t) => t[0] === PROFILE.trails.on);
+  const def = TRAILS.find((t) => t[0] === PROFILE.trails.on && (!t[4] || isHolder()));
   const on = def && def[2] && G.state === "run";
   if (on && !pl.dead && G.state !== "paused") {
     trail.acc += dt * (G.state === "run" ? 75 : 30);
@@ -3429,7 +3463,7 @@ function progressOnGameOver(sc) {
   const T = PROFILE.totals, run = { dist: Math.floor(G.dist), coins: G.coins, ...G.rs };
   T.runs++; T.dist += run.dist; T.coins += G.coins; T.jumps += run.jumps; T.slides += run.slides; T.turns += run.turns; T.powers += run.powers; T.pieces += run.pieces; if (G.daily) T.daily++;
   if (G.daily) { if (PROFILE.daily.date !== G.dailyDate) { PROFILE.daily = { date: G.dailyDate, best: 0 }; earn(DAILY_PAY, "daily"); } PROFILE.daily.best = Math.max(PROFILE.daily.best, sc); }
-  earn(G.coins, "run");
+  earn(G.coins, "run"); if (isHolder()) earn(Math.round(G.coins * 0.25), "holder");
   // missions: run-scoped ones were ticked live; totals tick here
   for (const m of PROFILE.missions) {
     const d = missionDef(m); if (!d || m.done) continue;
@@ -3477,7 +3511,83 @@ function renderChallenges() {
 $("chBtn").onclick = () => { menu.hidden = true; $("chPanel").hidden = false; chTab = "daily"; renderChallenges(); };
 $("chClose").onclick = () => { $("chPanel").hidden = true; menu.hidden = false; };
 for (const b of $("chTabs").children) b.onclick = () => { chTab = b.dataset.t; renderChallenges(); };
-function updateBestLine() { const st = PROFILE.streak; $("bestLine").textContent = [G.best ? `Best run: ${G.best.toLocaleString()}` : "", `${rankOf(PROFILE.stars).name}`, st.n > 1 && st.last === localDay() ? `${st.n}-day streak` : ""].filter(Boolean).join(" · "); }
+/* ---------- worlds unlock as you reach them in Journey (or buy them) ---------- */
+const WORLD_PRICE = { desert: 500, mountain: 750, city: 1000, volcano: 1500, candy: 2000, reef: 2500, sky: 3000, space: 4000 };
+if (!Array.isArray(PROFILE.worlds)) { // first time: credit players for how far they've already got
+  const far = PROFILE.badges && (PROFILE.badges.tour || PROFILE.badges.loop) ? ORDER.length - 1 : Math.min(ORDER.length - 1, Math.floor(G.best / 2.2 / 1100));
+  PROFILE.worlds = ORDER.slice(0, far + 1); saveProfile();
+}
+const worldOpen = (w) => w === "mix" || w === "jungle" || PROFILE.worlds.includes(w);
+function unlockWorld(w) {
+  if (worldOpen(w)) return; PROFILE.worlds.push(w); saveProfile(); renderWorldLocks();
+  setTimeout(() => { if (G.state === "run") { tip(`NEW WORLD UNLOCKED: ${THEMES[w].name.toUpperCase()}`); SFX.power(); } }, 1600);
+}
+function renderWorldLocks() {
+  for (const b of $("worldSeg").children) { const w = b.dataset.w, open = worldOpen(w); b.classList.toggle("locked", !open); b.title = open ? "" : `Reach ${THEMES[w].name} in Journey, or unlock for ${WORLD_PRICE[w].toLocaleString()} coins`; }
+}
+let wlWorld = null;
+function showWorldLock(w) {
+  wlWorld = w; const price = WORLD_PRICE[w], prev = ORDER[ORDER.indexOf(w) - 1];
+  $("wlTitle").textContent = THEMES[w].name.toUpperCase();
+  $("wlText").textContent = `Reach ${THEMES[w].name} in a Journey run to unlock it for free${prev ? ` (it comes after ${THEMES[prev].name})` : ""}, or unlock it now.`;
+  $("wlBuy").innerHTML = `UNLOCK · <i class="coin sm"></i>${price.toLocaleString()}`; $("wlBuy").disabled = PROFILE.bank < price;
+  $("wlNote").textContent = PROFILE.bank < price ? `You have ${PROFILE.bank.toLocaleString()} coins.` : `You'll have ${(PROFILE.bank - price).toLocaleString()} coins left.`;
+  menu.hidden = true; $("wlPanel").hidden = false;
+}
+$("wlBack").onclick = () => { $("wlPanel").hidden = true; menu.hidden = false; };
+$("wlBuy").onclick = () => {
+  const w = wlWorld, price = WORLD_PRICE[w]; if (!w || PROFILE.bank < price) return;
+  PROFILE.bank -= price; PROFILE.worlds.push(w); saveProfile(); SFX.coin(); setTimeout(() => SFX.power(), 90);
+  $("wlPanel").hidden = true; menu.hidden = false; renderWorldLocks(); refreshMenuStore();
+  [...$("worldSeg").children].find((b) => b.dataset.w === w).click();
+};
+if (!worldOpen(G.mode)) { G.mode = "mix"; store.set("chonkrun.world", "mix"); for (const b of $("worldSeg").children) b.setAttribute("aria-pressed", b.dataset.w === "mix" ? "true" : "false"); }
+renderWorldLocks();
+
+/* ---------- lock a name to a wallet (signature only, no gas) + holder perks ---------- */
+const isHolder = () => !!(PROFILE.claim && PROFILE.claim.holder);
+const claimMessage = (name, address, issued) => `Chonk Run\n\nClaim the leaderboard name "${name}" for this wallet.\n\nWallet: ${address}\nIssued: ${issued}\n\nThis is free and does not send a transaction.`;
+const NAME_OK = /^[\p{L}\p{N} _.\-]{1,16}$/u;
+async function claimName(raw, say) {
+  const name = String(raw || "").trim().replace(/\s+/g, " ");
+  if (!NAME_OK.test(name)) { say("Names can use letters, numbers, spaces, dots, dashes and underscores, up to 16.", "err"); return null; }
+  const eth = window.ethereum;
+  if (!eth || !eth.request) { say("No wallet in this browser. Open chonkit.xyz/run in your wallet app's browser (Coinbase Wallet, MetaMask, Rainbow…) to sign.", "err"); return null; }
+  try {
+    say("Connect your wallet…");
+    const [acct] = await eth.request({ method: "eth_requestAccounts" });
+    const address = String(acct).toLowerCase(), issued = new Date().toISOString(), msg = claimMessage(name, address, issued);
+    say("Sign the message in your wallet. It's free and sends no transaction.");
+    const hex = "0x" + Array.from(new TextEncoder().encode(msg), (b) => b.toString(16).padStart(2, "0")).join("");
+    const signature = await eth.request({ method: "personal_sign", params: [hex, acct] });
+    say("Checking your signature…");
+    const r = await fetch(`${LEADERBOARD.url.replace(/\/$/, "")}/functions/v1/chonk-run-claim`, { method: "POST", headers: { apikey: LEADERBOARD.anonKey, "content-type": "application/json" }, body: JSON.stringify({ name, address, issued, signature }) });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { say(r.status === 404 || r.status === 401 && !j.error ? "Name claiming isn't switched on yet." : j.error || "Couldn't claim that name.", "err"); return null; }
+    PROFILE.claim = { name: j.name, address: j.address, holder: !!j.holder, chonks: j.chonks | 0, token: j.token, at: Date.now() };
+    saveProfile(); store.set("chonkrun.name", j.name); updateBestLine(); renderClaimBox();
+    say(`"${j.name}" is locked to your wallet${j.holder ? `. Holder perks are on (${j.chonks} Chonk${j.chonks === 1 ? "" : "s"})` : ""}.`, "ok");
+    return PROFILE.claim;
+  } catch (e) {
+    say(e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || "")) ? "Signing cancelled." : "Couldn't reach your wallet or the server. Try again.", "err"); return null;
+  }
+}
+function renderClaimBox() {
+  const c = PROFILE.claim;
+  $("claimInfo").innerHTML = c
+    ? `Your name <b>${escHtml(c.name)}</b> ✓ is locked to ${c.address.slice(0, 6)}…${c.address.slice(-4)}.${c.holder ? ` <b>HOLDER</b>: +25% coins every run and the Holder Aura trail.` : " Holding a Chonk? Sign again after buying one to turn on holder perks."} Sign again to refresh holder status or change your name.`
+    : `Lock your name to your wallet so nobody else can post under it. Chonk holders get a HOLDER badge, +25% coins every run and a holder-only trail. You only sign a message: it's free and sends no transaction.`;
+  $("claimIn").value = (c && c.name) || store.get("chonkrun.name", "");
+}
+const claimSay = (el) => (m, cls = "") => { $(el).textContent = m; $(el).className = "status " + cls; };
+$("claimBtn").onclick = async () => { $("claimBtn").disabled = true; await claimName($("claimIn").value, claimSay("claimStatus")); $("claimBtn").disabled = false; lbShowMenu(); };
+$("claimIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("claimBtn").click(); } });
+$("claimOverBtn").onclick = async () => {
+  const c = await claimName($("nameIn").value, claimSay("lbStatus"));
+  if (c) { $("nameIn").value = c.name; $("claimOverBtn").hidden = true; }
+};
+renderClaimBox();
+function updateBestLine() { const st = PROFILE.streak; $("bestLine").textContent = [G.best ? `Best run: ${G.best.toLocaleString()}` : "", `${rankOf(PROFILE.stars).name}`, PROFILE.claim ? `${PROFILE.claim.name}${PROFILE.claim.holder ? " · HOLDER" : " ✓"}` : "", st.n > 1 && st.last === localDay() ? `${st.n}-day streak` : ""].filter(Boolean).join(" · "); }
 updateBestLine();
 
 /* =====================================================================
