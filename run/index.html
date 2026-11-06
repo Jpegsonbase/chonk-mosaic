@@ -1851,13 +1851,13 @@ Object.assign(THEMES, {
     curb(b, x, sc, w, d) { b.box(x, -0.14, sc, w, 0.6, d, 0x221c1c); b.box(x, 0.46, sc, w * 0.5, 0.05, d, 0xff5a1a, { glow: true }); },
     gap(b, s0, s1) { b.box(0, -0.8, (s0 + s1) / 2, W + 2, 0.1, s1 - s0 + 0.4, 0xff7a20, { glow: true }); for (let i = 0; i < 8; i++) b.box(rand(-HALF, HALF), -0.68, rand(s0, s1), rand(0.4, 1), 0.04, rand(0.2, 0.6), 0xffe080, { glow: true });
       for (const e2 of [s0 - 0.12, s1 + 0.12]) b.box(0, -0.02, e2, W, 0.06, 0.24, 0xffc040, { glow: true }); for (let i = 0; i < 6; i++) b.box(0, -0.04, s0 - 1.2 - i * 1.4, W * 0.9, 0.04, 0.12, 0xff7a20, { glow: true }); },
-    block(b, x, sc, d) { b.geo("cone4", x, 1.3, sc, 1.9, 2.8, 1.5, 0x1c1622, { ry: rand(0, 0.6) }); b.geo("dode", x, 0.3, sc, 2.0, 0.9, 1.6, 0x2a2424); b.box(x, 0.9, sc - 0.6, 0.12, 1.2, 0.04, 0xff6a1a, { glow: true, rz: 0.3 }); },
-    low(b, x0, x1, sc) { const xc = (x0 + x1) / 2, len = x1 - x0; b.box(xc, 0, sc, len, 0.85, 0.7, 0x2e2828); b.box(xc, 0.86, sc, len * 0.9, 0.04, 0.5, 0xff6a1a, { glow: true }); for (let i = 0; i < len; i++) b.geo("dode", x0 + 0.5 + i, 0.8, sc, 0.5, 0.4, 0.5, 0x3a3232); },
-    high(b, sc) { STD.lintel(b, sc, 0x2e2828, 0x262020); for (let i = 0; i < 6; i++) b.box(rand(-HALF, HALF), BEAM_Y0 - 0.1, sc - 0.46, 0.1, rand(0.2, 0.5), 0.04, 0xff7a2a, { glow: true }); },
-    gantry(b, sc) { STD.gantry(b, sc, 0x2a2424); b.box(0, 4.25, sc - 0.26, W + 2, 0.05, 0.02, 0xff5a1a, { glow: true }); },
-    hang(b, x, sc) { b.geo("dode", x, BEAM_Y0 + 0.45, sc, 1.6, 0.9, 1.0, 0x2a2222); b.geo("dode", x, BEAM_Y0 + 0.45, sc - 0.1, 0.9, 0.5, 0.8, 0xff6a1a, { glow: true }); for (const ex of [-0.6, 0.6]) b.box(x + ex, 2.1, sc, 0.06, 2.2, 0.06, 0x4a4040); },
-    long(b, x, s0, s1, h, ramp) { STD.steps(b, x, s0, s1, h, ramp, 0x2e2828, 0x3a3232, 0x332d2d); b.box(x + 1.03, 0.4, (s0 + s1) / 2, 0.02, 0.05, s1 - s0, 0xff5a1a, { glow: true }); b.box(x - 1.03, 0.4, (s0 + s1) / 2, 0.02, 0.05, s1 - s0, 0xff5a1a, { glow: true }); },
-    moverMesh(b) { b.geo("dode", 0, 0, 0, 2.3, 2.3, 2.3, 0xff6a1a, { glow: true }); for (let i = 0; i < 7; i++) b.geo("dode", rand(-0.7, 0.7), rand(-0.7, 0.7), rand(-0.7, 0.7), 1.2, 1.0, 1.2, 0x2a2222); },
+    block(b, x, sc, d) { b.geo("cone4", x, 1.3, sc, 1.9, 2.8, 1.5, 0x1c1622, { ry: rand(0, 0.6) }); b.geo("dode", x, 0.3, sc, 2.0, 0.9, 1.6, 0x2a2424); b.box(x, 0.9, sc - 0.6, 0.12, 1.2, 0.04, 0xff2414, { glow: true, rz: 0.3 }); },
+    low(b, x0, x1, sc) { const xc = (x0 + x1) / 2, len = x1 - x0; b.box(xc, 0, sc, len, 0.85, 0.7, 0x2e2828); b.box(xc, 0.86, sc, len * 0.9, 0.04, 0.5, 0xff2414, { glow: true }); for (let i = 0; i < len; i++) b.geo("dode", x0 + 0.5 + i, 0.8, sc, 0.5, 0.4, 0.5, 0x3a3232); },
+    high(b, sc) { STD.lintel(b, sc, 0x2e2828, 0x262020); for (let i = 0; i < 6; i++) b.box(rand(-HALF, HALF), BEAM_Y0 - 0.1, sc - 0.46, 0.1, rand(0.2, 0.5), 0.04, 0xff2414, { glow: true }); },
+    gantry(b, sc) { STD.gantry(b, sc, 0x2a2424); b.box(0, 4.25, sc - 0.26, W + 2, 0.05, 0.02, 0xff2414, { glow: true }); },
+    hang(b, x, sc) { b.geo("dode", x, BEAM_Y0 + 0.45, sc, 1.6, 0.9, 1.0, 0x2a2222); b.geo("dode", x, BEAM_Y0 + 0.45, sc - 0.1, 0.9, 0.5, 0.8, 0xff2414, { glow: true }); for (const ex of [-0.6, 0.6]) b.box(x + ex, 2.1, sc, 0.06, 2.2, 0.06, 0x4a4040); },
+    long(b, x, s0, s1, h, ramp) { STD.steps(b, x, s0, s1, h, ramp, 0x2e2828, 0x3a3232, 0x332d2d); b.box(x + 1.03, 0.4, (s0 + s1) / 2, 0.02, 0.05, s1 - s0, 0xff2414, { glow: true }); b.box(x - 1.03, 0.4, (s0 + s1) / 2, 0.02, 0.05, s1 - s0, 0xff2414, { glow: true }); },
+    moverMesh(b) { b.geo("dode", 0, 0, 0, 2.3, 2.3, 2.3, 0xff2414, { glow: true }); for (let i = 0; i < 7; i++) b.geo("dode", rand(-0.7, 0.7), rand(-0.7, 0.7), rand(-0.7, 0.7), 1.2, 1.0, 1.2, 0x2a2222); },
     scenery(b, run, lim, near) {
       sideLoop(lim, near, (side, end, nend) => {
         for (let s = 14; s < nend; s += rand(3, 6)) b.geo("dode", side * (HALF + rand(2, 6)), -2.2, s, rand(2.5, 4.5), rand(2, 3.4), rand(2.5, 4.5), jit(0x2a2424, 0.03), { ry: rand(0, 3) });
@@ -1879,7 +1879,7 @@ Object.assign(THEMES, {
         for (let t = a; t <= e; t += rand(0.7, 1.2)) for (const sx of [-1, 1]) b.geo("dode", xc + sx * (w / 2 - 0.1), -0.55, t, rand(0.7, 1.1), 0.7, rand(0.7, 1.1), 0xff5a1a, { glow: true });
         for (const ee of [a, e]) for (let x = xc - w / 2; x <= xc + w / 2; x += 0.8) b.geo("dode", x, -0.55, ee, 0.9, 0.7, 0.9, 0xff8a2a, { glow: true });
       },
-      obstacle(b, x, sc) { b.geo("cone4", x, 1.3, sc, 2.0, 2.8, 1.6, 0x1c1622, { ry: 0.4 }); b.box(x, 0.8, sc - 0.6, 0.12, 1.3, 0.04, 0xff6a1a, { glow: true, rz: -0.3 }); },
+      obstacle(b, x, sc) { b.geo("cone4", x, 1.3, sc, 2.0, 2.8, 1.6, 0x1c1622, { ry: 0.4 }); b.box(x, 0.8, sc - 0.6, 0.12, 1.3, 0.04, 0xff2414, { glow: true, rz: -0.3 }); },
       sides(b, z) {
         const len = z.s1 - z.s0;
         for (let i = 0; i < len * 1.6; i++) b.box(rand(-60, 60), -0.6, rand(z.s0, z.s1), rand(1, 5), 0.04, rand(0.6, 3), pick([0xffb020, 0xff7a1a, 0xffd060, 0xb02a08]), { glow: true, ry: rand(0, 3) }); // swirls in the lava
