@@ -96,6 +96,24 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .stats div{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:10px;padding:10px 6px}
 .stats small{display:block;font:400 9.5px var(--display);letter-spacing:.12em;color:var(--muted)}
 .stats b{display:block;margin-top:4px;font:400 22px var(--display)}
+.rstats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 2px}
+.rstats div{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:8px;padding:6px 4px}
+.rstats small{display:block;font:400 8.5px var(--display);letter-spacing:.1em;color:var(--muted)}
+.rstats b{display:block;margin-top:2px;font:400 13px var(--display);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rstats .wide{grid-column:span 2}
+#nm{position:absolute;left:50%;top:77%;transform:translate(-50%,-50%);font:400 15px var(--display);letter-spacing:.06em;color:#7dffb0;text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 14px rgba(80,255,160,.5);opacity:0;pointer-events:none;white-space:nowrap}
+#nm.on{animation:nmPop .75s ease-out}
+@keyframes nmPop{0%{opacity:0;transform:translate(-50%,-30%) scale(.7)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.12)}70%{opacity:1}100%{opacity:0;transform:translate(-50%,-90%) scale(1)}}
+#boost{position:absolute;inset:0;pointer-events:none;display:grid;place-items:center;opacity:0;background:radial-gradient(circle at 50% 55%,rgba(95,215,255,.0) 0,rgba(95,215,255,.0) 30%,rgba(95,215,255,.35) 65%,rgba(255,93,115,.45) 100%)}
+#boost b{font:400 clamp(30px,8vw,64px) var(--display);letter-spacing:.06em;color:#fff;text-shadow:0 0 22px #5fd7ff,0 0 44px #ff5d73,0 4px 0 rgba(0,0,0,.4)}
+#boost i{position:absolute;left:50%;top:55%;width:40px;height:40px;margin:-20px;border-radius:50%;border:4px solid #5fd7ff;opacity:0}
+#boost.on{animation:bFade 1.5s ease-out}
+#boost.on b{animation:bText 1.5s cubic-bezier(.2,1.6,.4,1)}
+#boost.on i{animation:bRing 1s ease-out}
+#boost.on i:nth-child(3){animation-delay:.18s;border-color:#ff5d73}
+@keyframes bFade{0%{opacity:0}8%{opacity:1}65%{opacity:1}100%{opacity:0}}
+@keyframes bText{0%{transform:scale(.3)}30%{transform:scale(1.08)}100%{transform:scale(1)}}
+@keyframes bRing{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(22)}}
 .reason{color:var(--muted);margin:8px 0 0}
 .newbest{color:var(--good);font:400 12px var(--display);letter-spacing:.1em;margin-top:8px}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -178,6 +196,8 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
   <div id="turn" hidden aria-live="polite"><span id="tl" aria-label="Turn left">◀&#xFE0E;</span><span id="tr" aria-label="Turn right">▶&#xFE0E;</span></div>
   <div id="banner"><small>NOW ENTERING</small><span id="bannerName"></span></div>
   <div id="toast"></div>
+  <div id="nm"></div>
+  <div id="boost"><b>HEAD START!</b><i></i><i></i></div>
   <div id="count" aria-live="assertive"></div>
   <div id="vig"></div>
 </div>
@@ -234,6 +254,7 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <p class="reason" id="reason"></p>
     <div class="stats"><div><small>SCORE</small><b id="oScore">0</b></div><div><small>COINS</small><b id="oCoins">0</b></div><div><small>BEST</small><b id="oBest">0</b></div></div>
     <div class="newbest" id="newBest" hidden>NEW BEST!</div>
+    <div class="rstats" id="runStats"></div>
     <div class="prog" id="progOver"></div>
     <div class="lb" id="lbOver" hidden>
       <div class="row" id="submitRow"><input id="nameIn" type="text" maxlength="16" placeholder="Your name" autocomplete="nickname" aria-label="Name for the leaderboard"><button class="btn" id="submitBtn" type="button">SUBMIT</button></div>
@@ -2539,6 +2560,7 @@ function resetWorld() {
   G.score = 0; G.coins = 0; G.dist = 0; G.speed = SPEED0; G.runMs = 0; G.submitted = false;
   G.rs = { jumps: 0, slides: 0, turns: 0, powers: 0, pieces: 0, shieldSaves: 0, worlds: new Set([cur.theme]), loop: false, sawSpace: false };
   G.revived = false; G.headDone = false; G.earned = []; trailReset();
+  G.rs.near = 0; G.nmPts = 0; G.nmCombo = 0; G.nmT = -99; G.fovKick = 0; pl.laneT = pl.jumpT = pl.slideT = -99; pl.nmFrom = 1;
   for (const k of Object.keys(powerEls)) { powerEls[k].remove(); delete powerEls[k]; }
 }
 
@@ -2621,6 +2643,8 @@ const SFX = {
   turn(dir) { nz({ dur: 0.3, vol: 0.14, freq: 500, to: 3000, q: 0.8, pan: dir * 0.8, attack: 0.05 }); tone(660, 0.08, "triangle", 0.08); tone(990, 0.12, "triangle", 0.07, 0, 0.07); },
   crash() { nz({ dur: 0.6, vol: 0.45, freq: 300 }); tone(140, 0.5, "sawtooth", 0.18, -90); },
   stumble() { tone(180, 0.18, "sawtooth", 0.12, -60); nz({ dur: 0.12, vol: 0.15, freq: 500 }); },
+  boost() { const t = AU.ctx; if (!t) return; [196, 262, 330, 392, 523, 659].forEach((f, i) => tone(f, 0.16, "sawtooth", 0.05, 0, i * 0.035)); tone(1046, 0.5, "triangle", 0.08, 0, 0.22); },
+  near(n) { const b = 740 * Math.pow(1.122, Math.min(n, 6) - 1); tone(b, 0.07, "triangle", 0.09); tone(b * 1.5, 0.12, "triangle", 0.08, 0, 0.05); },
   power() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.1, "square", 0.07, 0, i * 0.06)); },
   shieldPop() { tone(880, 0.25, "triangle", 0.15, -500); nz({ dur: 0.2, vol: 0.15, freq: 3000 }); },
   growl() { nz({ dur: 0.9, vol: 0.22, freq: 180, to: 90, q: 1.5, attack: 0.08 }); tone(70, 0.8, "sawtooth", 0.08, -20); },
@@ -2749,7 +2773,7 @@ function gameOver() {
   const sc = Math.floor(G.score), isBest = sc > G.best;
   if (isBest) { G.best = sc; store.set("chonkrun.best", String(sc)); }
   $("reason").textContent = G.reason; $("oScore").textContent = sc.toLocaleString(); $("oCoins").textContent = G.coins; $("oBest").textContent = G.best.toLocaleString();
-  $("newBest").hidden = !isBest; over.hidden = false; hud.hidden = true; updateBestLine(); progressOnGameOver(sc); lbOnGameOver(sc);
+  $("newBest").hidden = !isBest; renderRunStats(); over.hidden = false; hud.hidden = true; updateBestLine(); progressOnGameOver(sc); lbOnGameOver(sc);
   setTimeout(() => $("againBtn").focus({ preventScroll: true }), 50);
 }
 function crash(reason) {
@@ -2803,13 +2827,13 @@ function handle(a) {
     const dir = a === "left" ? "L" : "R";
     if (inWindow() && cur.opts.includes(dir)) { doTurn(dir); return; }
     const nl = clamp(pl.lane + (a === "left" ? -1 : 1), 0, 2);
-    if (nl !== pl.lane) { pl.from = pl.lane; pl.lane = nl; SFX.lane(a === "left" ? -1 : 1); }
+    if (nl !== pl.lane) { pl.nmFrom = pl.lane; pl.laneT = G.time; pl.from = pl.lane; pl.lane = nl; SFX.lane(a === "left" ? -1 : 1); }
     else { SFX.stumble(); shake = 0.12; }
   } else if (a === "up") {
-    if (pl.ground || pl.coyote > 0) { G.rs.jumps++; pl.coyote = 0; pl.vy = JUMP; pl.ground = false; pl.slide = 0; SFX.jump(); }
+    if (pl.ground || pl.coyote > 0) { G.rs.jumps++; pl.jumpT = G.time; pl.coyote = 0; pl.vy = JUMP; pl.ground = false; pl.slide = 0; SFX.jump(); }
   } else if (a === "down") {
     if (!pl.ground) { pl.vy = Math.min(pl.vy, -24); pl.slideQ = true; }
-    else { if (pl.slide <= 0.15) { SFX.slide(); G.rs.slides++; } pl.slide = 0.6; }
+    else { if (pl.slide <= 0.15) { SFX.slide(); G.rs.slides++; pl.slideT = G.time; } pl.slide = 0.6; }
   }
 }
 
@@ -2838,7 +2862,8 @@ function step(dt) {
   // forward
   const ns = pl.s + sp * dt, gF = groundAt(run, ns, pl.x, pl.y, ghost);
   if (gF > pl.y + STEP && !(gF <= 0.05 && pl.y < -0.1)) { crash(frontReason(run, ns)); if (pl.dead) return; }
-  pl.s = ns; G.dist += sp * dt; G.score += sp * dt * (pl.dbl > 0 ? 2 : 1);
+  const ps = pl.s; pl.s = ns; G.dist += sp * dt; G.score += sp * dt * (pl.dbl > 0 ? 2 : 1);
+  nearMiss(run, ps, ns);
   // lateral
   const tx = LANES[pl.lane];
   if (Math.abs(pl.x - tx) > 1e-4) {
@@ -2852,7 +2877,7 @@ function step(dt) {
   if (pl.vy > 0 || pl.y > g + 1e-3) {
     if (pl.ground && pl.vy <= 0) pl.coyote = 0.1; pl.coyote = Math.max(0, (pl.coyote || 0) - dt);
     pl.vy += GRAV * dt; pl.y += pl.vy * dt; pl.ground = false;
-    if (g > -50 && pl.y <= g) { if (pl.vy < -4) SFX.land(surface(run)); pl.y = g; pl.vy = 0; pl.ground = true; if (pl.slideQ) { pl.slideQ = false; pl.slide = 0.6; SFX.slide(); } }
+    if (g > -50 && pl.y <= g) { if (pl.vy < -4) SFX.land(surface(run)); pl.y = g; pl.vy = 0; pl.ground = true; if (pl.slideQ) { pl.slideQ = false; pl.slide = 0.6; pl.slideT = G.time; SFX.slide(); } }
   } else { pl.y = g; pl.vy = 0; pl.ground = true; }
   if (run.style === "tunnel" && pl.s > run.zone.s0 - 1 && pl.s < run.zone.s1 + 1 && pl.y > TUNNEL_H - 1.85) { pl.y = TUNNEL_H - 1.85; pl.vy = Math.min(pl.vy, 0); }
   if (pl.y < -2.4) { die(pl.s > run.L - 1 ? "Missed the turn and went over the edge" : run.style === "river" && pl.s > run.zone.s0 ? "Splashed into the river" : run.style === "hop" && pl.s > run.zone.s0 ? THEMES[run.theme].hop.death : THEMES[run.theme].fall || "Fell into the gap"); return; }
@@ -2937,7 +2962,8 @@ function place(dt) {
   camera.position.copy(camPos);
   if (shake > 0 && !reduceMotion) { camera.position.x += (R() - 0.5) * shake; camera.position.y += (R() - 0.5) * shake; shake = Math.max(0, shake - dt * 1.6); }
   camera.lookAt(camLook);
-  const targetFov = (camera.aspect < 0.8 ? 74 : 62) + (G.state === "run" ? 4 + (G.speed - SPEED0) * 0.5 : 0);
+  G.fovKick = Math.max(0, (G.fovKick || 0) - dt * 9);
+  const targetFov = (camera.aspect < 0.8 ? 74 : 62) + (G.state === "run" ? 4 + (G.speed - SPEED0) * 0.5 : 0) + (reduceMotion ? 0 : G.fovKick);
   if (Math.abs(camera.fov - targetFov) > 0.05) { camera.fov = lerp(camera.fov, targetFov, damp(dt, 3)); camera.updateProjectionMatrix(); }
 
   sky.position.copy(camera.position);
@@ -3001,7 +3027,7 @@ stage.addEventListener("pointerdown", (e) => { touch = { x: e.clientX, y: e.clie
 stage.addEventListener("pointermove", (e) => {
   if (!touch || touch.done || G.state !== "run") return;
   const dx = e.clientX - touch.x, dy = e.clientY - touch.y;
-  if (Math.hypot(dx, dy) < 26) return;
+  if (Math.hypot(dx, dy) < swipeMin()) return;
   touch.done = true;
   queue.push(Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : (dy < 0 ? "up" : "down"));
 });
@@ -3197,7 +3223,9 @@ function applyHeadStart() {
   if (G.headDone) return; G.headDone = true;
   if (G.daily || !PROFILE.useHead || (PROFILE.items.head | 0) <= 0) return;
   PROFILE.items.head--; saveProfile(); refreshMenuStore();
-  pl.shield = true; addPower("shield"); pl.magnet = POWER_INFO.magnet.dur; addPower("magnet"); SFX.power(); toast("HEAD START!");
+  pl.shield = true; addPower("shield"); pl.magnet = POWER_INFO.magnet.dur; addPower("magnet"); SFX.power(); SFX.boost();
+  const el = $("boost"); el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
+  G.fovKick = 16; shake = 0.3; trailBurst(["#5fd7ff", "#ff5d73", "#ffffff"], 70);
 }
 
 // ---- revive ----
@@ -3244,8 +3272,64 @@ function doRevive() {
 }
 $("rvBtn").onclick = doRevive; $("rvSkip").onclick = skipRevive;
 
+// a ring of sparks bursting out of the Chonk (Head Start)
+function trailBurst(cols, n) {
+  const p = playerRoot.position;
+  for (let k = 0; k < n; k++) {
+    const i = trail.i = (trail.i + 1) % TRAIL_N, j = i * 3, a = Math.random() * Math.PI * 2, v = 4 + Math.random() * 5;
+    trail.pos[j] = p.x; trail.pos[j + 1] = p.y + 0.4 + Math.random() * 0.8; trail.pos[j + 2] = p.z;
+    trail.vel[j] = Math.cos(a) * v; trail.vel[j + 1] = 1 + Math.random() * 3; trail.vel[j + 2] = Math.sin(a) * v;
+    tc.set(cols[k % cols.length]); trail.base[j] = tc.r; trail.base[j + 1] = tc.g; trail.base[j + 2] = tc.b; trail.life[i] = 1; trail.fade[i] = 1.3;
+  }
+}
+
+/* ---------- close calls: dodging, jumping or sliding at the last moment ---------- */
+const NM_PTS = 15;
+function nearMiss(run, s0, s1) {
+  if (pl.inv > 0 || pl.dead) return;
+  if (run.zone && s1 > run.zone.s0 - 2 && s1 < run.zone.s1 + 2) return; // platforms in set pieces aren't obstacles
+  const t = G.time, front = s1 + PD;
+  let kind = null;
+  for (const o of run.solids) {
+    if (o.nm || o.ramp || o.top < 0.5 || front < o.s0 || s1 - PD > o.s1) continue;
+    o.nm = true; // judged once, the moment we reach its front edge
+    const over = pl.x + PW > o.x0 && pl.x - PW < o.x1;
+    if (over) { if (!pl.ground && pl.y > o.top - 0.05 && pl.y - o.top < 1.1 && t - pl.jumpT < 0.5) kind = "jump"; }
+    else if (pl.nmFrom !== pl.lane && t - pl.laneT < 0.4 && o.top > STEP) { const fx = LANES[pl.nmFrom]; if (fx + PW > o.x0 && fx - PW < o.x1) kind = "dodge"; }
+  }
+  for (const b of run.beams) {
+    if (b.nm || front < b.s0 || s1 - PD > b.s1) continue;
+    b.nm = true;
+    if (pl.x + PW > b.x0 && pl.x - PW < b.x1 && pl.slide > 0 && t - pl.slideT < 0.45) kind = "slide";
+  }
+  if (!kind) return;
+  G.rs.near++; G.nmCombo = t - G.nmT < 3 ? G.nmCombo + 1 : 1; G.nmT = t;
+  // capped so close calls can never push a score past the leaderboard's sanity limit
+  const pts = Math.min(NM_PTS * Math.min(G.nmCombo, 3), Math.max(0, G.dist * 0.3 - G.nmPts));
+  G.nmPts += pts; G.score += pts;
+  const el = $("nm"); el.textContent = `CLOSE CALL${G.nmCombo > 1 ? " ×" + G.nmCombo : ""}${pts ? " +" + Math.round(pts) : ""}`;
+  el.classList.remove("on"); void el.offsetWidth; el.classList.add("on"); SFX.near(G.nmCombo);
+}
+
+/* ---------- run summary on the game-over card ---------- */
+function renderRunStats() {
+  const rs = G.rs || {}, secs = Math.round(G.runMs / 1000), time = `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, "0")}`;
+  const world = THEMES[cur.theme].name, journey = G.mode === "mix" && rs.worlds;
+  const cells = [
+    [journey ? "FURTHEST WORLD" : "WORLD", journey ? `${world}${rs.loop ? " (lap 2)" : ""}` : world, "wide"],
+    [journey ? "WORLDS" : "DISTANCE", journey ? `${rs.worlds.size} / ${ORDER.length}` : `${Math.floor(G.dist).toLocaleString()} m`],
+    ["TIME", time],
+    ...(journey ? [["DISTANCE", `${Math.floor(G.dist).toLocaleString()} m`]] : []),
+    ["CLOSE CALLS", rs.near || 0], ["JUMPS", rs.jumps || 0], ["SLIDES", rs.slides || 0],
+    ...(journey ? [] : [["CORNERS", rs.turns || 0]]),
+  ];
+  $("runStats").innerHTML = cells.map(([k, v, c]) => `<div class="${c || ""}"><small>${k}</small><b>${v}</b></div>`).join("");
+}
+
+// swipe distance scales with the screen: short on phones, longer on tablets
+const swipeMin = () => Math.max(20, Math.min(56, Math.min(innerWidth, innerHeight) * 0.055));
 // ---- trails: a little stream of glowing sparks behind the Chonk ----
-const TRAIL_N = 90, trail = { pos: new Float32Array(TRAIL_N * 3), col: new Float32Array(TRAIL_N * 3), life: new Float32Array(TRAIL_N), base: new Float32Array(TRAIL_N * 3), i: 0, acc: 0 };
+const TRAIL_N = 160, trail = { pos: new Float32Array(TRAIL_N * 3), col: new Float32Array(TRAIL_N * 3), life: new Float32Array(TRAIL_N), base: new Float32Array(TRAIL_N * 3), vel: new Float32Array(TRAIL_N * 3), fade: new Float32Array(TRAIL_N), i: 0, acc: 0 };
 const trailTex = (() => { const c = document.createElement("canvas"); c.width = c.height = 64; const x = c.getContext("2d"), g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, "rgba(255,255,255,1)"); g.addColorStop(0.35, "rgba(255,255,255,.6)"); g.addColorStop(1, "rgba(255,255,255,0)"); x.fillStyle = g; x.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
 const trailGeo = new THREE.BufferGeometry();
 trailGeo.setAttribute("position", new THREE.BufferAttribute(trail.pos, 3)); trailGeo.setAttribute("color", new THREE.BufferAttribute(trail.col, 3));
@@ -3263,12 +3347,13 @@ function trailTick(dt) {
       const p = playerRoot.position, j = i * 3;
       trail.pos[j] = p.x + (Math.random() - 0.5) * 0.5; trail.pos[j + 1] = p.y + 0.35 + Math.random() * 0.9 * (pl.slide > 0 ? 0.4 : 1); trail.pos[j + 2] = p.z + (Math.random() - 0.5) * 0.5;
       if (def[2] === "rainbow") tc.setHSL((G.time * 0.6 + i * 0.013) % 1, 1, 0.6); else tc.set(def[2][0]).lerp(tc2.set(def[2][1]), Math.random());
-      trail.base[j] = tc.r; trail.base[j + 1] = tc.g; trail.base[j + 2] = tc.b; trail.life[i] = 1;
+      trail.base[j] = tc.r; trail.base[j + 1] = tc.g; trail.base[j + 2] = tc.b; trail.life[i] = 1; trail.fade[i] = 2.2;
+      trail.vel[j] = 0; trail.vel[j + 1] = 0.5; trail.vel[j + 2] = 0;
     }
   }
   for (let i = 0; i < TRAIL_N; i++) {
     if (trail.life[i] <= 0) continue;
-    if (G.state !== "paused") { trail.life[i] = Math.max(0, trail.life[i] - dt * 2.2); trail.pos[i * 3 + 1] += dt * 0.5; }
+    if (G.state !== "paused") { const j = i * 3; trail.life[i] = Math.max(0, trail.life[i] - dt * trail.fade[i]); trail.pos[j] += trail.vel[j] * dt; trail.pos[j + 1] += trail.vel[j + 1] * dt; trail.pos[j + 2] += trail.vel[j + 2] * dt; }
     const k = trail.life[i] * trail.life[i], j = i * 3;
     trail.col[j] = trail.base[j] * k; trail.col[j + 1] = trail.base[j + 1] * k; trail.col[j + 2] = trail.base[j + 2] * k;
   }
@@ -3289,6 +3374,7 @@ const MISSION_POOL = [
   { k: "pieces", stat: "pieces", scope: "run", lv: [1, 1, 2, 2, 3, 4], text: (n) => `Cross ${n} special stretch${n > 1 ? "es" : ""} in one run` },
   { k: "worlds", stat: "worlds", scope: "run", lv: [2, 2, 3, 4, 5, 7], text: (n) => `Reach ${n} worlds in one Journey run` },
   { k: "score", stat: "score", scope: "run", lv: [1000, 2000, 4000, 7000, 11000, 16000], text: (n) => `Score ${n.toLocaleString()} in one run` },
+  { k: "near", stat: "near", scope: "run", lv: [3, 5, 8, 12, 16, 22], text: (n) => `Pull off ${n} close calls in one run` },
   { k: "daily", stat: "daily", scope: "run", lv: [1, 1, 1, 1, 1, 1], text: () => "Play today's Daily Run" },
 ];
 function newMission(exclude) {
@@ -3305,7 +3391,7 @@ const missionDef = (m) => MISSION_POOL.find((p) => p.k === m.k);
 function runStat(stat) {
   const rs = G.rs || {};
   return { dist: Math.floor(G.dist), coins: G.coins, score: Math.floor(G.score), jumps: rs.jumps || 0, slides: rs.slides || 0, turns: rs.turns || 0, powers: rs.powers || 0,
-    pieces: rs.pieces || 0, worlds: G.mode === "mix" && rs.worlds ? rs.worlds.size : 0, daily: G.daily ? 1 : 0 }[stat] || 0;
+    pieces: rs.pieces || 0, near: rs.near || 0, worlds: G.mode === "mix" && rs.worlds ? rs.worlds.size : 0, daily: G.daily ? 1 : 0 }[stat] || 0;
 }
 // during a run: tick off run-scoped missions as soon as they're met
 function checkMissionsLive() {
