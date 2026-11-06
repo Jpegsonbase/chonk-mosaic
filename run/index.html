@@ -1,10 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta name="robots" content="noindex, nofollow">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
-<title>Chonk Run</title>
+<title>Chonk Run · Chonkit</title>
+<meta name="description" content="A 3D endless runner starring any Chonk on Base. Dodge, jump and slide through 9 worlds, chase the leaderboard and the Daily Run.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chonkit">
+<meta property="og:title" content="Chonk Run · Chonkit">
+<meta property="og:description" content="Run any Chonk through 9 worlds. Dodge, jump and slide, chase the leaderboard and the Daily Run.">
+<meta property="og:url" content="https://chonkit.xyz/run/">
+<meta property="og:image" content="https://chonkit.xyz/run/og.png?v=1">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@jpegsonbase">
+<link rel="canonical" href="https://chonkit.xyz/run/">
+<link rel="icon" href="/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&family=IBM+Plex+Mono:wght@400;500;700&display=swap">
@@ -127,6 +139,9 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .lbList li span small{color:var(--muted);margin-left:6px}
 .lbList li em{font:400 14px var(--display);font-style:normal;color:var(--glow)}
 .lbList li.me{outline:1px solid var(--glow);background:rgba(255,179,71,.12)}
+.lbList .as{font-style:normal;color:#ffb347;margin-left:5px;font-size:12px;font-weight:700}
+.lbList .rk{display:block;font-size:10px;color:var(--muted);letter-spacing:.02em;margin-top:1px}
+.lbKey{font-size:10.5px;color:var(--muted);margin-top:6px}
 .lbList .vf{font-style:normal;color:#7dffb0;margin-left:5px;font-size:11px}
 .lbList .hd{font:400 8.5px var(--display);font-style:normal;letter-spacing:.08em;color:#0d0a14;background:linear-gradient(90deg,#5fd7ff,#c08bff);border-radius:4px;padding:2px 4px;margin-left:6px;vertical-align:1px}
 .lbSel{display:block;margin:8px auto 0;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:inherit;font:400 13px var(--display);letter-spacing:.04em;cursor:pointer}
@@ -290,6 +305,7 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <select id="lbWorld" class="lbSel" aria-label="Which leaderboard"></select>
     <div class="seg" id="lbPeriod" style="grid-template-columns:1fr 1fr;margin-top:12px"><button type="button" data-p="all" aria-pressed="true">ALL TIME</button><button type="button" data-p="week" aria-pressed="false">THIS WEEK</button></div>
     <ol class="lbList" id="lbListMenu"></ol>
+    <p class="lbKey">✓ name locked to a wallet · ↺ used a Revive · » used a Head Start</p>
     <div class="status" id="lbMenuStatus"></div>
     <div class="claimBox" id="claimBox">
       <div id="claimInfo">Lock your name to your wallet so nobody else can post under it. Chonk holders get a HOLDER badge, +25% coins every run and a holder-only trail. You only sign a message: it's free and sends no transaction.</div>
@@ -1067,7 +1083,14 @@ async function lbRank(mode, name, score) {
     method: "HEAD", headers: { ...lbAuth(), Prefer: "count=exact" } });
   const m = (r.headers.get("content-range") || "").match(/\/(\d+)/); return m ? { rank: +m[1] + 1, best: score } : null;
 }
-async function lbSubmit(entry) { return lbFetch(LEADERBOARD.table, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(entry) }); }
+async function lbSubmit(entry) {
+  const post = (e) => lbFetch(LEADERBOARD.table, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(e) });
+  try { return await post(entry); }
+  catch (err) { // database not updated for the newer columns yet: send the basics
+    if (!/column|PGRST204|schema cache/i.test(err.message)) throw err;
+    const { revived, head_start, rank_name, badges, ...basic } = entry; return post(basic);
+  }
+}
 
 /* =====================================================================
    3. Small helpers
@@ -2447,6 +2470,48 @@ const SPECIALS = {
     b.box(0, TUNNEL_H + 1, c, W + 26, 6, len, 0x3a3546); // the street block above the tunnel
   },
 };
+// Metro tunnel: a parked train shuts one lane at a time, so there are only ever two to run in.
+// With an outside lane shut, the two open lanes sit side by side: crates, barriers, signs and oncoming trains, always leaving a way through.
+// With the middle shut you can't swap sides, so each open lane only gets things you can jump or slide.
+function tunnelObstacles(run, b, T, a0, a1) {
+  let s = a0, prev = -1;
+  while (s < a1 - 24) {
+    const closed = pick([0, 1, 2].filter((l) => l !== prev)), e = Math.min(a1, s + rand(45, 75)); prev = closed;
+    if (e - s < 24) break;
+    const cx = LANES[closed];
+    for (let p = s; p < e - 1; ) { const len = Math.min(rand(10, 16), e - p); addSolid(run, cx - 1.03, cx + 1.03, p, p + len, T.longH, 0).wall = true; T.long(b, cx, p, p + len, T.longH, 0); p += len; }
+    b.box(cx, T.longH + 0.25, s - 0.05, 1.8, 0.2, 0.06, 0xff2a2a, { glow: true }); // red lamps on the front of the parked train
+    for (const ex of [-0.6, 0.6]) b.box(cx + ex, 1.2, s - 0.05, 0.35, 0.35, 0.06, 0xff3a2a, { glow: true });
+    const open = [0, 1, 2].filter((l) => l !== closed), side = closed !== 1;
+    let q = s + 16;
+    while (q < e - 8) {
+      const sp = speedAt(run.dist + q);
+      let kind = side ? weighted({ block: 3, low: 2, high: 2, mover: 2.6 }) : weighted({ low: 1, high: 1 });
+      if (kind === "mover" && q + 64 + T.mover.len + 4 > e) kind = "block";
+      let used = 0.7;
+      if (kind === "block") {
+        const l = pick(open), f = open.find((x) => x !== l);
+        addSolid(run, LANES[l] - 1, LANES[l] + 1, q, q + 1.4, 2.4); T.block(b, LANES[l], q + 0.7, 1.4); coinLine(run, f, q - 7, q + 5); used = 1.4;
+      } else if (kind === "low") {
+        for (const l of open) { addSolid(run, LANES[l] - 1.05, LANES[l] + 1.05, q, q + 0.7, 0.9); T.low(b, LANES[l] - 1.05, LANES[l] + 1.05, q + 0.35); }
+        coinArc(run, pick(open), q + 0.35);
+      } else if (kind === "high") {
+        T.gantry(b, q + 0.35);
+        for (const l of open) { run.beams.push({ s0: q, s1: q + 0.7, x0: LANES[l] - 1.05, x1: LANES[l] + 1.05, y0: BEAM_Y0, y1: 3.2 }); T.hang(b, LANES[l], q + 0.35); }
+        coinLine(run, pick(open), q - 4, q + 3, 0.45);
+      } else { // an oncoming train in one open lane; the other stays clear until it has gone past
+        const M = T.mover, l = pick(open), f = open.find((x) => x !== l), m0 = q + 64;
+        const o = addSolid(run, LANES[l] - 1.03, LANES[l] + 1.03, m0, m0 + M.len, M.h);
+        Object.assign(o, { vel: M.v, active: false, lane: l });
+        const mb = new Builder(); T.moverMesh(mb); const grp = new THREE.Group(); mb.build(grp);
+        grp.position.set(LANES[l], 0, -(m0 + M.len / 2)); run.group.add(grp); o.mesh = grp; run.movers.push(o);
+        coinLine(run, f, q + 6, q + 50); used = 64 + M.len;
+      }
+      q += used + Math.max(9, sp * 0.8) + rand(0, 3);
+    }
+    s = e + rand(8, 12); // a short stretch with all three lanes open, to swap sides before the next closure
+  }
+}
 function coinLineAt(run, lane, s0, s1, y, step = 2.1) { for (let s = s0; s <= s1; s += step) run.coins.push({ s, x: LANES[lane], y, top: true }); }
 
 function buildRun(run) { return withSeed(run.seed != null ? hashSeed(run.seed, "build") : null, () => buildRunInner(run)); }
@@ -2462,12 +2527,14 @@ function buildRunInner(run) {
   const safeUntil = s + speedAt(run.dist) * 2.2;
   const sMax = run.style === "hop" || run.style === "river" ? -1 : run.L - W - 18;
   if (run.style !== "normal") SPECIALS[run.style](run, b, T);
+  if (run.style === "tunnel") tunnelObstacles(run, b, T, Math.max(run.zone.s0 + 8, safeUntil), run.zone.s1 - 4);
   const weights = run.style === "tunnel" ? { mover: 6, long: 2, blocks: 2.2, mix: 2, roofs: 2.4, low: 1 } : T.weights;
   while (s < sMax) {
     const sp = speedAt(run.dist + s);
     let kind = easy ? pick(["blocks", "low", "mix", "blocks", "high", "mover"]) : weighted(weights);
     const safe = s < safeUntil;
     if (safe) kind = pick(["blocks", "low", "high", "gap"]);
+    if (run.style === "tunnel" && s < run.zone.s1 + 4 && s + ({ mover: 90, long: 40, roofs: 84, slides: 22, avalanche: 26 }[kind] || 6) > run.zone.s0 - 4) { s = run.zone.s1 + 6; continue; } // the metro has its own layout
     if ((kind === "mover" && s + 86 > sMax) || (kind === "long" && s + 36 > sMax) || (kind === "roofs" && s + 80 > sMax) || (kind === "slides" && s + 20 > sMax) || (kind === "avalanche" && s + 24 > sMax)) kind = "blocks";
     const used = PATTERNS[kind](run, s, b, T, safe);
     const gapAfter = (sp * lerp(0.98, 0.72, clamp((run.dist + s) / 4000, 0, 1)) + rand(0, 3)) * (T.density || 1);
@@ -2614,7 +2681,7 @@ function resetWorld() {
   applyEnv(cur.theme, true);
   G.score = 0; G.coins = 0; G.dist = 0; G.speed = SPEED0; G.runMs = 0; G.submitted = false;
   G.rs = { jumps: 0, slides: 0, turns: 0, powers: 0, pieces: 0, shieldSaves: 0, worlds: new Set([cur.theme]), loop: false, sawSpace: false };
-  G.revived = false; G.headDone = false; G.earned = []; trailReset();
+  G.revived = false; G.headDone = false; G.headUsed = false; G.earned = []; trailReset();
   G.boost = 0; G.rs.near = 0; G.nmPts = 0; G.nmCombo = 0; G.nmT = -99; G.fovKick = 0; pl.laneT = pl.jumpT = pl.slideT = -99; pl.nmFrom = 1;
   for (const k of Object.keys(powerEls)) { powerEls[k].remove(); delete powerEls[k]; }
 }
@@ -2865,7 +2932,7 @@ function doTurn(dir) {
   const old = cur; cur = nr;
   if (pendingDispose) flushDispose();
   pendingDispose = { old, others: old.opts.filter((d) => d !== dir).map((d) => old.next[d]) };
-  ensureAhead(cur, 2); SFX.turn(dir === "L" ? -1 : 1); G.rs.turns++;
+  ensureAhead(cur, 2); SFX.turn(dir === "L" ? -1 : 1); if (!(G.boost > 0)) G.rs.turns++; // corners the Head Start takes for you don't count for missions
   if (cur.theme === "space") G.rs.sawSpace = true; if (G.rs.sawSpace && cur.theme === "jungle") G.rs.loop = true; G.rs.worlds.add(cur.theme); if (G.mode === "mix") unlockWorld(cur.theme); G.score += 25 * (pl.dbl > 0 ? 2 : 1);
   if (cur.theme !== envKey) { applyEnv(cur.theme); showBanner(THEMES[cur.theme].name); $("world").textContent = THEMES[cur.theme].name; }
   else if (cur.style !== "normal") showBanner(THEMES[cur.theme].pieceName);
@@ -2881,7 +2948,8 @@ function handle(a) {
   if (a === "left" || a === "right") {
     const dir = a === "left" ? "L" : "R";
     if (inWindow() && cur.opts.includes(dir)) { doTurn(dir); return; }
-    const nl = clamp(pl.lane + (a === "left" ? -1 : 1), 0, 2);
+    let nl = clamp(pl.lane + (a === "left" ? -1 : 1), 0, 2);
+    if (nl !== pl.lane && cur.solids.some((o) => o.wall && o.s0 < pl.s + 1.5 && o.s1 > pl.s - 0.5 && o.x0 < LANES[nl] && o.x1 > LANES[nl] && o.top > pl.y + STEP)) nl = pl.lane; // a parked train: just bump, like the track edge
     if (nl !== pl.lane) { pl.nmFrom = pl.lane; pl.laneT = G.time; pl.from = pl.lane; pl.lane = nl; SFX.lane(a === "left" ? -1 : 1); }
     else { SFX.stumble(); shake = 0.12; }
   } else if (a === "up") {
@@ -2984,7 +3052,7 @@ function step(dt) {
   }
   pl.inv = Math.max(0, pl.inv - dt); pl.rev = Math.max(0, pl.rev - dt); pl.magnet = Math.max(0, pl.magnet - dt); pl.dbl = Math.max(0, pl.dbl - dt);
   if (pendingDispose && pl.s > 30) flushDispose();
-  if (run.zone && !run.zoneDone && pl.s > run.zone.s1) { run.zoneDone = true; G.rs.pieces++; }
+  if (run.zone && !run.zoneDone && pl.s > run.zone.s1) { run.zoneDone = true; if (!(G.boost > 0)) G.rs.pieces++; }
 }
 
 /* =====================================================================
@@ -3181,13 +3249,14 @@ setMuted(AU.muted);
 const WORLD_LABEL = (m) => (m === "mix" ? "Journey" : m.startsWith("daily-") ? "Daily Run" : THEMES[m]?.name || m);
 const escHtml = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function lbRender(el, rows, meName, meScore) {
-  el.innerHTML = rows.length ? rows.map((r, i) => `<li class="${meName && nameKey(r.name) === nameKey(meName) ? "me" : ""}"><b>${i + 1}</b><span>${escHtml(r.name)}${r.verified ? `<i class="vf" title="Name locked to a wallet">✓</i>` : ""}${r.holder ? `<i class="hd" title="Chonk holder">HOLDER</i>` : ""}${r.chonk_id ? `<small>#${r.chonk_id}</small>` : ""}</span><em>${r.score.toLocaleString()}</em></li>`).join("")
+  el.innerHTML = rows.length ? rows.map((r, i) => `<li class="${meName && nameKey(r.name) === nameKey(meName) ? "me" : ""}"><b>${i + 1}</b><span>${escHtml(r.name)}${r.verified ? `<i class="vf" title="Name locked to a wallet">✓</i>` : ""}${r.holder ? `<i class="hd" title="Chonk holder">HOLDER</i>` : ""}${r.revived ? `<i class="as" title="Used a Revive">↺</i>` : ""}${r.head_start ? `<i class="as" title="Used a Head Start">»</i>` : ""}${r.chonk_id ? `<small>#${r.chonk_id}</small>` : ""}${r.rank_name ? `<span class="rk">${escHtml(r.rank_name)}${r.badges ? ` · ${r.badges} badge${r.badges === 1 ? "" : "s"}` : ""}</span>` : ""}</span><em>${r.score.toLocaleString()}</em></li>`).join("")
     : `<li><b>–</b><span>No scores yet. Be the first!</span><em></em></li>`;
 }
 let lastRun = null;
 function lbOnGameOver(sc) {
   $("lbOver").hidden = !lbOn(); if (!lbOn()) return;
-  lastRun = { score: sc, distance: Math.floor(G.dist), coins: G.coins, duration_ms: Math.max(1, Math.round(G.runMs)), mode: boardMode(), chonk_id: currentId ? +currentId : null };
+  lastRun = { score: sc, distance: Math.floor(G.dist), coins: G.coins, duration_ms: Math.max(1, Math.round(G.runMs)), mode: boardMode(), chonk_id: currentId ? +currentId : null,
+    revived: !!G.revived, head_start: !!G.headUsed, rank_name: rankOf(PROFILE.stars).name, badges: Math.min(99, Object.keys(PROFILE.badges || {}).length) };
   $("nameIn").value = (PROFILE.claim && PROFILE.claim.name) || store.get("chonkrun.name", ""); $("submitRow").hidden = sc < 50 || G.submitted; $("submitBtn").disabled = false;
   $("claimOverBtn").hidden = sc < 50 || G.submitted || !!PROFILE.claim;
   $("lbStatus").textContent = sc < 50 ? "Score 50 or more to get on the board." : `${WORLD_LABEL(boardMode())} · top 10`; $("lbStatus").className = "status";
@@ -3329,7 +3398,7 @@ function applyHeadStart() {
   if (G.daily || !PROFILE.useHead || (PROFILE.items.head | 0) <= 0) return;
   PROFILE.items.head--; saveProfile(); refreshMenuStore();
   pl.shield = true; addPower("shield"); pl.magnet = POWER_INFO.magnet.dur; addPower("magnet"); SFX.power(); SFX.boost();
-  G.boost = BOOST_DIST; G.boostShown = 0; G.boostLock = false; anim.play("run");
+  G.boost = BOOST_DIST; G.boostShown = 0; G.boostLock = false; G.headUsed = true; anim.play("run");
   const el = $("boost"); el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
   G.fovKick = 10; shake = 0.3; trailBurst(["#5fd7ff", "#ff5d73", "#ffffff"], 70);
 }
