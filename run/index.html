@@ -982,15 +982,25 @@ async function lbFetch(path, opts = {}) {
   if (!r.ok) throw new Error((await r.text().catch(() => "")) || `HTTP ${r.status}`);
   return r.status === 204 || r.status === 201 ? null : r.json();
 }
+const nameKey = (n) => String(n || "").trim().toLowerCase();
+// One row per name (their best). Uses the chonk_run_top function when it's installed, otherwise dedupes here.
 async function lbTop(mode, period, limit = 10) {
-  let q = `${LEADERBOARD.table}?select=name,score,distance,chonk_id,created_at&mode=eq.${encodeURIComponent(mode)}&order=score.desc&limit=${limit}`;
-  if (period === "week") q += `&created_at=gte.${encodeURIComponent(new Date(Date.now() - 7 * 864e5).toISOString())}`;
-  return lbFetch(q);
+  const since = period === "week" ? new Date(Date.now() - 7 * 864e5).toISOString() : null;
+  try { return await lbFetch("rpc/chonk_run_top", { method: "POST", body: JSON.stringify({ p_mode: mode, p_since: since, p_limit: limit }) }); }
+  catch {
+    let q = `${LEADERBOARD.table}?select=name,score,distance,chonk_id,created_at&mode=eq.${encodeURIComponent(mode)}&order=score.desc&limit=300`;
+    if (since) q += `&created_at=gte.${encodeURIComponent(since)}`;
+    const seen = new Set(), out = [];
+    for (const r of await lbFetch(q)) { const k = nameKey(r.name); if (seen.has(k)) continue; seen.add(k); out.push(r); if (out.length >= limit) break; }
+    return out;
+  }
 }
-async function lbRank(mode, score) {
+// Where a name stands: { rank, best }
+async function lbRank(mode, name, score) {
+  try { const r = await lbFetch("rpc/chonk_run_rank", { method: "POST", body: JSON.stringify({ p_mode: mode, p_name: name }) }); if (r && r[0] && r[0].best != null) return r[0]; } catch {}
   const r = await fetch(`${LEADERBOARD.url.replace(/\/$/, "")}/rest/v1/${LEADERBOARD.table}?select=id&mode=eq.${encodeURIComponent(mode)}&score=gt.${score}`, {
     method: "HEAD", headers: { ...lbAuth(), Prefer: "count=exact" } });
-  const m = (r.headers.get("content-range") || "").match(/\/(\d+)/); return m ? +m[1] + 1 : null;
+  const m = (r.headers.get("content-range") || "").match(/\/(\d+)/); return m ? { rank: +m[1] + 1, best: score } : null;
 }
 async function lbSubmit(entry) { return lbFetch(LEADERBOARD.table, { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(entry) }); }
 
@@ -3066,7 +3076,7 @@ setMuted(AU.muted);
 const WORLD_LABEL = (m) => (m === "mix" ? "Journey" : m.startsWith("daily-") ? "Daily Run" : THEMES[m]?.name || m);
 const escHtml = (v) => String(v).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 function lbRender(el, rows, meName, meScore) {
-  el.innerHTML = rows.length ? rows.map((r, i) => `<li class="${r.name === meName && r.score === meScore ? "me" : ""}"><b>${i + 1}</b><span>${escHtml(r.name)}${r.chonk_id ? `<small>#${r.chonk_id}</small>` : ""}</span><em>${r.score.toLocaleString()}</em></li>`).join("")
+  el.innerHTML = rows.length ? rows.map((r, i) => `<li class="${meName && nameKey(r.name) === nameKey(meName) ? "me" : ""}"><b>${i + 1}</b><span>${escHtml(r.name)}${r.chonk_id ? `<small>#${r.chonk_id}</small>` : ""}</span><em>${r.score.toLocaleString()}</em></li>`).join("")
     : `<li><b>–</b><span>No scores yet. Be the first!</span><em></em></li>`;
 }
 let lastRun = null;
@@ -3084,9 +3094,11 @@ $("submitBtn").onclick = async () => {
   store.set("chonkrun.name", name); $("submitBtn").disabled = true; $("lbStatus").textContent = "Submitting…"; $("lbStatus").className = "status";
   try {
     await lbSubmit({ ...lastRun, name }); G.submitted = true; $("submitRow").hidden = true;
-    const [rows, rank] = await Promise.all([lbTop(lastRun.mode, "all"), lbRank(lastRun.mode, lastRun.score).catch(() => null)]);
-    lbRender($("lbListOver"), rows, name, lastRun.score);
-    $("lbStatus").textContent = rank ? `You're #${rank.toLocaleString()} in ${WORLD_LABEL(lastRun.mode)}!` : "Score submitted!"; $("lbStatus").className = "status ok";
+    const [rows, me] = await Promise.all([lbTop(lastRun.mode, "all"), lbRank(lastRun.mode, name, lastRun.score).catch(() => null)]);
+    lbRender($("lbListOver"), rows, name);
+    const where = me ? `You're #${me.rank.toLocaleString()} in ${WORLD_LABEL(lastRun.mode)}` : "";
+    $("lbStatus").textContent = !me ? "Score submitted!" : me.best > lastRun.score ? `Your best of ${me.best.toLocaleString()} still stands. ${where}.` : lastRun.score > 0 && me.best === lastRun.score ? `${where}!` : `${where}.`;
+    $("lbStatus").className = "status ok";
   } catch (e) { $("submitBtn").disabled = false; $("lbStatus").textContent = "Couldn't submit that score. Try again."; $("lbStatus").className = "status err"; }
 };
 $("nameIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("submitBtn").click(); } });
