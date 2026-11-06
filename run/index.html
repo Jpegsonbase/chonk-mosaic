@@ -157,7 +157,12 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .prog .new{font:400 11px var(--display);letter-spacing:.08em;color:var(--good);margin-top:8px}
 .bank{font:400 13px var(--display);letter-spacing:.04em;color:var(--glow);text-align:center;margin:2px 0 4px}
 .bank small{display:block;font:400 10.5px var(--sans,inherit);letter-spacing:0;color:var(--muted);margin-top:3px}
-#stPanel,#revive{justify-content:center;background:rgba(10,7,16,.45)}
+#stPanel,#revive,#wpPanel{justify-content:center;background:rgba(10,7,16,.45)}
+#wpPanel .card{text-align:center;width:min(420px,100%)}
+.wpList{display:grid;gap:8px;margin-top:14px}
+.wpItem{display:flex;align-items:center;gap:10px;justify-content:flex-start;width:100%;text-align:left}
+.wpItem img,.wpDot{width:24px;height:24px;border-radius:6px;flex:none}
+.wpDot{background:#0052ff;border-radius:50%;box-shadow:inset 0 0 0 6px #0052ff,inset 0 0 0 9px #fff}
 #stPanel .card,#revive .card{text-align:center;width:min(460px,100%)}
 .wallet{font:400 22px var(--display);color:var(--glow);margin-top:6px}
 .coin.sm{display:inline-block;width:.8em;height:.8em;box-shadow:0 0 0 1.5px #7a4d00 inset;vertical-align:-.05em;margin-right:5px}
@@ -329,6 +334,17 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
     <button class="play" id="wlBuy" type="button">UNLOCK</button>
     <p class="keys" id="wlNote"></p>
     <button class="play alt" id="wlBack" type="button">BACK</button>
+  </div>
+</div>
+
+<div id="wpPanel" class="overlay" hidden>
+  <div class="card">
+    <h2>CHOOSE WALLET</h2>
+    <p class="reason" id="wpText"></p>
+    <div id="wpList" class="wpList"></div>
+    <button class="play" id="wpSign" type="button" hidden>SIGN MESSAGE</button>
+    <div class="status" id="wpStatus"></div>
+    <button class="play alt" id="wpBack" type="button">CANCEL</button>
   </div>
 </div>
 
@@ -3548,30 +3564,70 @@ renderWorldLocks();
 const isHolder = () => !!(PROFILE.claim && PROFILE.claim.holder);
 const claimMessage = (name, address, issued) => `Chonk Run\n\nClaim the leaderboard name "${name}" for this wallet.\n\nWallet: ${address}\nIssued: ${issued}\n\nThis is free and does not send a transaction.`;
 const NAME_OK = /^[\p{L}\p{N} _.\-]{1,16}$/u;
-async function claimName(raw, say) {
+// Wallet picker: every installed wallet announces itself (EIP-6963), so players choose the one that holds their Chonks.
+const WALLETS = new Map();
+addEventListener("eip6963:announceProvider", (e) => { const d = e.detail; if (d && d.info && d.provider) WALLETS.set(d.info.rdns || d.info.uuid, d); });
+dispatchEvent(new Event("eip6963:requestProvider"));
+let cbSdk = null, cbLoading = null;
+const loadCoinbase = () => cbLoading ||= import("https://esm.sh/@coinbase/wallet-sdk@4.3.0").then((m) => (cbSdk = m.createCoinbaseWalletSDK({ appName: "Chonk Run", appLogoUrl: "https://chonkit.xyz/favicon.ico", appChainIds: [8453], preference: { options: "all" } }))).catch(() => (cbLoading = null));
+const wp = { name: "", say: null, done: null, provider: null, acct: null };
+const wpSay = (m, cls = "") => { $("wpStatus").textContent = m; $("wpStatus").className = "status " + cls; };
+function claimName(raw, say) {
   const name = String(raw || "").trim().replace(/\s+/g, " ");
-  if (!NAME_OK.test(name)) { say("Names can use letters, numbers, spaces, dots, dashes and underscores, up to 16.", "err"); return null; }
-  const eth = window.ethereum;
-  if (!eth || !eth.request) { say("No wallet in this browser. Open chonkit.xyz/run in your wallet app's browser (Coinbase Wallet, MetaMask, Rainbow…) to sign.", "err"); return null; }
+  if (!NAME_OK.test(name)) { say("Names can use letters, numbers, spaces, dots, dashes and underscores, up to 16.", "err"); return Promise.resolve(null); }
+  dispatchEvent(new Event("eip6963:requestProvider")); loadCoinbase();
+  Object.assign(wp, { name, say, provider: null, acct: null });
+  const opts = [...WALLETS.values()].filter((w) => w.info.rdns !== "com.coinbase.wallet");
+  const cbExt = WALLETS.get("com.coinbase.wallet");
+  const items = [
+    ...(cbExt ? [{ id: "com.coinbase.wallet", name: "Coinbase Wallet (extension)", icon: cbExt.info.icon }] : []),
+    { id: "cbsdk", name: cbExt ? "Coinbase app or Smart Wallet" : "Coinbase Wallet (app or Smart Wallet)", icon: "" },
+    ...opts.map((w) => ({ id: w.info.rdns || w.info.uuid, name: w.info.name, icon: w.info.icon })),
+    ...(!WALLETS.size && window.ethereum ? [{ id: "injected", name: "Browser wallet", icon: "" }] : []),
+  ];
+  $("wpText").textContent = `Pick the wallet that holds your Chonks to lock "${name}" to it.`;
+  $("wpList").innerHTML = items.map((w) => `<button class="btn wpItem" type="button" data-id="${escHtml(w.id)}">${w.icon ? `<img src="${escHtml(w.icon)}" alt="">` : `<span class="wpDot"></span>`}${escHtml(w.name)}</button>`).join("");
+  $("wpList").hidden = false; $("wpSign").hidden = true; wpSay("");
+  $("wpList").querySelectorAll("[data-id]").forEach((b) => (b.onclick = () => wpConnect(b.dataset.id)));
+  $("wpPanel").hidden = false;
+  return new Promise((res) => (wp.done = res));
+}
+function wpClose(result) { $("wpPanel").hidden = true; const d = wp.done; wp.done = null; if (d) d(result); }
+async function wpConnect(id) {
+  let provider = null;
+  if (id === "cbsdk") { if (!cbSdk) { wpSay("Loading Coinbase Wallet…"); await loadCoinbase(); if (!cbSdk) { wpSay("Couldn't load Coinbase Wallet. Check your connection and try again.", "err"); return; } wpSay("Tap Coinbase again to connect."); return; } provider = cbSdk.getProvider(); }
+  else if (id === "injected") provider = window.ethereum;
+  else provider = WALLETS.get(id) && WALLETS.get(id).provider;
+  if (!provider) { wpSay("That wallet isn't available.", "err"); return; }
   try {
-    say("Connect your wallet…");
-    const [acct] = await eth.request({ method: "eth_requestAccounts" });
+    wpSay("Approve the connection in your wallet…");
+    const [acct] = await provider.request({ method: "eth_requestAccounts" });
+    if (!acct) throw new Error("no account");
+    wp.provider = provider; wp.acct = acct;
+    $("wpList").hidden = true; $("wpSign").hidden = false;
+    wpSay(`Connected ${acct.slice(0, 6)}…${acct.slice(-4)}. Now sign the message. It's free and sends no transaction.`, "ok");
+  } catch (e) { wpSay(e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || "")) ? "Connection cancelled." : "Couldn't connect to that wallet.", "err"); }
+}
+$("wpSign").onclick = async () => {
+  const { name, provider, acct, say } = wp; if (!provider) return;
+  $("wpSign").disabled = true;
+  try {
     const address = String(acct).toLowerCase(), issued = new Date().toISOString(), msg = claimMessage(name, address, issued);
-    say("Sign the message in your wallet. It's free and sends no transaction.");
     const hex = "0x" + Array.from(new TextEncoder().encode(msg), (b) => b.toString(16).padStart(2, "0")).join("");
-    const signature = await eth.request({ method: "personal_sign", params: [hex, acct] });
-    say("Checking your signature…");
+    wpSay("Sign in your wallet…");
+    const signature = await provider.request({ method: "personal_sign", params: [hex, acct] });
+    wpSay("Checking your signature…");
     const r = await fetch(`${LEADERBOARD.url.replace(/\/$/, "")}/functions/v1/chonk-run-claim`, { method: "POST", headers: { apikey: LEADERBOARD.anonKey, "content-type": "application/json" }, body: JSON.stringify({ name, address, issued, signature }) });
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) { say(r.status === 404 || r.status === 401 && !j.error ? "Name claiming isn't switched on yet." : j.error || "Couldn't claim that name.", "err"); return null; }
+    if (!r.ok) { wpSay(r.status === 404 ? "Name claiming isn't switched on yet." : j.error || "Couldn't claim that name.", "err"); return; }
     PROFILE.claim = { name: j.name, address: j.address, holder: !!j.holder, chonks: j.chonks | 0, token: j.token, at: Date.now() };
     saveProfile(); store.set("chonkrun.name", j.name); updateBestLine(); renderClaimBox();
-    say(`"${j.name}" is locked to your wallet${j.holder ? `. Holder perks are on (${j.chonks} Chonk${j.chonks === 1 ? "" : "s"})` : ""}.`, "ok");
-    return PROFILE.claim;
-  } catch (e) {
-    say(e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || "")) ? "Signing cancelled." : "Couldn't reach your wallet or the server. Try again.", "err"); return null;
-  }
-}
+    say(`"${j.name}" is locked to your wallet${j.holder ? `. Holder perks are on (${j.chonks} Chonk${j.chonks === 1 ? "" : "s"})` : ". No Chonks found in that wallet, so no holder perks"}.`, j.holder ? "ok" : "");
+    wpClose(PROFILE.claim);
+  } catch (e) { wpSay(e && (e.code === 4001 || /reject|denied|cancel/i.test(e.message || "")) ? "Signing cancelled." : "Couldn't reach your wallet or the server. Try again.", "err"); }
+  finally { $("wpSign").disabled = false; }
+};
+$("wpBack").onclick = () => wpClose(null);
 function renderClaimBox() {
   const c = PROFILE.claim;
   $("claimInfo").innerHTML = c
