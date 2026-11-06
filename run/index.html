@@ -2732,7 +2732,7 @@ function countTick(dt) {
 function toMenu() {
   $("count").textContent = ""; if (G.daily) endDaily();
   G.state = "menu"; resetWorld(); anim.play("wave"); setTimeout(() => { if (G.state === "menu") anim.play("idle"); }, 2200);
-  menu.hidden = false; over.hidden = true; pauseEl.hidden = true; hud.hidden = true;
+  menu.hidden = false; over.hidden = true; pauseEl.hidden = true; hud.hidden = true; refreshMenuStore();
 }
 function setPaused(p) {
   if (p && G.state === "run") { G.state = "paused"; pauseEl.hidden = false; }
@@ -2991,10 +2991,10 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyM") { setMuted(!AU.muted); return; }
   if (G.state === "revive") { if (e.code === "Enter" || e.code === "Space") { e.preventDefault(); doRevive(); } else if (e.code === "Escape") skipRevive(); return; }
   if (e.code === "KeyP" || e.code === "Escape") { setPaused(G.state === "run"); return; }
-  if (e.code === "Enter" && (G.state === "over" || G.state === "menu")) { e.preventDefault(); startRun(); return; }
+  if (e.code === "Enter" && ((G.state === "over" && !over.hidden) || (G.state === "menu" && !menu.hidden))) { e.preventDefault(); startRun(); return; }
   const a = KEYMAP[e.code];
   if (a && G.state === "run") { e.preventDefault(); if (!e.repeat) queue.push(a); }
-  else if (a && e.code === "Space" && G.state === "menu" && document.activeElement === document.body) { e.preventDefault(); startRun(); }
+  else if (a && e.code === "Space" && G.state === "menu" && !menu.hidden && document.activeElement === document.body) { e.preventDefault(); startRun(); }
 });
 let touch = null;
 stage.addEventListener("pointerdown", (e) => { touch = { x: e.clientX, y: e.clientY, done: false }; });
@@ -3069,7 +3069,7 @@ $("playBtn").onclick = startRun;
 $("againBtn").onclick = startRun;
 $("menuBtn").onclick = toMenu;
 $("resumeBtn").onclick = () => setPaused(false);
-$("quitBtn").onclick = toMenu;
+$("quitBtn").onclick = () => { if (G.coins > 0) { earn(G.coins, "run"); saveProfile(); toast(`+${G.coins} COINS BANKED`); } toMenu(); };
 $("pauseBtn").onclick = () => setPaused(true);
 $("muteBtn").onclick = () => { audioInit(); setMuted(!AU.muted); };
 setMuted(AU.muted);
@@ -3237,7 +3237,7 @@ function doRevive() {
   }
   if (spot) { pl.s = spot.s; pl.lane = pl.from = spot.lane; pl.x = LANES[spot.lane]; }
   pl.y = Math.max(0, groundAt(cur, pl.s, pl.x, 99, false)); pl.vy = 0; pl.ground = true; pl.slide = 0; pl.slideQ = false;
-  pl.dead = false; pl.deathT = 0; pl.inv = 3.4; pl.rev = 3.4; queue.length = 0;
+  pl.dead = false; pl.deathT = 0; pl.lastStumble = -99; pl.inv = 3.4; pl.rev = 3.4; queue.length = 0;
   for (const o of cur.movers) if (o.active && o.s0 < pl.s + 40 && o.s1 > pl.s - 4) { o.vel = 0; } // a train that just hit you stays put
   SFX.shieldPop(); flashVig("shield"); toast("REVIVED!");
   G.state = "count"; G.countT = 2; G.countShown = 0; menuBlend = 0; G.snapCam = true; anim.play("idle");
