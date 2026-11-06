@@ -2900,13 +2900,21 @@ function step(dt) {
   if (pl.dead) return;
   G.speed = speedAt(G.dist);
   if (G.boost > 0) { // Head Start: the Chonk blasts ahead on its own, untouchable, taking corners by itself
-    const norm = G.speed; G.speed = norm + (BOOST_SPEED - norm) * Math.min(1, G.boost / 320);
+    // Once the 1,000 m would run out on this stretch, lock in a handover point on plain track
+    // (not mid set piece, near a gap or right before a corner) at least 160 m ahead, so the slow-down and 3-2-1 always get room.
+    if (!G.boostLock && pl.s + G.boost < run.L + 30) {
+      let end = null;
+      for (let e = Math.max(pl.s + G.boost, pl.s + 160); e <= run.L - 40; e += 4) if (boostSafe(run, e)) { end = e; break; }
+      if (end != null) { G.boost = end - pl.s; G.boostLock = true; G.boostSlow = Math.min(320, G.boost); }
+      else G.boost = run.L - pl.s + 30; // no room on this stretch: keep blasting round the corner and look again
+    }
+    const norm = G.speed; G.speed = G.boostLock ? norm + (BOOST_SPEED - norm) * Math.min(1, G.boost / G.boostSlow) : BOOST_SPEED;
     queue.length = 0; pl.inv = Math.max(pl.inv, 0.3); pl.rev = Math.max(pl.rev, 0.3); pl.slide = 0;
     if (pl.lane !== 1 && Math.abs(pl.x - LANES[pl.lane]) < 0.05) { pl.from = pl.lane; pl.lane = 1; }
     if (pl.s >= run.L - HALF - 0.5 && run.opts.length) { const o = run.opts; doTurn(o.length > 1 && Math.random() < 0.5 ? o[1] : o[0]); return; }
-    const n = Math.ceil(G.boost / ((G.speed + norm) / 2)); // seconds left, roughly
+    const n = G.boostLock ? Math.ceil(G.boost / ((G.speed + norm) / 2)) : 99; // seconds left, roughly
     if (n <= 3 && n !== G.boostShown) { G.boostShown = n; const el = $("count"); el.textContent = String(n); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); tone(660, 0.14, "square", 0.12); }
-    G.fovKick = Math.max(G.fovKick || 0, 3 + 5 * Math.min(1, G.boost / 320));
+    G.fovKick = Math.max(G.fovKick || 0, 3 + 5 * (G.boostLock ? Math.min(1, G.boost / G.boostSlow) : 1));
   }
   while (queue.length) { handle(queue.shift()); if (cur !== run) return; }
   const ghost = pl.inv > 0, sp = G.speed;
@@ -2917,10 +2925,7 @@ function step(dt) {
   if (G.boost > 0) {
     G.runMs += dt * 1000 * Math.max(0, sp / 40 - 1); // the boost counts as time at top running speed, so the leaderboard's speed check still holds
     G.boost -= sp * dt;
-    if (G.boost <= 0) { // only hand control back on plain track, not mid set piece or right before a corner
-      const busy = (run.zone && pl.s > run.zone.s0 - 30 && pl.s < run.zone.s1 + 4) || run.L - pl.s < 45 || run.gaps.some((g) => g.s0 > pl.s - 2 && g.s0 < pl.s + 30);
-      if (busy) G.boost = 1e-3; else endBoost();
-    }
+    if (G.boost <= 0) endBoost();
   }
   nearMiss(run, ps, ns);
   // lateral
@@ -3298,8 +3303,11 @@ for (const b of $("stTabs").children) b.onclick = () => { stTab = b.dataset.t; r
 refreshMenuStore();
 
 const BOOST_SPEED = 75, BOOST_DIST = 1000;
+const boostSafe = (run, e) => !(run.zone && e > run.zone.s0 - 35 && e < run.zone.s1 + 4) && run.L - e >= 40 &&
+  !run.gaps.some((g) => g.s1 > e - 2 && g.s0 < e + 28) && !run.beams.some((b) => b.s1 > e - 2 && b.s0 < e + 18) &&
+  !run.solids.some((o) => o.top > 0.3 && o.s1 > e - 2 && o.s0 < e + 18 && o.x0 < PW && o.x1 > -PW);
 function endBoost() {
-  G.boost = 0; pl.inv = Math.max(pl.inv, 1.5); pl.rev = Math.max(pl.rev, 0.8);
+  G.boost = 0; G.boostShown = 0; G.boostLock = false; pl.inv = Math.max(pl.inv, 1.8); pl.rev = Math.max(pl.rev, 0.8);
   const el = $("count"); el.textContent = "GO!"; el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); tone(1320, 0.3, "square", 0.12);
   setTimeout(() => { if (!G.boost) el.textContent = ""; }, 700);
 }
@@ -3308,7 +3316,7 @@ function applyHeadStart() {
   if (G.daily || !PROFILE.useHead || (PROFILE.items.head | 0) <= 0) return;
   PROFILE.items.head--; saveProfile(); refreshMenuStore();
   pl.shield = true; addPower("shield"); pl.magnet = POWER_INFO.magnet.dur; addPower("magnet"); SFX.power(); SFX.boost();
-  G.boost = BOOST_DIST; G.boostShown = 0; anim.play("run");
+  G.boost = BOOST_DIST; G.boostShown = 0; G.boostLock = false; anim.play("run");
   const el = $("boost"); el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
   G.fovKick = 10; shake = 0.3; trailBurst(["#5fd7ff", "#ff5d73", "#ffffff"], 70);
 }
