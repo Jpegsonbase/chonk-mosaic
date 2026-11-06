@@ -3041,7 +3041,7 @@ $("walletBtn").onclick = async () => {
   const label = isName ? $("walletIn").value.trim() : "that wallet";
   status(`Reading ${isName ? label + "'s" : "the wallet's"} Chonks…`);
   try {
-    const ids = await walletChonks(a);
+    const ids = (await walletChonks(a)).sort((x, y) => x - y);
     if (!ids.length) { status(`${isName ? label : "That wallet"} holds no Chonks.`, "err"); return; }
     setChips(ids); status(`${ids.length} Chonk${ids.length > 1 ? "s" : ""} in ${label}. Pick one.`, "ok");
     loadChonk(ids[0]);
