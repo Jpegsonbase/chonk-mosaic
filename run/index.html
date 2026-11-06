@@ -1930,11 +1930,11 @@ Object.assign(THEMES, {
     },
     endWall(b, run, sides) { STD.wall(b, run, sides, 0xfff0f6, 12, (L) => { const cols = [0xff9ad0, 0x8a4a2a, 0xfff0f6, 0xff9ad0]; for (let i = 0; i < 4; i++) b.box(0, -3 + i * 3, L + 0.95, W + 34, 3, 0.2, cols[i]); for (let x = -HALF - 15; x < HALF + 15; x += 2) b.geo("ico", x, 9.2, L + 2, 1.6, 1.2, 1.6, 0xffffff); }); },
     gate(b, s) { for (const sx of [-1, 1]) for (let k = 0; k < 11; k++) b.box(sx * (HALF + 1), -3 + k, s, 1, 1, 1, k % 2 ? 0xffffff : 0xe2403a); b.box(0, 7.4, s, W + 4.4, 1.2, 1.2, 0xff9ad0); b.box(0, 8.6, s, W + 4.6, 0.3, 1.3, 0xffffff); },
-    hop: { sea: 0x5a2e18, ripple: 0x8a5030, death: "Fell into the chocolate river", hit: "Bounced off a gumdrop", edge: 0xff6fb0, noEdge: true, lanesAll: true, seg: [12.5, 20], gap: [2.8, 3.4],
+    hop: { sea: 0x5a2e18, ripple: 0x8a5030, death: "Fell into the chocolate river", hit: "Bounced off a gumdrop", edge: 0xff6fb0, noEdge: true, seg: [12.5, 20], gap: [2.8, 3.4],
       platform(b, xc, w, a, e) { // a chain of two or three touching glazed donuts; run across, jump at the glowing line
-        const n = Math.max(2, Math.round((e - a) / 6.6)), d = (e - a) / n;
+        const n = Math.max(2, Math.round((e - a) / Math.min(6.6, w + 0.6))), d = (e - a) / n;
         for (let i = 0; i < n; i++) {
-          const sc = a + d * (i + 0.5), D = Math.max(w + 0.4, d + 0.2), glaze = pick([0xff8fc8, 0xfff4fa, 0xffe46a, 0x9ff0c8, 0x9fd8ff, 0xd8b0ff]);
+          const sc = a + d * (i + 0.5), D = Math.max(w + 0.4, Math.min(d + 0.2, w + 1.4)), glaze = pick([0xff8fc8, 0xfff4fa, 0xffe46a, 0x9ff0c8, 0x9fd8ff, 0xd8b0ff]);
           b.geo("donut", xc, -0.45, sc, D, 2.4, D, 0xf0bc72);
           b.geo("donut", xc, -0.5, sc, D * 1.01, 1.6, D * 1.01, 0xd99a50);
           b.geo("donut", xc, -0.13, sc, D * 0.97, 1.25, D * 0.97, glaze);
@@ -2313,11 +2313,17 @@ const SPECIALS = {
       b.box(x, -3, s, 1, h + 3, 1, 0x5a3f26); b.geo("ico", x, h, s, rand(6, 9), rand(3.5, 5), rand(6, 9), jit(0x2f7a2c, 0.05));
       for (let k = 0; k < 3; k++) b.box(x + rand(-1, 1), -0.6, s + rand(-1, 1), 0.2, 1.2, 0.2, 0x5a3f26, { rz: rand(-0.6, 0.6) });
     }
+    // at most two lanes have footing at once: one lane is open water, and which one keeps changing
+    const wet = []; for (let a = z.s0 + 10, prev = -1; a < z.s1 - 6; ) { const ex = pick([0, 1, 2].filter((l) => l !== prev)), e2 = Math.min(z.s1 - 6, a + rand(30, 48)); wet.push({ a, b: e2, ex }); prev = ex; a = e2; }
     for (let l = 0; l < 3; l++) {
       let s = z.s0;
       while (s < z.s1 - 2) {
+        const w = wet.find((q) => q.ex === l && q.b > s);
+        if (w && s >= w.a - 1) { s = w.b + rand(0.5, 1.5); continue; } // this lane is open water here
+        const room = w ? w.a - 1 - s : Infinity;
         const reach = jumpReach(run.dist + s), kind = R() < 0.8 || reach > 11 ? "log" : "pads"; // mostly long floating logs, the odd short hop of lily pads at lower speeds
         if (kind === "pads") {
+          if (room < 9) { s = w.b + rand(0.5, 1.5); continue; }
           const n = randi(2, 3);
           for (let i = 0; i < n && s < z.s1 - 1.5; i++) {
             const d = rand(1.7, 2.1); plat(run, l, s, s + d, 0.95);
@@ -2328,7 +2334,9 @@ const SPECIALS = {
             s += d + (i < n - 1 ? rand(1.0, 1.9) : 0);
           }
         } else if (kind === "log") {
-          const d = rand(Math.max(9, reach + 5), Math.max(18, reach + 10)); plat(run, l, s, s + d, 0.6);
+          let d = rand(Math.max(9, reach + 5), Math.max(18, reach + 10));
+          if (d > room) { if (room < 7) { s = w.b + rand(0.5, 1.5); continue; } d = room; } // stop short of the open water
+          plat(run, l, s, s + d, 0.6);
           b.geo("cyl", LANES[l], -0.45, s + d / 2, 0.95, d, 0.95, jit(0x7a5232), { rx: Math.PI / 2 });
           for (let k = 0; k < 3; k++) b.box(LANES[l] + rand(-0.2, 0.2), -0.02, s + rand(0.5, d - 0.5), 0.5, 0.06, rand(0.4, 1), 0x6f9a3e);
           for (const e of [s, s + d]) b.geo("cyl", LANES[l], -0.45, e, 0.8, 0.04, 0.8, 0xc9a46b, { rx: Math.PI / 2 });
@@ -2350,7 +2358,7 @@ const SPECIALS = {
     }
     // vine curtains to slide under where every lane has footing
     for (let s = z.s0 + 20; s < z.s1 - 12; s += rand(28, 40)) {
-      if ([0, 1, 2].some((l) => [-10, -8, -6, -4, -2, 0, 2, 4].some((ds) => groundAt(run, s + ds, LANES[l], 0, false) < -50))) continue;
+      if ([0, 1, 2].filter((l) => [-10, -8, -6, -4, -2, 0, 2, 4].every((ds) => groundAt(run, s + ds, LANES[l], 0, false) > -50)).length < 2) continue;
       run.beams.push({ s0: s, s1: s + 0.6, x0: -HALF, x1: HALF, y0: BEAM_Y0, y1: 3.2 });
       b.geo("cyl6", 0, 4.6, s, 0.5, W + 8, 0.5, 0x5a3f26, { rz: Math.PI / 2 });
       for (let x = -HALF + 0.2; x < HALF; x += 0.32) b.box(x, BEAM_Y0, s, 0.09, 4.6 - BEAM_Y0 + rand(-0.2, 0.2), 0.09, pick([0x3f7f2f, 0x4d8f35, 0x5ea345]));
@@ -2360,7 +2368,7 @@ const SPECIALS = {
 
   // Mountain: the shore gives way to an icy sea; run across big floes, jump the water between them
   // Hop across: big platforms over a hazard (icy sea, lava, quicksand, chocolate, a trench, open sky, space).
-  // Every platform covers two or three lanes, so the middle lane always carries on.
+  // At most two lanes of footing at a time (left pair, right pair, or the two outside lanes), so you have to pick your line.
   hop(run, b, T) {
     const H = T.hop, z = run.zone, c = (z.s0 + z.s1) / 2, len = z.s1 - z.s0;
     if (H.sea != null) b.box(0, -0.66, c, 140, 0.08, len + 0.4, H.sea, { glow: !!H.seaGlow });
@@ -2378,14 +2386,17 @@ const SPECIALS = {
       }
       if (!H.noEdge) for (const ee of [a, e]) b.box(xc, -0.62, ee, w + 0.1, 0.5, 0.12, H.edge, { glow: true }); // a bright edge where the platform ends
     };
-    let s = z.s0, first = true;
+    let s = z.s0, first = true, prevKind = "";
     while (s < z.s1 - 3) {
-      const lanes = first ? [0, 1, 2] : pick([[0, 1], [1, 2], [0, 1, 2], [0, 1], [1, 2]]);
+      // at most two lanes of footing: left pair, right pair, or the two outside lanes with the middle open
+      const kind = first ? "all" : pick(["left", "right", "split"].filter((k) => k !== prevKind)); prevKind = kind;
+      const lanes = kind === "all" ? [0, 1, 2] : kind === "left" ? [0, 1] : kind === "right" ? [1, 2] : [0, 2];
       const reach = jumpReach(run.dist + s), segR = H.seg || [10, 24], minLen = Math.max(segR[0], reach + 5);
       const e = Math.min(z.s1 + 0.5, s + rand(minLen, Math.max(segR[1], minLen + 6)));
-      span(s, e, lanes);
+      if (kind === "split") { span(s, e, [0]); span(s, e, [2]); } else span(s, e, lanes);
       const clearFrom = Math.max(11, reach + 3);
-      if (!first && e - s > clearFrom + 10 && R() < 0.6) { // something standing on the platform, past where you land and clear of the next jump
+      if (kind === "split") { /* nothing standing on single-lane platforms: there's nowhere to dodge to */ }
+      else if (!first && e - s > clearFrom + 10 && R() < 0.6) { // something standing on the platform, past where you land and clear of the next jump
         const l = pick(lanes), at = s + rand(clearFrom, e - s - 9.6);
         addSolid(run, LANES[l] - 1, LANES[l] + 1, at, at + 1.6, 2.6);
         H.obstacle(b, LANES[l], at + 0.8);
