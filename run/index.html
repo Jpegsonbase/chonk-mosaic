@@ -129,6 +129,8 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .lbList li.me{outline:1px solid var(--glow);background:rgba(255,179,71,.12)}
 .lbList .vf{font-style:normal;color:#7dffb0;margin-left:5px;font-size:11px}
 .lbList .hd{font:400 8.5px var(--display);font-style:normal;letter-spacing:.08em;color:#0d0a14;background:linear-gradient(90deg,#5fd7ff,#c08bff);border-radius:4px;padding:2px 4px;margin-left:6px;vertical-align:1px}
+.lbSel{display:block;margin:8px auto 0;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:rgba(0,0,0,.3);color:inherit;font:400 13px var(--display);letter-spacing:.04em;cursor:pointer}
+.lbSel option{background:#1b1524;color:#fff}
 .claimBox{margin-top:12px;padding:10px;border:1px dashed var(--line);border-radius:10px;text-align:left;font-size:12px;color:var(--muted)}
 .claimBox .row{margin-top:8px}
 .claimBox b{color:var(--fg,#fff);font-weight:400}
@@ -283,7 +285,7 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 <div id="lbPanel" class="overlay" hidden>
   <div class="card">
     <h2>LEADERBOARD</h2>
-    <p class="reason" id="lbWorld"></p>
+    <select id="lbWorld" class="lbSel" aria-label="Which leaderboard"></select>
     <div class="seg" id="lbPeriod" style="grid-template-columns:1fr 1fr;margin-top:12px"><button type="button" data-p="all" aria-pressed="true">ALL TIME</button><button type="button" data-p="week" aria-pressed="false">THIS WEEK</button></div>
     <ol class="lbList" id="lbListMenu"></ol>
     <div class="status" id="lbMenuStatus"></div>
@@ -2600,7 +2602,7 @@ function resetWorld() {
   G.score = 0; G.coins = 0; G.dist = 0; G.speed = SPEED0; G.runMs = 0; G.submitted = false;
   G.rs = { jumps: 0, slides: 0, turns: 0, powers: 0, pieces: 0, shieldSaves: 0, worlds: new Set([cur.theme]), loop: false, sawSpace: false };
   G.revived = false; G.headDone = false; G.earned = []; trailReset();
-  G.rs.near = 0; G.nmPts = 0; G.nmCombo = 0; G.nmT = -99; G.fovKick = 0; pl.laneT = pl.jumpT = pl.slideT = -99; pl.nmFrom = 1;
+  G.boost = 0; G.rs.near = 0; G.nmPts = 0; G.nmCombo = 0; G.nmT = -99; G.fovKick = 0; pl.laneT = pl.jumpT = pl.slideT = -99; pl.nmFrom = 1;
   for (const k of Object.keys(powerEls)) { powerEls[k].remove(); delete powerEls[k]; }
 }
 
@@ -2897,12 +2899,29 @@ function step(dt) {
   }
   if (pl.dead) return;
   G.speed = speedAt(G.dist);
+  if (G.boost > 0) { // Head Start: the Chonk blasts ahead on its own, untouchable, taking corners by itself
+    const norm = G.speed; G.speed = norm + (BOOST_SPEED - norm) * Math.min(1, G.boost / 320);
+    queue.length = 0; pl.inv = Math.max(pl.inv, 0.3); pl.rev = Math.max(pl.rev, 0.3); pl.slide = 0;
+    if (pl.lane !== 1 && Math.abs(pl.x - LANES[pl.lane]) < 0.05) { pl.from = pl.lane; pl.lane = 1; }
+    if (pl.s >= run.L - HALF - 0.5 && run.opts.length) { const o = run.opts; doTurn(o.length > 1 && Math.random() < 0.5 ? o[1] : o[0]); return; }
+    const n = Math.ceil(G.boost / ((G.speed + norm) / 2)); // seconds left, roughly
+    if (n <= 3 && n !== G.boostShown) { G.boostShown = n; const el = $("count"); el.textContent = String(n); el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); tone(660, 0.14, "square", 0.12); }
+    G.fovKick = Math.max(G.fovKick || 0, 3 + 5 * Math.min(1, G.boost / 320));
+  }
   while (queue.length) { handle(queue.shift()); if (cur !== run) return; }
   const ghost = pl.inv > 0, sp = G.speed;
   // forward
   const ns = pl.s + sp * dt, gF = groundAt(run, ns, pl.x, pl.y, ghost);
   if (gF > pl.y + STEP && !(gF <= 0.05 && pl.y < -0.1)) { crash(frontReason(run, ns)); if (pl.dead) return; }
   const ps = pl.s; pl.s = ns; G.dist += sp * dt; G.score += sp * dt * (pl.dbl > 0 ? 2 : 1);
+  if (G.boost > 0) {
+    G.runMs += dt * 1000 * Math.max(0, sp / 40 - 1); // the boost counts as time at top running speed, so the leaderboard's speed check still holds
+    G.boost -= sp * dt;
+    if (G.boost <= 0) { // only hand control back on plain track, not mid set piece or right before a corner
+      const busy = (run.zone && pl.s > run.zone.s0 - 30 && pl.s < run.zone.s1 + 4) || run.L - pl.s < 45 || run.gaps.some((g) => g.s0 > pl.s - 2 && g.s0 < pl.s + 30);
+      if (busy) G.boost = 1e-3; else endBoost();
+    }
+  }
   nearMiss(run, ps, ns);
   // lateral
   const tx = LANES[pl.lane];
@@ -2996,6 +3015,7 @@ function place(dt) {
     camPos.x = lerp(camPos.x, gameEye.x, menuBlend > 0 ? k : damp(dt, 9)); camPos.z = lerp(camPos.z, gameEye.z, menuBlend > 0 ? k : damp(dt, 9));
     camPos.y = lerp(camPos.y, gameEye.y, damp(dt, 6));
     camLook.lerp(gameLook, menuBlend > 0 ? k : damp(dt, 12));
+    if (G.boost > 0 && menuBlend <= 0) { camPos.x = gameEye.x; camPos.z = gameEye.z; camLook.copy(gameLook); } // locked on during a Head Start
   }
   viewOff = lerp(viewOff, G.state === "menu" && innerWidth <= 700 ? 0.3 : 0, damp(dt, 4));
   if (viewOff > 0.002) camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * viewOff, innerWidth, innerHeight); else if (camera.view && camera.view.enabled) camera.clearViewOffset();
@@ -3177,13 +3197,21 @@ $("submitBtn").onclick = async () => {
 };
 $("nameIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("submitBtn").click(); } });
 let lbPeriod = "all";
+let lbMode = null;
 async function lbShowMenu() {
-  $("lbWorld").textContent = WORLD_LABEL(G.mode); $("lbMenuStatus").textContent = "Loading…"; $("lbMenuStatus").className = "status"; $("lbListMenu").innerHTML = "";
-  try { lbRender($("lbListMenu"), await lbTop(G.mode, lbPeriod)); $("lbMenuStatus").textContent = ""; }
+  const sel = $("lbWorld"), daily = `daily-${todayUTC()}`;
+  if (!sel.options.length || sel.dataset.day !== daily) {
+    sel.innerHTML = [["mix", "Journey"], [daily, "Today's Daily Run"], ...ORDER.map((w) => [w, THEMES[w].name])].map(([v, l]) => `<option value="${v}">${escHtml(l)}</option>`).join("");
+    sel.dataset.day = daily;
+  }
+  const mode = lbMode || G.mode; sel.value = mode;
+  $("lbMenuStatus").textContent = "Loading…"; $("lbMenuStatus").className = "status"; $("lbListMenu").innerHTML = "";
+  try { lbRender($("lbListMenu"), await lbTop(mode, lbPeriod), PROFILE.claim ? PROFILE.claim.name : store.get("chonkrun.name", "")); $("lbMenuStatus").textContent = ""; }
   catch { $("lbMenuStatus").textContent = "Couldn't reach the leaderboard."; $("lbMenuStatus").className = "status err"; }
 }
 $("lbBtn").hidden = !lbOn();
-$("lbBtn").onclick = () => { menu.hidden = true; $("lbPanel").hidden = false; lbShowMenu(); };
+$("lbBtn").onclick = () => { lbMode = null; menu.hidden = true; $("lbPanel").hidden = false; lbShowMenu(); };
+$("lbWorld").onchange = () => { lbMode = $("lbWorld").value; lbShowMenu(); };
 $("lbClose").onclick = () => { $("lbPanel").hidden = true; menu.hidden = false; };
 for (const btn of $("lbPeriod").children) btn.onclick = () => { lbPeriod = btn.dataset.p; for (const b of $("lbPeriod").children) b.setAttribute("aria-pressed", b === btn ? "true" : "false"); lbShowMenu(); };
 /* =====================================================================
@@ -3216,7 +3244,7 @@ const UPGRADES = [
 const UPG_COST = [500, 1000, 2000, 4000, 8000];
 const ITEMS = [
   ["revive", "Revive", "Keep going after a crash, once per run. You get a few seconds of safety to find your feet.", REVIVE_COST],
-  ["head", "Head Start", "Start a run with a shield and a magnet already on.", 200],
+  ["head", "Head Start", "Blast through the first 1,000 m at top speed, untouchable, then carry on with a shield and a magnet.", 200],
 ];
 const TRAILS = [
   ["none", "No trail", null, 0],
@@ -3269,13 +3297,20 @@ $("stClose").onclick = () => { $("stPanel").hidden = true; menu.hidden = false; 
 for (const b of $("stTabs").children) b.onclick = () => { stTab = b.dataset.t; renderStore(); };
 refreshMenuStore();
 
+const BOOST_SPEED = 75, BOOST_DIST = 1000;
+function endBoost() {
+  G.boost = 0; pl.inv = Math.max(pl.inv, 1.5); pl.rev = Math.max(pl.rev, 0.8);
+  const el = $("count"); el.textContent = "GO!"; el.classList.remove("pop"); void el.offsetWidth; el.classList.add("pop"); tone(1320, 0.3, "square", 0.12);
+  setTimeout(() => { if (!G.boost) el.textContent = ""; }, 700);
+}
 function applyHeadStart() {
   if (G.headDone) return; G.headDone = true;
   if (G.daily || !PROFILE.useHead || (PROFILE.items.head | 0) <= 0) return;
   PROFILE.items.head--; saveProfile(); refreshMenuStore();
   pl.shield = true; addPower("shield"); pl.magnet = POWER_INFO.magnet.dur; addPower("magnet"); SFX.power(); SFX.boost();
+  G.boost = BOOST_DIST; G.boostShown = 0; anim.play("run");
   const el = $("boost"); el.classList.remove("on"); void el.offsetWidth; el.classList.add("on");
-  G.fovKick = 16; shake = 0.3; trailBurst(["#5fd7ff", "#ff5d73", "#ffffff"], 70);
+  G.fovKick = 10; shake = 0.3; trailBurst(["#5fd7ff", "#ff5d73", "#ffffff"], 70);
 }
 
 // ---- revive ----
@@ -3388,10 +3423,12 @@ trailPts.frustumCulled = false; scene.add(trailPts);
 function trailReset() { trail.life.fill(0); trail.col.fill(0); trail.pos.fill(0); trailGeo.attributes.color.needsUpdate = true; trailGeo.attributes.position.needsUpdate = true; }
 const tc = new THREE.Color(), tc2 = new THREE.Color();
 function trailTick(dt) {
-  const def = TRAILS.find((t) => t[0] === PROFILE.trails.on && (!t[4] || isHolder()));
+  const def0 = TRAILS.find((t) => t[0] === PROFILE.trails.on && (!t[4] || isHolder()));
+  const boosting = G.boost > 0 && G.state === "run";
+  const def = boosting ? [null, null, ["#5fd7ff", "#ff5d73"]] : def0;
   const on = def && def[2] && G.state === "run";
   if (on && !pl.dead && G.state !== "paused") {
-    trail.acc += dt * (G.state === "run" ? 75 : 30);
+    trail.acc += dt * (boosting ? 160 : 75);
     while (trail.acc >= 1) {
       trail.acc -= 1; const i = trail.i = (trail.i + 1) % TRAIL_N;
       const p = playerRoot.position, j = i * 3;
@@ -3670,7 +3707,7 @@ renderer.setAnimationLoop((now) => {
   if (G.state === "run" || G.state === "count") hudTick();
   renderer.render(scene, camera);
 });
-if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, resolveName, namehash, refreshMenuStore, renderStore,
+if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, resolveName, namehash, applyHeadStart, refreshMenuStore, renderStore,
   sim(sec, bot) { for (let t = 0; t < sec && G.state === "run"; t += 1 / 30) { if (bot) bot(this); update(1 / 30); while (buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); } place(1 / 30); } stepEnv(1); } };
 
 (async () => {
