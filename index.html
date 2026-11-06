@@ -188,7 +188,7 @@ a { color: inherit; text-decoration: none; }
 
   <section class="head">
     <span class="mono" id="eyebrow">Made from Chonks on Base / 007</span>
-    <h1 id="headline">7 tools. One <em>Chonk</em> studio.</h1>
+    <h1 id="headline">The <em>Chonk</em> toolbox.</h1>
   </section>
 
   <a class="feature" id="feature" hidden></a>
@@ -224,7 +224,6 @@ const N = TOOLS.length;
 $("stackN").textContent = N;
 $("range").textContent = `Chonkit / 001–${pad(N, 3)}`;
 $("eyebrow").textContent = `Made from Chonks on Base / ${pad(N, 3)}`;
-$("headline").innerHTML = `${N} tools. One <em>Chonk</em> studio.`;
 if (!/Mac|iPhone|iPad/.test(navigator.platform)) $("kbd").textContent = "Ctrl K";
 
 let group = "all";
