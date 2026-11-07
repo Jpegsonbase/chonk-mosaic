@@ -91,6 +91,13 @@ button, input { font: inherit; color: inherit; }
 @media (max-width: 860px) { .left { position: relative; top: 0; } }
 .stage { border-radius: 22px; overflow: hidden; background: #0d0b14; box-shadow: 0 18px 34px -24px rgba(30, 42, 42, .6); position: relative; }
 .stage canvas { display: block; width: 100%; aspect-ratio: 1; image-rendering: pixelated; image-rendering: crisp-edges; }
+#stage3d { width: 100%; aspect-ratio: 1; touch-action: none; cursor: grab; }
+#stage3d:active { cursor: grabbing; }
+#stage3d canvas { display: block; width: 100% !important; height: 100% !important; image-rendering: auto; }
+.dims { position: absolute; right: 12px; top: 12px; display: flex; background: rgba(0,0,0,.35); border-radius: 999px; padding: 3px; backdrop-filter: blur(4px); }
+.dims button { border: 0; background: none; color: #fff; font: 700 11px var(--mono); letter-spacing: .08em; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
+.dims button[aria-pressed="true"] { background: #fff; color: #15121d; }
+.hint3 { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font: 700 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #fff; background: rgba(0,0,0,.3); border-radius: 999px; padding: 4px 9px; pointer-events: none; }
 .stage .tag { position: absolute; left: 12px; top: 12px; font: 700 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #fff; background: rgba(0,0,0,.35); border-radius: 999px; padding: 5px 9px; backdrop-filter: blur(4px); }
 .actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .act { border: 0; border-radius: 14px; padding: 12px 8px 10px; cursor: pointer; background: var(--dark); color: var(--dark-ink); font: 700 13.5px var(--body); display: flex; flex-direction: column; align-items: center; gap: 2px; }
@@ -209,7 +216,10 @@ button, input { font: inherit; color: inherit; }
     <div class="left">
       <div class="stage">
         <canvas id="stage" width="600" height="600" aria-label="Outfit preview"></canvas>
+        <div id="stage3d" hidden aria-label="3D outfit preview, drag to turn"></div>
         <span class="tag" id="stageTag">Live from Base</span>
+        <div class="dims" role="group" aria-label="Render mode"><button type="button" id="mode2d" aria-pressed="true">2D</button><button type="button" id="mode3d" aria-pressed="false">3D</button></div>
+        <span class="hint3" id="hint3" hidden>Drag to turn</span>
       </div>
       <div class="actions">
         <button class="act" id="randBtn" type="button">Shuffle<small>Random fit</small></button>
@@ -220,7 +230,7 @@ button, input { font: inherit; color: inherit; }
         <button class="btn ghost" id="resetBtn" type="button">Wear equipped</button>
         <button class="btn ghost" id="clearBtn" type="button">Strip</button>
         <button class="btn ghost" id="saveBtn" type="button">Save PNG</button>
-        <button class="btn ghost" id="copyBtn" type="button">Copy list</button>
+        <button class="btn ghost" id="copyBtn" type="button">Download list</button>
       </div>
       <div class="card">
         <h2>Wearing <span class="sp" id="wearSrc"></span></h2>
@@ -306,6 +316,8 @@ const SEL = {
   body: "0x916c546b",        // getBodyImageSvg(uint256)
   supply: "0x18160ddd",      // totalSupply()
   owner: "0x6352211e",       // ownerOf(uint256)
+  traitZ: "0xa8498c74",      // ChonkTraits.getZMapForTokenId(uint256): a trait's 3D voxels
+  bodyZ: "0x306c7334",       // ChonksMain.getBodyZMap(uint256): a skin's 3D voxels
   agg: "0x82ad56cb",         // aggregate3((address,bool,bytes)[])
 };
 const RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://1rpc.io/base"];
@@ -518,6 +530,10 @@ async function resolveName(raw) {
   return a === ZERO ? null : a;
 }
 
+// The five Chonk skins exactly as ChonksMain.getBodyImageSvg(0..4) draws them, so a real
+// naked Chonk shows the moment the page opens (no waiting on Base for the body).
+const REAL_BODIES = ["0b09ead9d80c09ead9d80d09ead9d80e09ead9d80f09ead9d81009ead9d81109ead9d81209ead9d80a0aead9d80b0aead9d80c0aead9d80d0aead9d80e0aead9d80f0aead9d8100aead9d8110aead9d8120aead9d8130aead9d80a0bead9d80b0bead9d80c0bead9d80d0bead9d80e0bead9d80f0bead9d8100bead9d8110bead9d8120bead9d8130bead9d8090ce2caca0a0cead9d80b0cead9d80c0cffffff0d0c0000000e0cead9d80f0cead9d8100cead9d8110cffffff120c000000130cead9d8090de2caca0a0dead9d80b0dead9d80c0dffffff0d0d0000000e0de2caca0f0de2caca100de2caca110dffffff120d000000130dead9d80a0eead9d80b0eead9d80c0eead9d80d0eead9d80e0eead9d80f0eead9d8100eead9d8110eead9d8120eead9d8130eead9d80b0fead9d80c0fead9d80d0fead9d80e0fead9d80f0fead9d8100fead9d8110fead9d8120fead9d80b10e2caca0c10e2caca0d10e2caca0e10e2caca0f10e2caca1010e2caca1110e2caca0a11ead9d80b11ead9d80c11ead9d80d11ead9d80e11ead9d80f11ead9d81011ead9d81111ead9d81211ead9d80912ead9d80a12ead9d80b12ead9d80c12e2caca0d12ead9d80e12ead9d80f12ead9d81012e2caca1112ead9d81212ead9d81312ead9d80913ead9d80a13e2caca0b13ead9d80c13ead9d80d13ead9d80e13ead9d80f13ead9d81013ead9d81113ead9d81213e2caca1313ead9d80914ead9d80a14e2caca0b14ead9d80c14ead9d80d14ead9d80e14ead9d80f14ead9d81014ead9d81114ead9d81214e2caca1314ead9d80b15ead9d80c15ead9d80d15ead9d80e15ead9d80f15ead9d81015ead9d81115ead9d80b16ead9d80c16ead9d80d16ead9d80f16ead9d81016ead9d81116ead9d80b17ead9d80c17ead9d81017ead9d81117ead9d8", "0b09efb15e0c09efb15e0d09efb15e0e09efb15e0f09efb15e1009efb15e1109efb15e1209efb15e0a0aefb15e0b0aefb15e0c0aefb15e0d0aefb15e0e0aefb15e0f0aefb15e100aefb15e110aefb15e120aefb15e130aefb15e0a0befb15e0b0befb15e0c0befb15e0d0befb15e0e0befb15e0f0befb15e100befb15e110befb15e120befb15e130befb15e090cd697430a0cefb15e0b0cefb15e0c0cffffff0d0c0000000e0cefb15e0f0cefb15e100cefb15e110cffffff120c000000130cefb15e090dd697430a0defb15e0b0defb15e0c0dffffff0d0d0000000e0dd697430f0dd69743100dd69743110dffffff120d000000130defb15e0a0eefb15e0b0eefb15e0c0eefb15e0d0eefb15e0e0eefb15e0f0eefb15e100eefb15e110eefb15e120eefb15e130eefb15e0b0fefb15e0c0fefb15e0d0fefb15e0e0fefb15e0f0fefb15e100fefb15e110fefb15e120fefb15e0b10d697430c10d697430d10d697430e10d697430f10d697431010d697431110d697430a11efb15e0b11efb15e0c11efb15e0d11efb15e0e11efb15e0f11efb15e1011efb15e1111efb15e1211efb15e0912efb15e0a12efb15e0b12efb15e0c12d697430d12efb15e0e12efb15e0f12efb15e1012d697431112efb15e1212efb15e1312efb15e0913efb15e0a13d697430b13efb15e0c13efb15e0d13efb15e0e13efb15e0f13efb15e1013efb15e1113efb15e1213d697431313efb15e0914efb15e0a14d697430b14efb15e0c14efb15e0d14efb15e0e14efb15e0f14efb15e1014efb15e1114efb15e1214d697431314efb15e0b15efb15e0c15efb15e0d15efb15e0e15efb15e0f15efb15e1015efb15e1115efb15e0b16efb15e0c16efb15e0d16efb15e0f16efb15e1016efb15e1116efb15e0b17efb15e0c17efb15e1017efb15e1117efb15e", "0b09ba81360c09ba81360d09ba81360e09ba81360f09ba81361009ba81361109ba81361209ba81360a0aba81360b0aba81360c0aba81360d0aba81360e0aba81360f0aba8136100aba8136110aba8136120aba8136130aba81360a0bba81360b0bba81360c0bba81360d0bba81360e0bba81360f0bba8136100bba8136110bba8136120bba8136130bba8136090c9a6d2e0a0cba81360b0cba81360c0cffffff0d0c0000000e0cba81360f0cba8136100cba8136110cffffff120c000000130cba8136090d9a6d2e0a0dba81360b0dba81360c0dffffff0d0d0000000e0d9a6d2e0f0d9a6d2e100d9a6d2e110dffffff120d000000130dba81360a0eba81360b0eba81360c0eba81360d0eba81360e0eba81360f0eba8136100eba8136110eba8136120eba8136130eba81360b0fba81360c0fba81360d0fba81360e0fba81360f0fba8136100fba8136110fba8136120fba81360b109a6d2e0c109a6d2e0d109a6d2e0e109a6d2e0f109a6d2e10109a6d2e11109a6d2e0a11ba81360b11ba81360c11ba81360d11ba81360e11ba81360f11ba81361011ba81361111ba81361211ba81360912ba81360a12ba81360b12ba81360c129a6d2e0d12ba81360e12ba81360f12ba813610129a6d2e1112ba81361212ba81361312ba81360913ba81360a139a6d2e0b13ba81360c13ba81360d13ba81360e13ba81360f13ba81361013ba81361113ba813612139a6d2e1313ba81360914ba81360a149a6d2e0b14ba81360c14ba81360d14ba81360e14ba81360f14ba81361014ba81361114ba813612149a6d2e1314ba81360b15ba81360c15ba81360d15ba81360e15ba81360f15ba81361015ba81361115ba81360b16ba81360c16ba81360d16ba81360f16ba81361016ba81361116ba81360b17ba81360c17ba81361017ba81361117ba8136", "0b098a5e240c098a5e240d098a5e240e098a5e240f098a5e2410098a5e2411098a5e2412098a5e240a0a8a5e240b0a8a5e240c0a8a5e240d0a8a5e240e0a8a5e240f0a8a5e24100a8a5e24110a8a5e24120a8a5e24130a8a5e240a0b8a5e240b0b8a5e240c0b8a5e240d0b8a5e240e0b8a5e240f0b8a5e24100b8a5e24110b8a5e24120b8a5e24130b8a5e24090c77511e0a0c8a5e240b0c8a5e240c0cffffff0d0c0000000e0c8a5e240f0c8a5e24100c8a5e24110cffffff120c000000130c8a5e24090d77511e0a0d8a5e240b0d8a5e240c0dffffff0d0d0000000e0d77511e0f0d77511e100d77511e110dffffff120d000000130d8a5e240a0e8a5e240b0e8a5e240c0e8a5e240d0e8a5e240e0e8a5e240f0e8a5e24100e8a5e24110e8a5e24120e8a5e24130e8a5e240b0f8a5e240c0f8a5e240d0f8a5e240e0f8a5e240f0f8a5e24100f8a5e24110f8a5e24120f8a5e240b1077511e0c1077511e0d1077511e0e1077511e0f1077511e101077511e111077511e0a118a5e240b118a5e240c118a5e240d118a5e240e118a5e240f118a5e2410118a5e2411118a5e2412118a5e2409128a5e240a128a5e240b128a5e240c1277511e0d128a5e240e128a5e240f128a5e24101277511e11128a5e2412128a5e2413128a5e2409138a5e240a1377511e0b138a5e240c138a5e240d138a5e240e138a5e240f138a5e2410138a5e2411138a5e24121377511e13138a5e2409148a5e240a1477511e0b148a5e240c148a5e240d148a5e240e148a5e240f148a5e2410148a5e2411148a5e24121477511e13148a5e240b158a5e240c158a5e240d158a5e240e158a5e240f158a5e2410158a5e2411158a5e240b168a5e240c168a5e240d168a5e240f168a5e2410168a5e2411168a5e240b178a5e240c178a5e2410178a5e2411178a5e24", "0b094932130c094932130d094932130e094932130f094932131009493213110949321312094932130a0a4932130b0a4932130c0a4932130d0a4932130e0a4932130f0a493213100a493213110a493213120a493213130a4932130a0b4932130b0b4932130c0b4932130d0b4932130e0b4932130f0b493213100b493213110b493213120b493213130b493213090c291d0b0a0c4932130b0c4932130c0cffffff0d0c0000000e0c4932130f0c493213100c493213110cffffff120c000000130c493213090d291d0b0a0d4932130b0d4932130c0dffffff0d0d0000000e0d291d0b0f0d291d0b100d291d0b110dffffff120d000000130d4932130a0e4932130b0e4932130c0e4932130d0e4932130e0e4932130f0e493213100e493213110e493213120e493213130e4932130b0f4932130c0f4932130d0f4932130e0f4932130f0f493213100f493213110f493213120f4932130b10291d0b0c10291d0b0d10291d0b0e10291d0b0f10291d0b1010291d0b1110291d0b0a114932130b114932130c114932130d114932130e114932130f1149321310114932131111493213121149321309124932130a124932130b124932130c12291d0b0d124932130e124932130f124932131012291d0b11124932131212493213131249321309134932130a13291d0b0b134932130c134932130d134932130e134932130f13493213101349321311134932131213291d0b131349321309144932130a14291d0b0b144932130c144932130d144932130e144932130f14493213101449321311144932131214291d0b13144932130b154932130c154932130d154932130e154932130f15493213101549321311154932130b164932130c164932130d164932130f16493213101649321311164932130b174932130c1749321310174932131117493213"].map((s) => unpackCells(s));
+
 /* =====================================================================
    2. State
    ===================================================================== */
@@ -573,6 +589,23 @@ const SEASONS = {
       [/beanie|earmuff|scarf|mitten|glove|santa|winter|snow|ski\b|fur|wool|cocoa/i, -5, null],
     ],
     tone: (h, s, l) => (s > 55 && l > 42 && l < 82 ? 1.3 : 0) + (l > 75 && s > 30 ? .9 : 0) + ((h >= 40 && h <= 65) || (h >= 165 && h <= 200) || (h >= 300 && h <= 350) ? .6 : 0) - (l < 25 ? 1 : 0),
+  },
+  spring: {
+    name: "Spring", tag: "light layers, florals, dresses and fresh pastels",
+    boost: [
+      [/flower|floral|blossom|daisy|bloom|petal|garden|bunny|rabbit|easter|egg|butterfly|bee\b|rain|umbrella|spring/i, 4.5, null],
+      [/cardigan|blouse|dress|raincoat|mac\b|windbreaker|denim jacket|light jacket|polo|tee\b|t-?shirt|sash|overall|dungaree|gilet/i, 4, ["top"]],
+      [/skirt|chino|jean|denim|culotte|capri|overall|dungaree|pant/i, 3, ["bottom"]],
+      [/welly|wellie|rain boot|sneaker|trainer|canvas|loafer|baby blue|shoes white/i, 3.5, ["shoes"]],
+      [/flower hat|sun ?hat|bucket|cap\b|beret|headband|bow\b|bunny ears|crown of flowers/i, 3, ["head", "hair"]],
+    ],
+    avoid: [
+      [/christmas|xmas|santa|snowman|snow|frosty|grinch|rudolf|rudolph|reindeer|holly|wreath|brrr|icy|\bice\b|winter|chonksukkah|hanukkah|gingerbread|\belf\b|candy ?cane|penguin|mitten|earmuff|ski\b/i, -5, null],
+      [/puffer|parka|fur|wool|turtleneck|fleece/i, -3.5, ["top"]],
+      [/bikini|swim|trunk|board/i, -3, ["bottom", "top"]],
+      [/pumpkin|halloween|witch|skull|ghost/i, -3, null],
+    ],
+    tone: (h, s, l) => (l > 62 && s > 25 && s < 85 ? 1.3 : 0) + ((h >= 75 && h <= 155) || (h >= 300 && h <= 350) || (h >= 45 && h <= 62) ? .8 : 0) - (l < 30 ? 1 : 0),
   },
   winter: {
     name: "Winter", tag: "coats, knits, long trousers and boots in icy and festive colours",
@@ -717,12 +750,7 @@ async function openCloset(raw) {
     });
     store.set("closet-traits-v1", cache);
     // 3) the five bodies (skins)
-    if (!S.realBodies) {
-      const bres = await multi([0, 1, 2, 3, 4].map((i) => ({ to: CONTRACT, data: SEL.body + pad64(i) })), 5);
-      S.bodies = bres.map((r) => { try { return r ? rectsOf(decodeString(r)) : null; } catch { return null; } });
-      if (!S.bodies.some((b) => b && b.length)) S.bodies = DEMO.bodies();
-      S.bodies = S.bodies.map((b, i) => (b && b.length ? b : S.bodies.find((x) => x && x.length))); S.realBodies = S.bodies !== null;
-    }
+    S.bodies = REAL_BODIES;
     progress(1);
     S.demo = false;
     build(chonks, (tid) => cache[tid] && { slot: cache[tid].s, name: cache[tid].n, release: cache[tid].r, cells: unpackCells(cache[tid].c) });
@@ -929,9 +957,116 @@ function drawLo() {
   for (const [k, c] of composeCells()) { lx.fillStyle = "#" + c.toString(16).padStart(6, "0"); lx.fillRect(k % 30, Math.floor(k / 30), 1, 1); }
 }
 function paint() {
+  if (S.mode === "3d") { update3D(); }
   drawLo();
   sx.imageSmoothingEnabled = false; sx.drawImage(lo, 0, 0, stage.width, stage.height);
   const [, , l] = hsl(hexToInt2(S.bg)); $("stageTag").style.background = l > 60 ? "rgba(0,0,0,.45)" : "rgba(255,255,255,.18)";
+}
+
+/* =====================================================================
+   7b. 3D: the same outfit as voxels. Every trait's 3D shape is onchain
+       (ChonkTraits.getZMapForTokenId), and so is every skin
+       (ChonksMain.getBodyZMap). zMap = 6 bytes per voxel: x, y, z, r, g, b;
+       x left→right, y top→bottom, z back→front.
+   ===================================================================== */
+S.mode = "2d";
+const Z = { trait: new Map(), body: new Map(), three: null, sig: "", busy: null };
+function parseZ(hex) {
+  const h = strip(hex), out = [];
+  for (let i = 0; i + 12 <= h.length; i += 12) out.push({ x: parseInt(h.slice(i, i + 2), 16), y: parseInt(h.slice(i + 2, i + 4), 16), z: parseInt(h.slice(i + 4, i + 6), 16), col: parseInt(h.slice(i + 6, i + 12), 16) });
+  return out;
+}
+// No 3D data (demo, or Base unreachable): extrude the 2D pixels instead.
+function extrude(cells, z0, depth) { const o = []; for (const p of cells) for (let z = z0; z < z0 + depth; z++) o.push({ x: p.x, y: p.y, z, col: p.col }); return o; }
+const DEPTH = { body: [1, 6], shoes: [1, 6], bottom: [0, 7], top: [0, 8], hair: [0, 8], head: [0, 8], face: [6, 2], accessory: [3, 3] };
+async function loadZ() {
+  const keys = SLOTS.map((s) => S.outfit[s]).filter(Boolean);
+  const calls = [], jobs = [];
+  if (!S.demo && chain.online !== false) {
+    if (!Z.body.has(S.skin)) { calls.push({ to: CONTRACT, data: SEL.bodyZ + pad64(S.skin) }); jobs.push(["body", S.skin]); }
+    for (const k of keys) if (!Z.trait.has(k)) { const tid = S.traits.get(k).tokens[0].tid; calls.push({ to: TRAITS, data: SEL.traitZ + pad64(tid) }); jobs.push(["trait", k]); }
+  }
+  if (calls.length) {
+    try {
+      const res = await multi(calls, 20);
+      jobs.forEach(([kind, k], i) => { let v = null; try { v = res[i] ? parseZ(decodeString(res[i])) : null; } catch {} (kind === "body" ? Z.body : Z.trait).set(k, v && v.length ? v : null); });
+    } catch { jobs.forEach(([kind, k]) => (kind === "body" ? Z.body : Z.trait).set(k, null)); }
+  }
+  const m = new Map(), put = (v) => m.set((v.x << 16) | (v.y << 8) | v.z, v);
+  const body = Z.body.get(S.skin) || extrude(S.bodies[S.skin] || [], ...DEPTH.body);
+  body.forEach(put);
+  let real = !!Z.body.get(S.skin);
+  for (const s of DRAW_ORDER) {
+    const k = S.outfit[s]; if (!k) continue;
+    const v = Z.trait.get(k); if (!v) real = false;
+    (v || extrude(S.traits.get(k).cells, ...DEPTH[s])).forEach(put);
+  }
+  return { vox: [...m.values()], real };
+}
+async function three() {
+  if (Z.three) return Z.three;
+  const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js");
+  const host = $("stage3d");
+  const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+  renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
+  host.appendChild(renderer.domElement);
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 1, 400);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a8a9a, 1.9));
+  const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(18, 30, 40); scene.add(sun);
+  const fill = new THREE.DirectionalLight(0xffffff, .5); fill.position.set(-30, 10, -20); scene.add(fill);
+  const group = new THREE.Group(); scene.add(group);
+  const geo = new THREE.BoxGeometry(1, 1, 1), mat = new THREE.MeshLambertMaterial();
+  const view = { yaw: -.45, pitch: .12, auto: true, drag: null, last: 0 };
+  const size = () => { const w = host.clientWidth || 400; renderer.setSize(w, w, false); camera.aspect = 1; camera.updateProjectionMatrix(); };
+  new ResizeObserver(size).observe(host); size();
+  host.addEventListener("pointerdown", (e) => { view.drag = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch }; view.auto = false; host.setPointerCapture(e.pointerId); $("hint3").hidden = true; });
+  host.addEventListener("pointermove", (e) => { if (!view.drag) return; view.yaw = view.drag.yaw + (e.clientX - view.drag.x) * .012; view.pitch = clamp(view.drag.pitch + (e.clientY - view.drag.y) * .008, -.6, .9); });
+  const up = () => { view.drag = null; view.last = performance.now(); };
+  host.addEventListener("pointerup", up); host.addEventListener("pointercancel", up);
+  host.addEventListener("dblclick", () => { view.auto = true; });
+  function frame(t) {
+    if (S.mode === "3d") {
+      if (!view.drag && !reduced && (view.auto || t - view.last > 4000)) { view.auto = true; view.yaw += .006; }
+      const r = 78; camera.position.set(Math.sin(view.yaw) * Math.cos(view.pitch) * r, Math.sin(view.pitch) * r + 2, Math.cos(view.yaw) * Math.cos(view.pitch) * r);
+      camera.lookAt(0, 1, 0);
+      renderer.render(scene, camera);
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+  Z.three = { THREE, renderer, scene, camera, group, geo, mat, mesh: null };
+  return Z.three;
+}
+async function update3D() {
+  const sig = [S.skin, S.demo, ...SLOTS.map((s) => S.outfit[s] || "")].join("|");
+  const T = await three();
+  T.scene.background = new T.THREE.Color(S.bg);
+  if (sig === Z.sig) return;
+  Z.sig = sig;
+  const job = Z.busy = loadZ();
+  const { vox, real } = await job;
+  if (Z.busy !== job || Z.sig !== sig) return; // a newer outfit came in meanwhile
+  if (T.mesh) { T.group.remove(T.mesh); T.mesh.dispose(); }
+  const mesh = new T.THREE.InstancedMesh(T.geo, T.mat, Math.max(1, vox.length));
+  let x0 = 99, x1 = -1, y0 = 99, y1 = -1, z0 = 99, z1 = -1;
+  for (const v of vox) { x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); z0 = Math.min(z0, v.z); z1 = Math.max(z1, v.z); }
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, cz = (z0 + z1) / 2;
+  const m4 = new T.THREE.Matrix4(), c = new T.THREE.Color();
+  vox.forEach((v, i) => { m4.makeTranslation(v.x - cx, cy - v.y, v.z - cz); mesh.setMatrixAt(i, m4); c.setHex(v.col); mesh.setColorAt(i, c); });
+  mesh.count = vox.length; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+  T.group.add(mesh); T.mesh = mesh;
+  $("stageTag").textContent = S.demo ? "Demo closet · 3D" : real ? "3D · live from Base" : "3D · some pieces flattened";
+}
+function setMode(m) {
+  S.mode = m;
+  $("mode2d").setAttribute("aria-pressed", m === "2d" ? "true" : "false");
+  $("mode3d").setAttribute("aria-pressed", m === "3d" ? "true" : "false");
+  $("stage").hidden = m === "3d"; $("stage3d").hidden = m !== "3d"; $("hint3").hidden = m !== "3d";
+  if (m === "2d") $("stageTag").textContent = S.demo ? "Demo closet" : "Live from Base";
+  else { $("stageTag").textContent = "Loading 3D…"; Z.sig = ""; }
+  store.set("closet-mode", m);
+  paint();
 }
 
 /* =====================================================================
@@ -1016,7 +1151,7 @@ function applyTheme() {
 }
 function renderSeasons() {
   const el = $("seasons"); el.innerHTML = "";
-  for (const k of ["none", "winter", "summer", "autumn"]) {
+  for (const k of ["none", "spring", "summer", "autumn", "winter"]) {
     const b = document.createElement("button"); b.type = "button"; b.textContent = SEASONS[k].name;
     b.setAttribute("aria-pressed", S.season === k ? "true" : "false");
     b.onclick = () => { S.season = k; applyTheme(); renderSeasons(); $("styleSub").textContent = k === "none" ? "Dress me" : `For ${SEASONS[k].name.toLowerCase()}`; };
@@ -1189,20 +1324,30 @@ $("bgHex").onkeydown = (e) => { if (e.key === "Enter") e.target.onchange(e); };
 $("sort").onchange = renderCloset;
 $("themeBtn").onclick = () => { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("chonk-theme", r.dataset.theme); } catch {} };
 $("saveBtn").onclick = () => {
-  const out = document.createElement("canvas"); out.width = out.height = G * 24;
-  drawLo();
-  const o = out.getContext("2d"); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, out.width, out.height);
-  const url = out.toDataURL("image/png");
+  let url;
+  if (S.mode === "3d" && Z.three) {
+    const T = Z.three, w = T.renderer.domElement.width; T.renderer.setSize(1080 / T.renderer.getPixelRatio(), 1080 / T.renderer.getPixelRatio(), false);
+    T.renderer.render(T.scene, T.camera); url = T.renderer.domElement.toDataURL("image/png");
+    T.renderer.setSize(w / T.renderer.getPixelRatio(), w / T.renderer.getPixelRatio(), false);
+  } else {
+    const out = document.createElement("canvas"); out.width = out.height = G * 24;
+    drawLo();
+    const o = out.getContext("2d"); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, out.width, out.height);
+    url = out.toDataURL("image/png");
+  }
   $("ovImg").src = url; $("ovDl").href = url; $("ov").hidden = false; $("ovClose").focus();
 };
 $("ovClose").onclick = () => { $("ov").hidden = true; };
 $("ov").onclick = (e) => { if (e.target === $("ov")) $("ov").hidden = true; };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("ov").hidden = true; });
-$("copyBtn").onclick = async () => {
-  try { await navigator.clipboard.writeText(outfitText()); $("copyBtn").textContent = "Copied"; }
-  catch { $("copyBtn").textContent = "Copy failed"; }
-  setTimeout(() => { $("copyBtn").textContent = "Copy list"; }, 1400);
+$("copyBtn").onclick = () => {
+  const url = URL.createObjectURL(new Blob([outfitText() + "\n"], { type: "text/plain" }));
+  const a = document.createElement("a"); a.href = url; a.download = "chonk-outfit.txt";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
 };
+$("mode2d").onclick = () => setMode("2d");
+$("mode3d").onclick = () => setMode("3d");
 
 (function init() {
   const look = store.get("closet-look");
@@ -1210,9 +1355,10 @@ $("copyBtn").onclick = async () => {
   applyTheme(); renderThemes(); renderSeasons();
   setBg((look && look.bg) || THEMES[S.theme].bg || THEMES[1].bg);
   if (S.season !== "none") $("styleSub").textContent = `For ${SEASONS[S.season].name.toLowerCase()}`;
-  S.bodies = DEMO.bodies();
+  S.bodies = REAL_BODIES;
   paint();
   let h = ""; try { h = decodeURIComponent((location.hash || "").slice(1)); } catch {} if (/^slot-/.test(h)) h = "";
+  if (store.get("closet-mode") === "3d") setMode("3d");
   const start = h || "1"; // Chonk #1 opens by default
   if (start) { $("q").value = start; openCloset(start); }
   else {
