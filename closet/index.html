@@ -94,7 +94,10 @@ button, input { font: inherit; color: inherit; }
 #stage3d { width: 100%; aspect-ratio: 1; touch-action: none; cursor: grab; }
 #stage3d:active { cursor: grabbing; }
 #stage3d canvas { display: block; width: 100% !important; height: 100% !important; image-rendering: auto; }
-.dims { position: absolute; right: 12px; top: 12px; display: flex; background: rgba(0,0,0,.35); border-radius: 999px; padding: 3px; backdrop-filter: blur(4px); }
+.topright { position: absolute; right: 12px; top: 12px; display: flex; gap: 6px; align-items: center; }
+.spinbtn { border: 0; color: #fff; background: rgba(0,0,0,.35); backdrop-filter: blur(4px); font: 700 11px var(--mono); letter-spacing: .08em; padding: 8px 12px; border-radius: 999px; cursor: pointer; }
+.spinbtn[aria-pressed="true"] { background: #fff; color: #15121d; }
+.dims { display: flex; background: rgba(0,0,0,.35); border-radius: 999px; padding: 3px; backdrop-filter: blur(4px); }
 .dims button { border: 0; background: none; color: #fff; font: 700 11px var(--mono); letter-spacing: .08em; padding: 5px 11px; border-radius: 999px; cursor: pointer; }
 .dims button[aria-pressed="true"] { background: #fff; color: #15121d; }
 .hint3 { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); font: 700 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #fff; background: rgba(0,0,0,.3); border-radius: 999px; padding: 4px 9px; pointer-events: none; }
@@ -218,7 +221,7 @@ button, input { font: inherit; color: inherit; }
         <canvas id="stage" width="600" height="600" aria-label="Outfit preview"></canvas>
         <div id="stage3d" hidden aria-label="3D outfit preview, drag to turn"></div>
         <span class="tag" id="stageTag">Live from Base</span>
-        <div class="dims" role="group" aria-label="Render mode"><button type="button" id="mode2d" aria-pressed="true">2D</button><button type="button" id="mode3d" aria-pressed="false">3D</button></div>
+        <div class="topright"><button type="button" class="spinbtn" id="spinBtn" aria-pressed="true" title="Turn the turntable on or off" hidden>⟳ Spin</button><div class="dims" role="group" aria-label="Render mode"><button type="button" id="mode2d" aria-pressed="true">2D</button><button type="button" id="mode3d" aria-pressed="false">3D</button></div></div>
         <span class="hint3" id="hint3" hidden>Drag to turn · scroll to zoom</span>
       </div>
       <div class="actions">
@@ -970,6 +973,7 @@ function paint() {
        x left→right, y top→bottom, z back→front.
    ===================================================================== */
 S.mode = "2d";
+S.spin = !reduced && store.get("closet-spin") !== false;
 const Z = { trait: new Map(), body: new Map(), three: null, sig: "", busy: null };
 function parseZ(hex) {
   const h = strip(hex), out = [];
@@ -1042,12 +1046,12 @@ async function three() {
   const up = (e) => { view.pts.delete(e.pointerId); if (view.pts.size < 2) view.pinch = null; if (!view.pts.size) { view.drag = null; view.last = performance.now(); } };
   host.addEventListener("pointerup", up); host.addEventListener("pointercancel", up);
   host.addEventListener("wheel", (e) => { e.preventDefault(); view.r = clamp(view.r * Math.exp(e.deltaY * .0012), 28, 170); }, { passive: false });
-  host.addEventListener("dblclick", () => { view.auto = true; view.r = 78; view.pitch = .12; });
+  host.addEventListener("dblclick", () => { view.auto = true; setSpin(true); view.r = 78; view.pitch = .12; });
   function frame(t) {
     if (S.mode === "3d") {
       if (!view.drag && !view.pinch) {
         if (Math.abs(view.vy) + Math.abs(view.vp) > .0004) { view.yaw += view.vy; view.pitch = clamp(view.pitch + view.vp, -.6, 1.2); view.vy *= .93; view.vp *= .93; }
-        else if (!reduced && (view.auto || t - view.last > 6000)) { view.auto = true; view.yaw -= .006; }
+        else if (S.spin && (view.auto || t - view.last > 6000)) { view.auto = true; view.yaw -= .006; }
       }
       const r = view.r; camera.position.set(Math.sin(view.yaw) * Math.cos(view.pitch) * r, Math.sin(view.pitch) * r + 2, Math.cos(view.yaw) * Math.cos(view.pitch) * r);
       camera.lookAt(0, 1, 0);
@@ -1079,11 +1083,15 @@ async function update3D() {
   T.group.add(mesh); T.mesh = mesh;
   $("stageTag").textContent = S.demo ? "Demo closet · 3D" : real ? "3D · live from Base" : "3D · some pieces flattened";
 }
+function setSpin(on) {
+  S.spin = on; $("spinBtn").setAttribute("aria-pressed", on ? "true" : "false");
+  $("spinBtn").textContent = on ? "⟳ Spin" : "⟳ Spin off"; store.set("closet-spin", on);
+}
 function setMode(m) {
   S.mode = m;
   $("mode2d").setAttribute("aria-pressed", m === "2d" ? "true" : "false");
   $("mode3d").setAttribute("aria-pressed", m === "3d" ? "true" : "false");
-  $("stage").hidden = m === "3d"; $("stage3d").hidden = m !== "3d"; $("hint3").hidden = m !== "3d";
+  $("stage").hidden = m === "3d"; $("stage3d").hidden = m !== "3d"; $("hint3").hidden = m !== "3d"; $("spinBtn").hidden = m !== "3d";
   if (m === "2d") $("stageTag").textContent = S.demo ? "Demo closet" : "Live from Base";
   else { $("stageTag").textContent = "Loading 3D…"; Z.sig = ""; }
   store.set("closet-mode", m);
@@ -1369,6 +1377,8 @@ $("copyBtn").onclick = () => {
 };
 $("mode2d").onclick = () => setMode("2d");
 $("mode3d").onclick = () => setMode("3d");
+$("spinBtn").onclick = () => setSpin(!S.spin);
+setSpin(S.spin);
 
 (function init() {
   const look = store.get("closet-look");
