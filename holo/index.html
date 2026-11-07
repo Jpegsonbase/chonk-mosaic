@@ -914,7 +914,7 @@ class Renderer {
   }
 }
 
-function paintBack(cv, S) {
+function paintBack(cv, S, finish) {
   cv.width = Math.round(W * S); cv.height = Math.round(H * S);
   const c = cv.getContext("2d"); c.setTransform(S, 0, 0, S, 0, 0);
   rr(c, 0, 0, W, H, 13); c.save(); c.clip();
@@ -927,7 +927,7 @@ function paintBack(cv, S) {
   c.fillStyle = "#F4EFFA"; c.font = `700 22px "${FONT_PX}"`; c.textAlign = "center"; c.fillText("CHONKIT", W / 2, H / 2 + 44);
   c.font = `700 6.5px "${FONT_MONO}"`; c.fillStyle = "#A69CB8"; c.fillText("HOLO CARDS · CHONKS ON BASE", W / 2, H / 2 + 58);
   c.restore();
-  const hg = c.createLinearGradient(0, 0, W, H); FINISH.rainbow.cols.forEach((col, i, a) => hg.addColorStop(i / (a.length - 1), col));
+  const hg = c.createLinearGradient(0, 0, W, H); (FINISH[finish] || FINISH.rainbow).cols.forEach((col, i, a) => hg.addColorStop(i / (a.length - 1), col));
   c.strokeStyle = hg; c.lineWidth = 2.5; rr(c, 9, 9, W - 18, H - 18, 8); c.stroke();
 }
 
@@ -948,7 +948,7 @@ function rebuild() {
   view.build(displayScale(), S.card, S.sprite, cardName(), S.foil);
   S.dirty = true;
 }
-function rebuildBack() { paintBack(rear, displayScale()); }
+function rebuildBack() { paintBack(rear, displayScale(), S.finish); }
 
 function renderPanel() {
   const c = S.card; if (!c) return;
@@ -1037,7 +1037,7 @@ function loop() {
 /* controls */
 function seg(id, key) {
   const box = $(id);
-  box.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; for (const x of box.querySelectorAll("button")) x.setAttribute("aria-pressed", x === b ? "true" : "false"); S[key] = b.dataset.v; if (key === "foil") { rebuild(); renderPanel(); } else S.dirty = true; });
+  box.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; for (const x of box.querySelectorAll("button")) x.setAttribute("aria-pressed", x === b ? "true" : "false"); S[key] = b.dataset.v; if (key === "foil") { rebuild(); renderPanel(); } else { S.dirty = true; rebuildBack(); } });
 }
 seg("foilSeg", "foil"); seg("finishSeg", "finish");
 let nameT; $("nameIn").addEventListener("input", (e) => { S.name = e.target.value; clearTimeout(nameT); nameT = setTimeout(() => { rebuild(); renderPanel(); }, 120); });
