@@ -531,7 +531,7 @@ const S = {
   outfit: Object.fromEntries(SLOTS.map((s) => [s, null])),
   locks: new Set(),
   skin: 0,
-  theme: 0,
+  theme: 1,
   season: "none",
   census: null,          // {n, perSlot:{slot:total}, counts:{key:n}}
   censusBusy: null,
@@ -543,6 +543,7 @@ const S = {
    3. Colour + season themes
    ===================================================================== */
 const THEMES = [
+  { name: "None", bg: null, accent: "#C2643B", sw: [], none: true }, // no colour bias at all
   { name: "Chonk blue", bg: "#0D6E9D", accent: "#C2643B", sw: ["#0D6E9D", "#FDCB58", "#F4900C", "#E6E7E8"] },
   { name: "Sunset", bg: "#E8735A", accent: "#D9485F", sw: ["#FF8C61", "#FFC15E", "#D9485F", "#6A2C70"] },
   { name: "Mint", bg: "#7FC8A9", accent: "#2E8C6A", sw: ["#B8F2E6", "#7FC8A9", "#2E8C6A", "#FAF3DD"] },
@@ -649,6 +650,7 @@ function colDist(a, b) {
 }
 // 0..1: how much of the trait is in the palette's colours
 function paletteFit(t, pal) {
+  if (!pal.length) return 0;
   const ints = pal.map(hexToInt); let s = 0, ws = 0;
   for (const { col, w } of t.prof) { let best = 0; for (const c of ints) best = Math.max(best, 1 - colDist(col, c) / 260); s += w * best; ws += w; }
   return ws ? s / ws : 0;
@@ -853,9 +855,10 @@ function shuffle() {
     o[s] = fits || Math.random() > (OPTIONAL[s] || 0) * (p.length > 3 ? 1 : .6) ? pick.key : null;
   }
   if (!o.top && pool("top").length) o.top = weightedPick(pool("top")).key;
-  setOutfit(o, [`Shuffled with a lean towards the ${THEMES[S.theme].name} colours${S.season !== "none" ? ` and ${SEASONS[S.season].name.toLowerCase()} clothes` : ""}.`]);
+  const lean = [THEMES[S.theme].none ? "" : `the ${THEMES[S.theme].name} colours`, S.season !== "none" ? `${SEASONS[S.season].name.toLowerCase()} clothes` : ""].filter(Boolean).join(" and ");
+  setOutfit(o, [lean ? `Shuffled with a lean towards ${lean}.` : "Fully random shuffle."]);
 }
-function palette() { return [...THEMES[S.theme].sw, S.bg]; }
+function palette() { return THEMES[S.theme].none ? [] : [...THEMES[S.theme].sw, S.bg]; }
 // Stylist: the season decides the clothes (by name, then colour), the colour theme and background decide the colours,
 // and every piece is checked against what's already on.
 function stylist() {
@@ -866,7 +869,7 @@ function stylist() {
     const scored = [];
     for (const t of p) {
       const [h, sa] = hsl(t.dom), ss = seasonScore(t), why = ss.why.slice();
-      let sc = Math.random() * .3 + ss.score;
+      let sc = Math.random() * (theme.none ? 2.5 : .3) + ss.score;
       const fit = paletteFit(t, pal); sc += fit * (S.season === "none" ? 8 : 5.5); if (fit > .6) why.push(`${theme.name} colours`);
       for (const q of picked) {
         const [h2, s2] = hsl(q.dom);
@@ -876,14 +879,15 @@ function stylist() {
       scored.push({ t, sc, why, ss: ss.score });
     }
     // anything within a point and a half of the top pick is fair game, so pressing again gives a new look
-    const top = Math.max(...scored.map((x) => x.sc)), close = scored.filter((x) => x.sc >= top - 1);
+    const top = Math.max(...scored.map((x) => x.sc)), close = scored.filter((x) => x.sc >= top - (theme.none ? 2.5 : 1));
     const ch = rnd(close), best = ch.t, bestWhy = ch.why, bestSeason = ch.ss;
     const opt = OPTIONAL[s] || 0;
     const keep = !opt || bestSeason > 2 || Math.random() > opt * (S.season === "summer" && s === "head" ? 1 : .6);
     o[s] = keep ? best.key : null;
     if (keep) { picked.push(best); if (bestWhy.length) notes.push(`${best.name}: ${[...new Set(bestWhy)].join(", ")}`); }
   }
-  notes.unshift(S.season !== "none" ? `${season.name} look: ${season.tag}, tuned to the ${theme.name} colours.` : `Matched to the ${theme.name} colours.`);
+  const col = theme.none ? "any colours" : `the ${theme.name} colours`;
+  notes.unshift(S.season !== "none" ? `${season.name} look: ${season.tag}, in ${col}.` : theme.none ? "Free styling: no season, no colour theme, anything goes." : `Matched to ${col}.`);
   setOutfit(o, notes);
 }
 async function rarest() {
@@ -974,9 +978,10 @@ function renderThemes() {
   const el = $("themes"); el.innerHTML = "";
   THEMES.forEach((t, i) => {
     const b = document.createElement("button"); b.type = "button"; b.className = "sw";
-    b.innerHTML = `<i>${t.sw.map((c) => `<b style="background:${c}"></b>`).join("")}</i>${t.name}`;
+    b.innerHTML = `<i>${t.none ? `<b style="background:linear-gradient(90deg,#f66,#fd5,#6d8,#59f,#c6f)"></b>` : t.sw.map((c) => `<b style="background:${c}"></b>`).join("")}</i>${t.name}`;
+    if (t.none) b.title = "No colour bias: Stylist and Shuffle pick any colours";
     b.setAttribute("aria-pressed", i === S.theme ? "true" : "false");
-    b.onclick = () => { S.theme = i; setBg(t.bg); applyTheme(); renderThemes(); };
+    b.onclick = () => { S.theme = i; if (t.bg) setBg(t.bg); else renderBgSwatches(); applyTheme(); renderThemes(); };
     el.appendChild(b);
   });
 }
@@ -985,7 +990,7 @@ function setBg(hex) {
   if (/^#[0-9a-f]{3}$/.test(hex)) hex = "#" + hex.slice(1).split("").map((c) => c + c).join("");
   if (!/^#[0-9a-f]{6}$/.test(hex)) return false;
   S.bg = hex; $("bgPick").value = hex; $("bgHex").value = hex; $("bgHex").removeAttribute("aria-invalid");
-  renderBgSwatches(); paint(); store.set("closet-look", { theme: S.theme, season: S.season, bg: S.bg });
+  renderBgSwatches(); paint(); store.set("closet-look", { theme: THEMES[S.theme].name, season: S.season, bg: S.bg });
   return true;
 }
 // A random background that still looks good behind a Chonk: any hue, soft-to-rich saturation, never muddy or neon.
@@ -1000,14 +1005,14 @@ function randomBg() {
 }
 function renderBgSwatches() {
   const el = $("bgSw"); el.innerHTML = "";
-  const opts = [...new Set([...THEMES[S.theme].sw, "#ffffff"].map((c) => c.toLowerCase()))];
+  const opts = [...new Set([...(THEMES[S.theme].none ? ["#0D6E9D", "#FDCB58", "#7FC8A9", "#F6A6C8", "#1E2346"] : THEMES[S.theme].sw), "#ffffff"].map((c) => c.toLowerCase()))];
   for (const c of opts) { const b = document.createElement("button"); b.type = "button"; b.style.background = c; b.title = c; b.setAttribute("aria-label", `Background ${c}`); b.setAttribute("aria-pressed", c === S.bg ? "true" : "false"); b.onclick = () => setBg(c); el.appendChild(b); }
 }
 function applyTheme() {
   const t = THEMES[S.theme], r = document.documentElement.style;
   r.setProperty("--accent", t.accent);
   const [a, b, c] = rgb(hexToInt(t.accent)); r.setProperty("--accent-soft", `rgba(${a},${b},${c},.14)`);
-  store.set("closet-look", { theme: S.theme, season: S.season, bg: S.bg });
+  store.set("closet-look", { theme: THEMES[S.theme].name, season: S.season, bg: S.bg });
 }
 function renderSeasons() {
   const el = $("seasons"); el.innerHTML = "";
@@ -1201,9 +1206,9 @@ $("copyBtn").onclick = async () => {
 
 (function init() {
   const look = store.get("closet-look");
-  if (look) { S.theme = clamp(look.theme | 0, 0, THEMES.length - 1); if (SEASONS[look.season]) S.season = look.season; }
+  if (look) { const ti = THEMES.findIndex((x) => x.name === look.theme); S.theme = ti >= 0 ? ti : 1; if (SEASONS[look.season]) S.season = look.season; }
   applyTheme(); renderThemes(); renderSeasons();
-  setBg((look && look.bg) || THEMES[S.theme].bg);
+  setBg((look && look.bg) || THEMES[S.theme].bg || THEMES[1].bg);
   if (S.season !== "none") $("styleSub").textContent = `For ${SEASONS[S.season].name.toLowerCase()}`;
   S.bodies = DEMO.bodies();
   paint();
