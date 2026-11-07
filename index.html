@@ -244,8 +244,10 @@ $("filters").addEventListener("click", (e) => { const b = e.target.closest("butt
 $("q").addEventListener("input", render);
 
 // the still shown first (a clip's own first frame, so nothing jumps when it starts) and the clip itself
-const still = (t, wide) => t.clip ? `img/hub/clips/${t.id}.webp` : `img/hub/${wide && t.id === "wars" ? "wars-wide" : t.id}.webp`;
-const clipTag = (t) => t.clip ? `<video muted loop playsinline preload="none" aria-hidden="true"><source src="img/hub/clips/${t.id}.webm" type="video/webm"><source src="img/hub/clips/${t.id}.mp4" type="video/mp4"></video>` : "";
+// bump CLIP_V whenever a clip or its still changes, so browsers fetch the new file
+const CLIP_V = 2;
+const still = (t, wide) => t.clip ? `img/hub/clips/${t.id}.webp?v=${CLIP_V}` : `img/hub/${wide && t.id === "wars" ? "wars-wide" : t.id}.webp`;
+const clipTag = (t) => t.clip ? `<video muted loop playsinline preload="none" aria-hidden="true"><source src="img/hub/clips/${t.id}.webm?v=${CLIP_V}" type="video/webm"><source src="img/hub/clips/${t.id}.mp4?v=${CLIP_V}" type="video/mp4"></video>` : "";
 const btcTag = (t) => t.id === "wars" ? `<span class="btc" data-btc><i></i><span class="px">BTC live</span><span class="chg"></span></span>` : "";
 function render() {
   const q = $("q").value.trim().toLowerCase();
