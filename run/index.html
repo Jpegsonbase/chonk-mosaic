@@ -2476,23 +2476,28 @@ const SPECIALS = {
 // With the middle shut you can't swap sides, so each open lane only gets things you can jump or slide.
 function tunnelObstacles(run, b, T, a0, a1) {
   let s = a0, prev = -1;
-  while (s < a1 - 24) {
-    const closed = pick([0, 1, 2].filter((l) => l !== prev)), e = Math.min(a1, s + rand(45, 75)); prev = closed;
-    if (e - s < 24) break;
+  while (s < a1 - 20) {
+    const closed = pick([0, 1, 2].filter((l) => l !== prev)), e = Math.min(a1, s + rand(55, 95)); prev = closed;
+    if (e - s < 20) break;
     const cx = LANES[closed];
     for (let p = s; p < e - 1; ) { const len = Math.min(rand(10, 16), e - p); addSolid(run, cx - 1.03, cx + 1.03, p, p + len, T.longH, 0).wall = true; T.long(b, cx, p, p + len, T.longH, 0); p += len; }
     b.box(cx, T.longH + 0.25, s - 0.05, 1.8, 0.2, 0.06, 0xff2a2a, { glow: true }); // red lamps on the front of the parked train
     for (const ex of [-0.6, 0.6]) b.box(cx + ex, 1.2, s - 0.05, 0.35, 0.35, 0.06, 0xff3a2a, { glow: true });
     const open = [0, 1, 2].filter((l) => l !== closed), side = closed !== 1;
-    let q = s + 16;
-    while (q < e - 8) {
+    let q = s + 10;
+    while (q < e - 4) {
       const sp = speedAt(run.dist + q);
-      let kind = side ? weighted({ block: 3, low: 2, high: 2, mover: 2.6 }) : weighted({ low: 1, high: 1 });
-      if (kind === "mover" && q + 64 + T.mover.len + 4 > e) kind = "block";
+      let kind = side ? weighted({ block: 3, low: 2, high: 2, mover: 2.4, pair: 2 }) : weighted({ low: 1, high: 1 });
+      if (kind === "mover" && q + 46 + T.mover.len + 4 > e) kind = "block";
       let used = 0.7;
       if (kind === "block") {
         const l = pick(open), f = open.find((x) => x !== l);
         addSolid(run, LANES[l] - 1, LANES[l] + 1, q, q + 1.4, 2.4); T.block(b, LANES[l], q + 0.7, 1.4); coinLine(run, f, q - 7, q + 5); used = 1.4;
+      } else if (kind === "pair") { // a crate in one lane, a barrier to jump in the other
+        const l = pick(open), f = open.find((x) => x !== l);
+        addSolid(run, LANES[l] - 1, LANES[l] + 1, q, q + 1.4, 2.4); T.block(b, LANES[l], q + 0.7, 1.4);
+        addSolid(run, LANES[f] - 1.05, LANES[f] + 1.05, q + 0.35, q + 1.05, 0.9); T.low(b, LANES[f] - 1.05, LANES[f] + 1.05, q + 0.7);
+        coinArc(run, f, q + 0.7); used = 1.4;
       } else if (kind === "low") {
         for (const l of open) { addSolid(run, LANES[l] - 1.05, LANES[l] + 1.05, q, q + 0.7, 0.9); T.low(b, LANES[l] - 1.05, LANES[l] + 1.05, q + 0.35); }
         coinArc(run, pick(open), q + 0.35);
@@ -2501,16 +2506,16 @@ function tunnelObstacles(run, b, T, a0, a1) {
         for (const l of open) { run.beams.push({ s0: q, s1: q + 0.7, x0: LANES[l] - 1.05, x1: LANES[l] + 1.05, y0: BEAM_Y0, y1: 3.2 }); T.hang(b, LANES[l], q + 0.35); }
         coinLine(run, pick(open), q - 4, q + 3, 0.45);
       } else { // an oncoming train in one open lane; the other stays clear until it has gone past
-        const M = T.mover, l = pick(open), f = open.find((x) => x !== l), m0 = q + 64;
+        const M = T.mover, l = pick(open), f = open.find((x) => x !== l), m0 = q + 46;
         const o = addSolid(run, LANES[l] - 1.03, LANES[l] + 1.03, m0, m0 + M.len, M.h);
         Object.assign(o, { vel: M.v, active: false, lane: l });
         const mb = new Builder(); T.moverMesh(mb); const grp = new THREE.Group(); mb.build(grp);
         grp.position.set(LANES[l], 0, -(m0 + M.len / 2)); run.group.add(grp); o.mesh = grp; run.movers.push(o);
-        coinLine(run, f, q + 6, q + 50); used = 64 + M.len;
+        coinLine(run, f, q + 6, q + 40); used = 46 + M.len;
       }
-      q += used + Math.max(9, sp * 0.8) + rand(0, 3);
+      q += used + Math.max(7, sp * 0.5) + rand(0, 2.5);
     }
-    s = e + rand(8, 12); // a short stretch with all three lanes open, to swap sides before the next closure
+    s = e + rand(7, 10); // a short stretch with all three lanes open, to swap sides before the next closure
   }
 }
 function coinLineAt(run, lane, s0, s1, y, step = 2.1) { for (let s = s0; s <= s1; s += step) run.coins.push({ s, x: LANES[lane], y, top: true }); }
@@ -2528,7 +2533,12 @@ function buildRunInner(run) {
   const safeUntil = s + speedAt(run.dist) * 2.2;
   const sMax = run.style === "hop" || run.style === "river" ? -1 : run.L - W - 18;
   if (run.style !== "normal") SPECIALS[run.style](run, b, T);
-  if (run.style === "tunnel") tunnelObstacles(run, b, T, Math.max(run.zone.s0 + 8, safeUntil), run.zone.s1 - 4);
+  if (run.style === "tunnel") {
+    // just after the corner: all three lanes open, only the gentle stuff
+    let q = run.zone.s0 + 8;
+    while (q < safeUntil - 4) { const sp = speedAt(run.dist + q); q += PATTERNS[pick(["blocks", "low", "high"])](run, q, b, T, true) + Math.max(9, sp * 0.6) + rand(0, 3); }
+    tunnelObstacles(run, b, T, Math.max(q, safeUntil), run.zone.s1 - 4);
+  }
   const weights = run.style === "tunnel" ? { mover: 6, long: 2, blocks: 2.2, mix: 2, roofs: 2.4, low: 1 } : T.weights;
   while (s < sMax) {
     const sp = speedAt(run.dist + s);
