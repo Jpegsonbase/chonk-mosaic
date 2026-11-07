@@ -398,7 +398,62 @@ const SITE_URL = "https://chonkit.xyz/holo/";
 const SEL_URI = "0xc87b56dd"; // tokenURI(uint256)
 
 function bytesOf(str) { return Uint8Array.from(str, (c) => c.charCodeAt(0) & 255); }
+// Some Chonks (ones wearing newer hook-aware traits) revert in tokenURI. For those, rebuild the
+// metadata and 2D art from parts: chonkTokens() gives the equipped trait ids, getBodyImageSvg() the
+// body, and each trait's own tokenURI on ChonkTraits gives its name and pixels.
+const TRAITS_CONTRACT = "0x74D8725A65C21251A83f6647aa23140Bd80504b1";
+const SEL_CHONK_TOKENS = "0xb45d0316"; // chonkTokens(uint256)
+const SEL_BODY_SVG = "0x916c546b";    // getBodyImageSvg(uint256)
+const RPC_ORDER = () => ["https://mainnet.base.org", ...RPCS.filter((u) => u !== "https://mainnet.base.org")];
+async function callFirst(to, data, ms = 20000) {
+  for (const url of RPC_ORDER()) {
+    try { const j = await rpc(url, { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to, data }, "latest"] }, ms); if (j && typeof j.result === "string" && j.result.length > 2) return j.result; } catch {}
+  }
+  return null;
+}
+function dataJSON(s) {
+  if (!s.startsWith("data:")) return JSON.parse(new TextDecoder().decode(bytesOf(s)));
+  const comma = s.indexOf(","), head = s.slice(0, comma), body = s.slice(comma + 1);
+  return JSON.parse(head.includes("base64") ? new TextDecoder().decode(bytesOf(atob(body))) : (() => { try { return decodeURIComponent(body); } catch { return new TextDecoder().decode(bytesOf(body)); } })());
+}
+function dataSVG(img) {
+  if (typeof img !== "string") return "";
+  if (!img.startsWith("data:")) return img;
+  const c = img.indexOf(","), h = img.slice(0, c), b = img.slice(c + 1);
+  return h.includes("base64") ? new TextDecoder().decode(bytesOf(atob(b))) : decodeURIComponent(b);
+}
+async function getTraitsFromParts(id) {
+  const r = await callFirst(CONTRACT, SEL_CHONK_TOKENS + pad64(id));
+  if (!r || r.length < 2 + 64 * 9) return null;
+  const word = (i) => BigInt("0x" + r.slice(2 + i * 64, 66 + i * 64));
+  const slots = { head: word(1), hair: word(2), face: word(3), accessory: word(4), top: word(5), bottom: word(6), shoes: word(7) };
+  const bodyIndex = word(8);
+  const order = ["shoes", "bottom", "top", "hair", "face", "head", "accessory"];
+  const parts = await Promise.all(order.map(async (slot) => {
+    const tid = slots[slot]; if (!tid) return null;
+    try {
+      const j = dataJSON(decodeString(await callFirst(TRAITS_CONTRACT, SEL_URI + pad64(tid))));
+      const a = (j.attributes || []).find((x) => !/^(creator|release)$/i.test(String(x.trait_type || "")));
+      if (!a) return null;
+      const svg = dataSVG(j.image), m = svg.match(/<g id="Trait">[\s\S]*?<\/g>/);
+      return { type: String(a.trait_type), value: String(a.value), g: m ? m[0] : "" };
+    } catch { return null; }
+  }));
+  const list = [], groups = [];
+  for (const p of parts) if (p && p.value) { list.push({ type: p.type, value: p.value }); groups.push(p.g || '<g id="Trait"></g>'); }
+  let body = "";
+  try { const b = await callFirst(CONTRACT, SEL_BODY_SVG + pad64(bodyIndex)); if (b) body = decodeString(b); } catch {}
+  const svg = `<svg>${body.includes('id="Body"') ? body : '<g id="Body">' + body + "</g>"}${groups.join("")}</svg>`;
+  return { name: `Chonk #${id}`, list, art: parseArt(svg, list.length) };
+}
+
 async function getTraits(id) {
+  if (chain.online === false) return null;
+  const full = await getTraitsFull(id);
+  if (full) return full;
+  try { return await getTraitsFromParts(id); } catch { return null; }
+}
+async function getTraitsFull(id) {
   if (chain.online === false) return null;
   let s;
   // tokenURI renders the whole Chonk onchain, which is too heavy for some public RPCs (they revert), so try each one, mainnet.base.org first.
