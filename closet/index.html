@@ -145,7 +145,11 @@ button, input { font: inherit; color: inherit; }
 .jump { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 2px; }
 .jump a { font: 700 11px var(--mono); text-decoration: none; letter-spacing: .04em; border-radius: 8px; padding: 4px 8px; background: var(--bg); border: 1px solid var(--line); }
 .jump a b { color: var(--muted); font-weight: 500; margin-left: 3px; }
-.slot { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; scroll-margin-top: 16px; }
+#slots { position: relative; max-height: min(720px, calc(100vh - 240px)); min-height: 320px; overflow-y: auto; overscroll-behavior: contain; margin: 0 -8px; padding: 0 8px 8px; border-top: 1px solid var(--line); scrollbar-width: thin; }
+#slots .slot:first-child { border-top: 0; margin-top: 0; }
+.slot h3 { position: sticky; top: 0; z-index: 1; background: var(--card); padding: 10px 0 8px; margin: 0 !important; }
+@media (max-width: 860px) { #slots { max-height: 70vh; } }
+.slot { border-top: 1px solid var(--line); padding-top: 2px; margin-top: 10px; scroll-margin-top: 16px; }
 .slot h3 { margin: 0 0 8px; font: 400 20px/1 var(--display); display: flex; align-items: baseline; gap: 8px; }
 .slot h3 small { font: 600 11px var(--mono); color: var(--muted); letter-spacing: .06em; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
@@ -1020,7 +1024,7 @@ function renderCloset() {
     }[sort];
     items.sort(cmp); shown += items.length;
     const a = document.createElement("a"); a.href = "#slot-" + s; a.innerHTML = `${SLOT_NAMES[s]}<b>${items.length}</b>`;
-    a.onclick = (e) => { e.preventDefault(); $("slot-" + s).scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" }); };
+    a.onclick = (e) => { e.preventDefault(); const box = $("slots"), el = $("slot-" + s); box.scrollTo({ top: el.offsetTop, behavior: reduced ? "auto" : "smooth" }); };
     jump.appendChild(a);
     const sec = document.createElement("section"); sec.className = "slot"; sec.id = "slot-" + s;
     sec.innerHTML = `<h3>${SLOT_NAMES[s]} <small>${items.length} piece${items.length === 1 ? "" : "s"}</small></h3>`;
