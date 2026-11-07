@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Chonk Closet · Chonkit</title>
+<link rel="canonical" href="https://chonkit.xyz/closet/">
+<meta name="description" content="Every trait in every Chonk backpack you own, sorted into a closet. Mix outfits live from Base, let the stylist dress you for the season, or build your rarest fit.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chonkit">
+<meta property="og:url" content="https://chonkit.xyz/closet/">
+<meta property="og:title" content="Chonk Closet">
+<meta property="og:description" content="Mix outfits from all your Chonk backpacks, rendered live from Base.">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:creator" content="@jpegsonbase">
+<meta name="theme-color" content="#F3F2EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151918" media="(prefers-color-scheme: dark)">
+<script>
+  (function () { try { var t = localStorage.getItem("chonk-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: "Sangyo"; src: url("data:font/woff2;base64,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") format("woff2"); font-weight: 400 900; font-display: swap; }
+:root {
+  --bg: #F3F2EE; --bg-tint-a: #EDEBF4; --bg-tint-b: #EEF3EA;
+  --card: #FFFFFF; --ink: #1E2A2A; --muted: #7C8584; --line: #E6E4DE; --dark: #1F2B2B; --dark-ink: #F4F3EF;
+  --accent: #C2643B; --accent-soft: rgba(194,100,59,.12);
+  --display: "Sangyo", "Arial Black", sans-serif;
+  --body: "Manrope", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #151918; --bg-tint-a: #1A1A24; --bg-tint-b: #161F18;
+  --card: #1F2524; --ink: #EDEFEC; --muted: #8E9896; --line: #2C3433; --dark: #EDEFEC; --dark-ink: #151918; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #151918; --bg-tint-a: #1A1A24; --bg-tint-b: #161F18;
+  --card: #1F2524; --ink: #EDEFEC; --muted: #8E9896; --line: #2C3433; --dark: #EDEFEC; --dark-ink: #151918; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { min-height: 100%; }
+body { margin: 0; background: radial-gradient(1200px 700px at 0% 0%, var(--bg-tint-a), transparent 60%), radial-gradient(1000px 700px at 100% 40%, var(--bg-tint-b), transparent 60%), var(--bg); background-attachment: fixed; color: var(--ink); font: 500 15px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+a { color: inherit; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 10px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-top: calc(env(safe-area-inset-top, 0px) + 28px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
+.mono { font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.toprow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-inline: 8px; }
+.toprow .brand { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+.toprow .brand svg { width: 26px; height: 17px; }
+.toprow .brand:hover .mono { color: var(--ink); }
+.toprow .right { margin-left: auto; display: flex; gap: 10px; }
+.pill { font: 700 11.5px var(--mono); letter-spacing: .06em; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+.head { padding: 40px 14px 22px; }
+.head h1 { font: 400 clamp(40px, 6.4vw, 68px)/.95 var(--display); margin: 0; letter-spacing: -.01em; }
+.head h1 em { font-style: normal; color: var(--accent); }
+.head p { margin: 14px 0 0; max-width: 600px; color: var(--muted); font-size: 16px; text-wrap: pretty; }
+
+.loader { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; margin-bottom: 16px; }
+.find { display: flex; gap: 8px; }
+.find input { flex: 1; min-width: 0; border: 1.5px solid var(--line); background: var(--bg); border-radius: 13px; padding: 11px 13px; font: 500 16px var(--body); outline: none; }
+.find input:focus { border-color: var(--ink); }
+.btn { border: 0; border-radius: 13px; padding: 11px 15px; font: 700 14px var(--body); cursor: pointer; background: var(--dark); color: var(--dark-ink); white-space: nowrap; }
+.btn:disabled { opacity: .55; cursor: progress; }
+.btn.ghost { background: none; border: 1.5px solid var(--line); color: var(--ink); }
+.btn.ghost:hover { border-color: var(--ink); }
+.status { font: 500 12.5px/1.45 var(--mono); color: var(--muted); margin: 9px 2px 0; min-height: 1.45em; }
+.status.err { color: #C2453B; }
+.bar { height: 3px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+.banner { margin-top: 10px; font-size: 13px; border-radius: 12px; padding: 10px 12px; background: var(--accent-soft); color: var(--ink); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-height: 108px; overflow: auto; }
+.chip { font: 700 12px var(--mono); border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 10px; cursor: pointer; }
+.chip small { font-weight: 500; color: var(--muted); margin-left: 4px; }
+.chip[aria-pressed="true"] { background: var(--dark); color: var(--dark-ink); border-color: var(--dark); }
+.chip[aria-pressed="true"] small { color: inherit; opacity: .7; }
+
+.work { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 16px; align-items: start; }
+@media (max-width: 860px) { .work { grid-template-columns: 1fr; } }
+.left { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 14px); display: flex; flex-direction: column; gap: 12px; }
+@media (max-width: 860px) { .left { position: relative; top: 0; } }
+.stage { border-radius: 22px; overflow: hidden; background: #0d0b14; box-shadow: 0 18px 34px -24px rgba(30, 42, 42, .6); position: relative; }
+.stage canvas { display: block; width: 100%; aspect-ratio: 1; image-rendering: pixelated; image-rendering: crisp-edges; }
+.stage .tag { position: absolute; left: 12px; top: 12px; font: 700 10.5px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #fff; background: rgba(0,0,0,.35); border-radius: 999px; padding: 5px 9px; backdrop-filter: blur(4px); }
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.act { border: 0; border-radius: 14px; padding: 12px 8px 10px; cursor: pointer; background: var(--dark); color: var(--dark-ink); font: 700 13.5px var(--body); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.act small { font: 600 10px var(--mono); letter-spacing: .06em; opacity: .65; text-transform: uppercase; }
+.act.accent { background: var(--accent); color: #fff; }
+.act:disabled { opacity: .5; cursor: progress; }
+.act:active { transform: translateY(1px); }
+.minor { display: flex; gap: 8px; flex-wrap: wrap; }
+.minor .btn { flex: 1; padding: 9px 10px; font-size: 13px; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; box-shadow: 0 1px 0 rgba(0,0,0,.02), 0 18px 34px -24px rgba(30, 42, 42, .35); }
+.card h2 { font: 700 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.card h2 .sp { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; }
+.wear { list-style: none; margin: 0; padding: 0; }
+.wear li { display: grid; grid-template-columns: 80px 1fr auto auto; align-items: center; gap: 8px; padding: 6px 0; border-top: 1px solid var(--line); font-size: 13.5px; }
+.wear li:first-child { border-top: 0; }
+.wear .k { font: 700 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.wear .v { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wear .v span { font: 500 11px var(--mono); color: var(--muted); margin-left: 6px; }
+.wear .v.none { color: var(--muted); font-weight: 500; }
+.ic { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--line); background: none; cursor: pointer; display: grid; place-items: center; padding: 0; font-size: 13px; }
+.ic[aria-pressed="true"] { background: var(--dark); color: var(--dark-ink); border-color: var(--dark); }
+.note { font-size: 12.5px; color: var(--muted); margin: 10px 0 0; text-wrap: pretty; }
+.notes { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: var(--muted); }
+.notes li { margin: 2px 0; }
+
+.right { display: flex; flex-direction: column; gap: 12px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 520px) { .row2 { grid-template-columns: 1fr; } }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.sw { border: 1.5px solid var(--line); background: none; border-radius: 12px; padding: 5px 9px 5px 5px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; font: 700 12px var(--body); }
+.sw i { display: flex; width: 34px; height: 18px; border-radius: 6px; overflow: hidden; }
+.sw i b { flex: 1; }
+.sw[aria-pressed="true"] { border-color: var(--ink); background: var(--bg); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1.5px solid var(--line); background: none; border-radius: 11px; padding: 7px 11px; font: 700 13px var(--body); cursor: pointer; }
+.seg button:hover { border-color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--dark); color: var(--dark-ink); border-color: var(--dark); }
+.skins button { width: 34px; height: 34px; padding: 0; border-radius: 10px; }
+.skins button[aria-pressed="true"] { outline: 2.5px solid var(--ink); outline-offset: 2px; background: none; }
+
+.bgrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.bgrow input[type=color] { width: 38px; height: 34px; border: 1.5px solid var(--line); border-radius: 10px; padding: 2px; background: var(--bg); cursor: pointer; }
+.bgrow input[type=text] { width: 96px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 10px; padding: 7px 9px; font: 600 13px var(--mono); outline: none; text-transform: lowercase; }
+.bgrow input[type=text]:focus { border-color: var(--ink); }
+.bgrow input[type=text][aria-invalid=true] { border-color: #C2453B; }
+.bgsw { display: flex; gap: 5px; }
+.bgsw button { width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--line); cursor: pointer; padding: 0; }
+.bgsw button[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.hint2 { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+.closet-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.closet-top input { flex: 1; min-width: 140px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 11px; padding: 8px 11px; font: 500 14px var(--body); outline: none; }
+.closet-top input:focus { border-color: var(--ink); }
+.closet-top select { border: 1.5px solid var(--line); background: var(--bg); border-radius: 11px; padding: 8px 10px; font: 600 13px var(--body); color: var(--ink); }
+.jump { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0 2px; }
+.jump a { font: 700 11px var(--mono); text-decoration: none; letter-spacing: .04em; border-radius: 8px; padding: 4px 8px; background: var(--bg); border: 1px solid var(--line); }
+.jump a b { color: var(--muted); font-weight: 500; margin-left: 3px; }
+.slot { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px; scroll-margin-top: 16px; }
+.slot h3 { margin: 0 0 8px; font: 400 20px/1 var(--display); display: flex; align-items: baseline; gap: 8px; }
+.slot h3 small { font: 600 11px var(--mono); color: var(--muted); letter-spacing: .06em; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.tile { position: relative; border: 1.5px solid var(--line); background: var(--bg); border-radius: 14px; padding: 8px 6px 7px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; text-align: center; min-width: 0; }
+.tile:hover { border-color: var(--muted); }
+.tile[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.tile canvas { width: 60px; height: 60px; image-rendering: pixelated; image-rendering: crisp-edges; }
+.tile .nm { font: 700 11.5px/1.2 var(--body); width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; min-height: 2.4em; }
+.tile .ct { position: absolute; top: 5px; right: 6px; font: 700 10px var(--mono); color: var(--muted); }
+.tile .rb { font: 700 9px var(--mono); letter-spacing: .06em; text-transform: uppercase; border-radius: 5px; padding: 2px 5px; background: var(--line); color: var(--muted); }
+.rb.r1 { background: #DDEBDD; color: #3E6B3E; } .rb.r2 { background: #DCE6F5; color: #35548A; } .rb.r3 { background: #EADFF5; color: #6A3E95; } .rb.r4 { background: #F7E6C4; color: #8A5A10; }
+:root[data-theme="dark"] .rb.r1, :root[data-theme="dark"] .rb.r2, :root[data-theme="dark"] .rb.r3, :root[data-theme="dark"] .rb.r4 { filter: brightness(.8) saturate(1.2); }
+.tile.none canvas { opacity: .25; }
+.empty { color: var(--muted); font-size: 13px; padding: 6px 2px; }
+
+.ov { position: fixed; inset: 0; z-index: 50; background: rgba(8, 7, 12, .78); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 20px; }
+.ovbox { background: var(--card); border-radius: 20px; padding: 16px; max-width: min(440px, 100%); width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.ovbox img { width: 100%; border-radius: 12px; display: block; image-rendering: pixelated; }
+.ovbox p { margin: 0; font-size: 13px; color: var(--muted); }
+.ovrow { display: flex; gap: 8px; justify-content: flex-end; }
+.ovrow a { text-decoration: none; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toprow">
+    <a class="brand" href="https://chonkit.xyz/" aria-label="Back to Chonkit"><svg viewBox="0 0 11 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#FDCB58" d="M2 0h8v1h-8zM1 1h10v5h-10zM2 6h8v1h-8z"/><path fill="#F4900C" d="M0 3h1v2h-1zM5 4h3v1h-3z"/><path fill="#E6E7E8" d="M3 3h1v2h-1zM8 3h1v2h-1z"/><path fill="#31373D" d="M4 3h1v2h-1zM9 3h1v2h-1z"/></svg><span class="mono">Chonkit / Closet</span></a>
+    <span class="right"><button class="pill" id="themeBtn" type="button" aria-label="Switch light or dark mode">LIGHT / DARK</button></span>
+  </div>
+
+  <header class="head">
+    <h1>Chonk <em>closet</em></h1>
+    <p>Every trait in every backpack you own, hung up by slot. Mix any outfit and watch it render live from Base, or let the stylist dress you for the season.</p>
+  </header>
+
+  <section class="loader" aria-label="Load your Chonks">
+    <form class="find" id="findForm">
+      <input id="q" type="text" autocomplete="off" spellcheck="false" placeholder="Wallet, ENS, Basename, or Chonk IDs like 18, 404" aria-label="Wallet address, ENS name, Basename or Chonk IDs">
+      <button class="btn" id="loadBtn" type="submit">Open closet</button>
+    </form>
+    <div class="bar" id="bar" hidden><i id="barFill"></i></div>
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <div class="banner" id="demoBanner" hidden>Base can't be reached from this page, so this is a <b>demo closet</b> with stand-in traits drawn for the preview. On chonkit.xyz it opens your real backpacks.</div>
+    <div class="chips" id="chips" aria-label="Backpacks"></div>
+  </section>
+
+  <main class="work">
+    <div class="left">
+      <div class="stage">
+        <canvas id="stage" width="600" height="600" aria-label="Outfit preview"></canvas>
+        <span class="tag" id="stageTag">Live from Base</span>
+      </div>
+      <div class="actions">
+        <button class="act" id="randBtn" type="button">Shuffle<small>Random fit</small></button>
+        <button class="act accent" id="styleBtn" type="button">Stylist<small id="styleSub">Dress me</small></button>
+        <button class="act" id="rareBtn" type="button">Rarest fit<small id="rareSub">Best of each</small></button>
+      </div>
+      <div class="minor">
+        <button class="btn ghost" id="resetBtn" type="button">Wear equipped</button>
+        <button class="btn ghost" id="clearBtn" type="button">Strip</button>
+        <button class="btn ghost" id="saveBtn" type="button">Save PNG</button>
+        <button class="btn ghost" id="copyBtn" type="button">Copy list</button>
+      </div>
+      <div class="card">
+        <h2>Wearing <span class="sp" id="wearSrc"></span></h2>
+        <ul class="wear" id="wear"></ul>
+        <p class="note" id="wearNote"></p>
+        <ul class="notes" id="styleNotes" hidden></ul>
+      </div>
+    </div>
+
+    <div class="right">
+      <div class="row2">
+        <div class="card">
+          <h2>Colour theme</h2>
+          <div class="swatches" id="themes"></div>
+          <h2 style="margin-top:14px">Background</h2>
+          <div class="bgrow">
+            <input type="color" id="bgPick" aria-label="Pick a background colour">
+            <input type="text" id="bgHex" maxlength="7" spellcheck="false" aria-label="Background hex colour">
+            <span class="bgsw" id="bgSw"></span>
+          </div>
+          <p class="hint2">Plain colour, set by hex like the official wardrobe.</p>
+        </div>
+        <div class="card">
+          <h2>Season style</h2>
+          <div class="seg" id="seasons"></div>
+          <p class="hint2" id="seasonHint">Pick a season and Stylist and Shuffle favour its clothes and colours.</p>
+          <h2 style="margin-top:14px">Skin</h2>
+          <div class="seg skins" id="skins"></div>
+        </div>
+      </div>
+      <div class="card" id="closet">
+        <h2>Closet <span class="sp" id="closetCount"></span></h2>
+        <div class="closet-top">
+          <input id="search" type="search" placeholder="Search traits" aria-label="Search traits">
+          <select id="sort" aria-label="Sort traits">
+            <option value="name">A to Z</option>
+            <option value="rare">Rarest first</option>
+            <option value="count">Most owned</option>
+            <option value="colour">By colour</option>
+          </select>
+        </div>
+        <nav class="jump" id="jump" aria-label="Jump to slot"></nav>
+        <div id="slots"></div>
+        <p class="note" id="rarityNote"></p>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <div class="ovbox" role="dialog" aria-modal="true" aria-label="Saved outfit">
+    <img id="ovImg" alt="Your Chonk outfit">
+    <p>Right-click or long-press the picture to save it if the download doesn't start.</p>
+    <div class="ovrow"><a class="btn ghost" id="ovDl" download="chonk-outfit.png">Download</a><button class="btn" id="ovClose" type="button">Done</button></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   0. Basics
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const SLOTS = ["head", "hair", "face", "accessory", "top", "bottom", "shoes"];
+const PLURAL = { head: "head traits", hair: "hair traits", face: "face traits", accessory: "accessories", top: "tops", bottom: "bottoms", shoes: "shoes" };
+const SLOT_NAMES = { head: "Head", hair: "Hair", face: "Face", accessory: "Accessory", top: "Top", bottom: "Bottom", shoes: "Shoes" };
+const DRAW_ORDER = ["shoes", "bottom", "top", "hair", "face", "head", "accessory"]; // same layering the Chonk contract uses
+const OPTIONAL = { head: .55, face: .5, accessory: .5, hair: .15 }; // chance a shuffle leaves the slot empty
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rnd = (a) => a[Math.floor(Math.random() * a.length)];
+
+/* =====================================================================
+   1. Chain: ChonksMain + ChonkTraits on Base, batched through Multicall3
+   ===================================================================== */
+const CONTRACT = "0x07152bfde079b5319e5308c43fb1dbc9c76cb4f9";
+const TRAITS = "0x74D8725A65C21251A83f6647aa23140Bd80504b1";
+const MULTI = "0xcA11bde05977b3631167028862bE2a173976CA11";
+const SEL = {
+  wallet: "0x438b6300",      // walletOfOwner(address)
+  tokens: "0xb45d0316",      // chonkTokens(uint256): equipped ids, body, background
+  backpack: "0x9f6e4637",    // getTraitsForChonkId(uint256): every trait in the backpack
+  uri: "0xc87b56dd",         // tokenURI(uint256)
+  body: "0x916c546b",        // getBodyImageSvg(uint256)
+  supply: "0x18160ddd",      // totalSupply()
+  agg: "0x82ad56cb",         // aggregate3((address,bool,bytes)[])
+};
+const RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://1rpc.io/base"];
+const pad64 = (n) => BigInt(n).toString(16).padStart(64, "0");
+const strip = (h) => (h.startsWith("0x") ? h.slice(2) : h);
+const chain = { online: null };
+
+async function rpc(url, body, ms) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+    if (!r.ok) throw new Error("http " + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+// eth_call on the first RPC that answers. Throws {offline} if none answered, {revert} if one answered with an error.
+async function call(to, data, ms = 20000) {
+  let reverted = null;
+  for (const url of RPCS) {
+    try {
+      const j = await rpc(url, { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to, data }, "latest"] }, ms);
+      chain.online = true;
+      if (j && typeof j.result === "string" && j.result.length > 2) return j.result;
+      reverted = (j && j.error && j.error.message) || "empty result";
+    } catch (e) { /* try the next RPC */ }
+  }
+  if (reverted) throw Object.assign(new Error(reverted), { revert: true });
+  if (chain.online !== true) chain.online = false;
+  throw Object.assign(new Error("Base can't be reached"), { offline: true });
+}
+function encAgg(calls) {
+  const enc = calls.map((c) => {
+    const d = strip(c.data), padded = d.padEnd(Math.ceil(d.length / 64) * 64, "0");
+    return strip(c.to).toLowerCase().padStart(64, "0") + pad64(1) + pad64(0x60) + pad64(d.length / 2) + padded;
+  });
+  let off = calls.length * 32; const heads = [];
+  for (const e of enc) { heads.push(pad64(off)); off += e.length / 2; }
+  return SEL.agg + pad64(32) + pad64(calls.length) + heads.join("") + enc.join("");
+}
+function decAgg(hex) {
+  const h = strip(hex), base = parseInt(h.slice(0, 64), 16) * 2, n = parseInt(h.slice(base, base + 64), 16), start = base + 64, out = [];
+  for (let i = 0; i < n; i++) {
+    const t = start + parseInt(h.slice(start + i * 64, start + i * 64 + 64), 16) * 2;
+    const ok = parseInt(h.slice(t, t + 64), 16) === 1;
+    const b = t + parseInt(h.slice(t + 64, t + 128), 16) * 2, len = parseInt(h.slice(b, b + 64), 16);
+    out.push(ok && len ? "0x" + h.slice(b + 64, b + 64 + len * 2) : null);
+  }
+  return out;
+}
+// Many calls -> results (null where a call failed). Batches through Multicall3, falls back to single calls.
+async function multi(calls, batch = 40, onStep) {
+  const out = new Array(calls.length).fill(null), chunks = [];
+  for (let i = 0; i < calls.length; i += batch) chunks.push([i, calls.slice(i, i + batch)]);
+  let done = 0;
+  async function runChunk([i0, cs]) {
+    let res;
+    try { res = decAgg(await call(MULTI, encAgg(cs), 30000)); }
+    catch (e) {
+      if (e.offline) throw e;
+      res = [];
+      for (const c of cs) { try { res.push(await call(c.to, c.data)); } catch (e2) { if (e2.offline) throw e2; res.push(null); } }
+    }
+    res.forEach((r, k) => { out[i0 + k] = r; });
+    done += cs.length; if (onStep) onStep(done, calls.length);
+  }
+  const queue = chunks.slice(); const workers = [];
+  for (let w = 0; w < 3; w++) workers.push((async () => { while (queue.length) await runChunk(queue.shift()); })());
+  await Promise.all(workers);
+  return out;
+}
+const bytesOf = (str) => Uint8Array.from(str, (c) => c.charCodeAt(0) & 255);
+function decodeString(hex) {
+  const h = strip(hex), off = parseInt(h.slice(0, 64), 16) * 2, len = parseInt(h.slice(off, off + 64), 16), s = h.slice(off + 64, off + 64 + len * 2);
+  let out = ""; for (let i = 0; i < s.length; i += 2) out += String.fromCharCode(parseInt(s.substr(i, 2), 16));
+  return out;
+}
+function decodeUintArray(hex) {
+  const h = strip(hex), off = parseInt(h.slice(0, 64), 16) * 2, n = parseInt(h.slice(off, off + 64), 16), out = [];
+  for (let i = 0; i < n; i++) out.push(Number(BigInt("0x" + h.slice(off + 64 + i * 64, off + 128 + i * 64))));
+  return out;
+}
+function decodeChonk(hex) {
+  const h = strip(hex), w = (i) => Number(BigInt("0x" + (h.slice(i * 64, i * 64 + 64) || "0")));
+  const eq = { head: w(1), hair: w(2), face: w(3), accessory: w(4), top: w(5), bottom: w(6), shoes: w(7) };
+  let bg = "0D6E9D";
+  try { const off = w(9) * 2; if (off > 0 && off < h.length) { const len = parseInt(h.slice(off, off + 64), 16), s = h.slice(off + 64, off + 64 + len * 2); let t = ""; for (let i = 0; i < s.length; i += 2) t += String.fromCharCode(parseInt(s.substr(i, 2), 16)); if (/^[0-9a-f]{6}$/i.test(t)) bg = t; } } catch {}
+  return { equipped: eq, body: w(8), bg: "#" + bg };
+}
+function dataJSON(s) {
+  if (!s.startsWith("data:")) return JSON.parse(new TextDecoder().decode(bytesOf(s)));
+  const comma = s.indexOf(","), head = s.slice(0, comma), body = s.slice(comma + 1);
+  return JSON.parse(head.includes("base64") ? new TextDecoder().decode(bytesOf(atob(body))) : (() => { try { return decodeURIComponent(body); } catch { return new TextDecoder().decode(bytesOf(body)); } })());
+}
+function dataSVG(img) {
+  if (typeof img !== "string") return "";
+  if (!img.startsWith("data:")) return img;
+  const c = img.indexOf(","), h = img.slice(0, c), b = img.slice(c + 1);
+  return h.includes("base64") ? new TextDecoder().decode(bytesOf(atob(b))) : decodeURIComponent(b);
+}
+// 1px-rect SVG -> [{x, y, col}]; skips full-canvas backgrounds
+function rectsOf(svg) {
+  const cells = new Map(), re = /<rect\b([^>]*?)\/?>/g; let m;
+  while ((m = re.exec(svg))) {
+    const a = m[1], num = (k) => { const r = a.match(new RegExp(`\\b${k}="(-?[\\d.]+)"`)); return r ? Math.round(+r[1]) : null; };
+    let fill = (a.match(/fill="#([0-9a-fA-F]{3,6})"/) || [])[1];
+    if (!fill) continue;
+    if (fill.length === 3) fill = fill.split("").map((c) => c + c).join("");
+    const x = num("x") ?? 0, y = num("y") ?? 0, w = num("width") || 1, h = num("height") || 1;
+    if (w >= 30 || h >= 30) continue;
+    for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (xx >= 0 && yy >= 0 && xx < 30 && yy < 30) cells.set(yy * 30 + xx, { x: xx, y: yy, col: parseInt(fill, 16) });
+  }
+  return [...cells.values()];
+}
+function slotOf(type) {
+  const t = String(type).toLowerCase();
+  if (/shoe|feet|foot|boot/.test(t)) return "shoes";
+  if (/bottom|pant|skirt|leg/.test(t)) return "bottom";
+  if (/top|shirt|torso|jacket|outfit/.test(t)) return "top";
+  if (/hair/.test(t)) return "hair";
+  if (/head|hat/.test(t)) return "head";
+  if (/face|eye|mouth|glass/.test(t)) return "face";
+  if (/access|hand|held|item/.test(t)) return "accessory";
+  return null;
+}
+function parseTrait(uri) {
+  const j = dataJSON(uri), attrs = j.attributes || [];
+  const a = attrs.find((x) => !/^(creator|release|season|artist|epoch)$/i.test(String(x.trait_type || "")));
+  if (!a) return null;
+  const rel = attrs.find((x) => /release|season/i.test(String(x.trait_type || "")));
+  const cre = attrs.find((x) => /creator|artist/i.test(String(x.trait_type || "")));
+  const svg = dataSVG(j.image), g = svg.match(/<g id="Trait">[\s\S]*?<\/g>/);
+  return { slot: slotOf(a.trait_type), name: String(a.value).trim(), release: rel ? String(rel.value) : "", creator: cre ? String(cre.value) : "", cells: rectsOf(g ? g[0] : svg) };
+}
+// compact cache of trait art: "xxyyrrggbb" per pixel
+const packCells = (cs) => cs.map((p) => p.x.toString(16).padStart(2, "0") + p.y.toString(16).padStart(2, "0") + p.col.toString(16).padStart(6, "0")).join("");
+const unpackCells = (s) => { const o = []; for (let i = 0; i + 10 <= s.length; i += 10) o.push({ x: parseInt(s.slice(i, i + 2), 16), y: parseInt(s.slice(i + 2, i + 4), 16), col: parseInt(s.slice(i + 4, i + 10), 16) }); return o; };
+const store = {
+  get(k) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+/* ---------- ENS / Basename lookup (keccak-256 inlined, no libraries) ---------- */
+const keccak256 = (() => {
+  const RC = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649, 0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0, 2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771, 2147483648, 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648, 2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648];
+  function f(s) {
+    let h, l, n, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b30, b31, b32, b33, b34, b35, b36, b37, b38, b39, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49;
+    for (n = 0; n < 48; n += 2) {
+      c0 = s[0] ^ s[10] ^ s[20] ^ s[30] ^ s[40]; c1 = s[1] ^ s[11] ^ s[21] ^ s[31] ^ s[41]; c2 = s[2] ^ s[12] ^ s[22] ^ s[32] ^ s[42]; c3 = s[3] ^ s[13] ^ s[23] ^ s[33] ^ s[43];
+      c4 = s[4] ^ s[14] ^ s[24] ^ s[34] ^ s[44]; c5 = s[5] ^ s[15] ^ s[25] ^ s[35] ^ s[45]; c6 = s[6] ^ s[16] ^ s[26] ^ s[36] ^ s[46]; c7 = s[7] ^ s[17] ^ s[27] ^ s[37] ^ s[47];
+      c8 = s[8] ^ s[18] ^ s[28] ^ s[38] ^ s[48]; c9 = s[9] ^ s[19] ^ s[29] ^ s[39] ^ s[49];
+      h = c8 ^ ((c2 << 1) | (c3 >>> 31)); l = c9 ^ ((c3 << 1) | (c2 >>> 31)); s[0] ^= h; s[1] ^= l; s[10] ^= h; s[11] ^= l; s[20] ^= h; s[21] ^= l; s[30] ^= h; s[31] ^= l; s[40] ^= h; s[41] ^= l;
+      h = c0 ^ ((c4 << 1) | (c5 >>> 31)); l = c1 ^ ((c5 << 1) | (c4 >>> 31)); s[2] ^= h; s[3] ^= l; s[12] ^= h; s[13] ^= l; s[22] ^= h; s[23] ^= l; s[32] ^= h; s[33] ^= l; s[42] ^= h; s[43] ^= l;
+      h = c2 ^ ((c6 << 1) | (c7 >>> 31)); l = c3 ^ ((c7 << 1) | (c6 >>> 31)); s[4] ^= h; s[5] ^= l; s[14] ^= h; s[15] ^= l; s[24] ^= h; s[25] ^= l; s[34] ^= h; s[35] ^= l; s[44] ^= h; s[45] ^= l;
+      h = c4 ^ ((c8 << 1) | (c9 >>> 31)); l = c5 ^ ((c9 << 1) | (c8 >>> 31)); s[6] ^= h; s[7] ^= l; s[16] ^= h; s[17] ^= l; s[26] ^= h; s[27] ^= l; s[36] ^= h; s[37] ^= l; s[46] ^= h; s[47] ^= l;
+      h = c6 ^ ((c0 << 1) | (c1 >>> 31)); l = c7 ^ ((c1 << 1) | (c0 >>> 31)); s[8] ^= h; s[9] ^= l; s[18] ^= h; s[19] ^= l; s[28] ^= h; s[29] ^= l; s[38] ^= h; s[39] ^= l; s[48] ^= h; s[49] ^= l;
+      b0 = s[0]; b1 = s[1]; b32 = (s[11] << 4) | (s[10] >>> 28); b33 = (s[10] << 4) | (s[11] >>> 28); b14 = (s[20] << 3) | (s[21] >>> 29); b15 = (s[21] << 3) | (s[20] >>> 29);
+      b46 = (s[31] << 9) | (s[30] >>> 23); b47 = (s[30] << 9) | (s[31] >>> 23); b28 = (s[40] << 18) | (s[41] >>> 14); b29 = (s[41] << 18) | (s[40] >>> 14);
+      b20 = (s[2] << 1) | (s[3] >>> 31); b21 = (s[3] << 1) | (s[2] >>> 31); b2 = (s[13] << 12) | (s[12] >>> 20); b3 = (s[12] << 12) | (s[13] >>> 20);
+      b34 = (s[22] << 10) | (s[23] >>> 22); b35 = (s[23] << 10) | (s[22] >>> 22); b16 = (s[33] << 13) | (s[32] >>> 19); b17 = (s[32] << 13) | (s[33] >>> 19);
+      b48 = (s[42] << 2) | (s[43] >>> 30); b49 = (s[43] << 2) | (s[42] >>> 30); b40 = (s[5] << 30) | (s[4] >>> 2); b41 = (s[4] << 30) | (s[5] >>> 2);
+      b22 = (s[14] << 6) | (s[15] >>> 26); b23 = (s[15] << 6) | (s[14] >>> 26); b4 = (s[25] << 11) | (s[24] >>> 21); b5 = (s[24] << 11) | (s[25] >>> 21);
+      b36 = (s[34] << 15) | (s[35] >>> 17); b37 = (s[35] << 15) | (s[34] >>> 17); b18 = (s[45] << 29) | (s[44] >>> 3); b19 = (s[44] << 29) | (s[45] >>> 3);
+      b10 = (s[6] << 28) | (s[7] >>> 4); b11 = (s[7] << 28) | (s[6] >>> 4); b42 = (s[17] << 23) | (s[16] >>> 9); b43 = (s[16] << 23) | (s[17] >>> 9);
+      b24 = (s[26] << 25) | (s[27] >>> 7); b25 = (s[27] << 25) | (s[26] >>> 7); b6 = (s[36] << 21) | (s[37] >>> 11); b7 = (s[37] << 21) | (s[36] >>> 11);
+      b38 = (s[47] << 24) | (s[46] >>> 8); b39 = (s[46] << 24) | (s[47] >>> 8); b30 = (s[8] << 27) | (s[9] >>> 5); b31 = (s[9] << 27) | (s[8] >>> 5);
+      b12 = (s[18] << 20) | (s[19] >>> 12); b13 = (s[19] << 20) | (s[18] >>> 12); b44 = (s[29] << 7) | (s[28] >>> 25); b45 = (s[28] << 7) | (s[29] >>> 25);
+      b26 = (s[38] << 8) | (s[39] >>> 24); b27 = (s[39] << 8) | (s[38] >>> 24); b8 = (s[48] << 14) | (s[49] >>> 18); b9 = (s[49] << 14) | (s[48] >>> 18);
+      s[0] = b0 ^ (~b2 & b4); s[1] = b1 ^ (~b3 & b5); s[10] = b10 ^ (~b12 & b14); s[11] = b11 ^ (~b13 & b15); s[20] = b20 ^ (~b22 & b24); s[21] = b21 ^ (~b23 & b25);
+      s[30] = b30 ^ (~b32 & b34); s[31] = b31 ^ (~b33 & b35); s[40] = b40 ^ (~b42 & b44); s[41] = b41 ^ (~b43 & b45); s[2] = b2 ^ (~b4 & b6); s[3] = b3 ^ (~b5 & b7);
+      s[12] = b12 ^ (~b14 & b16); s[13] = b13 ^ (~b15 & b17); s[22] = b22 ^ (~b24 & b26); s[23] = b23 ^ (~b25 & b27); s[32] = b32 ^ (~b34 & b36); s[33] = b33 ^ (~b35 & b37);
+      s[42] = b42 ^ (~b44 & b46); s[43] = b43 ^ (~b45 & b47); s[4] = b4 ^ (~b6 & b8); s[5] = b5 ^ (~b7 & b9); s[14] = b14 ^ (~b16 & b18); s[15] = b15 ^ (~b17 & b19);
+      s[24] = b24 ^ (~b26 & b28); s[25] = b25 ^ (~b27 & b29); s[34] = b34 ^ (~b36 & b38); s[35] = b35 ^ (~b37 & b39); s[44] = b44 ^ (~b46 & b48); s[45] = b45 ^ (~b47 & b49);
+      s[6] = b6 ^ (~b8 & b0); s[7] = b7 ^ (~b9 & b1); s[16] = b16 ^ (~b18 & b10); s[17] = b17 ^ (~b19 & b11); s[26] = b26 ^ (~b28 & b20); s[27] = b27 ^ (~b29 & b21);
+      s[36] = b36 ^ (~b38 & b30); s[37] = b37 ^ (~b39 & b31); s[46] = b46 ^ (~b48 & b40); s[47] = b47 ^ (~b49 & b41); s[8] = b8 ^ (~b0 & b2); s[9] = b9 ^ (~b1 & b3);
+      s[18] = b18 ^ (~b10 & b12); s[19] = b19 ^ (~b11 & b13); s[28] = b28 ^ (~b20 & b22); s[29] = b29 ^ (~b21 & b23); s[38] = b38 ^ (~b30 & b32); s[39] = b39 ^ (~b31 & b33);
+      s[48] = b48 ^ (~b40 & b42); s[49] = b49 ^ (~b41 & b43);
+      s[0] ^= RC[n]; s[1] ^= RC[n + 1];
+    }
+  }
+  return (bytes) => { // Uint8Array -> Uint8Array(32)
+    const rate = 136, padded = new Uint8Array(Math.ceil((bytes.length + 1) / rate) * rate);
+    padded.set(bytes); padded[bytes.length] ^= 0x01; padded[padded.length - 1] ^= 0x80;
+    const s = new Int32Array(50), dv = new DataView(padded.buffer);
+    for (let o = 0; o < padded.length; o += rate) { for (let i = 0; i < rate / 4; i++) s[i] ^= dv.getInt32(o + i * 4, true); f(s); }
+    const out = new Uint8Array(32), od = new DataView(out.buffer); for (let i = 0; i < 8; i++) od.setInt32(i * 4, s[i], true); return out;
+  };
+})();
+const toHex = (b) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+function namehash(name) {
+  let node = new Uint8Array(32);
+  if (name) for (const label of name.split(".").reverse()) { const both = new Uint8Array(64); both.set(node); both.set(keccak256(new TextEncoder().encode(label)), 32); node = keccak256(both); }
+  return toHex(node);
+}
+
+const ETH_RPCS = ["https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"];
+const ENS_REG = { eth: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e", base: "0xb94704422c2a1e396835a571837aa5ae53285a95" };
+async function callOn(rpcs, to, data) {
+  for (const url of rpcs) {
+    try { const j = await rpc(url, { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to, data }, "latest"] }, 9000); if (j && typeof j.result === "string") return j.result; if (j && j.error) return "0x"; } catch {}
+  }
+  throw Object.assign(new Error("offline"), { offline: true });
+}
+const word2addr = (hex) => (hex && hex.length >= 66 ? "0x" + hex.slice(26, 66) : "0x" + "0".repeat(40));
+const ZERO = "0x" + "0".repeat(40);
+async function resolveName(raw) {
+  const name = raw.trim().toLowerCase().normalize("NFC"), node = namehash(name);
+  const [rpcs, reg] = name.endsWith(".base.eth") ? [RPCS, ENS_REG.base] : [ETH_RPCS, ENS_REG.eth];
+  const resolver = word2addr(await callOn(rpcs, reg, "0x0178b8bf" + node)); if (resolver === ZERO) return null;
+  const a = word2addr(await callOn(rpcs, resolver, "0x3b3b57de" + node));
+  return a === ZERO ? null : a;
+}
+
+/* =====================================================================
+   2. State
+   ===================================================================== */
+const S = {
+  demo: false,
+  chonks: [],            // [{id, equipped:{slot:traitTokenId}, body, bg, traitIds:[]}]
+  traits: new Map(),     // key "slot|name" -> {key, slot, name, release, cells, dom, tokens:[{tid, chonk}]}
+  tokenToKey: new Map(), // trait token id -> key
+  bodies: [],            // index -> cells
+  filter: "all",         // "all" or a chonk id
+  outfit: Object.fromEntries(SLOTS.map((s) => [s, null])),
+  locks: new Set(),
+  skin: 0,
+  theme: 0,
+  season: "none",
+  census: null,          // {n, perSlot:{slot:total}, counts:{key:n}}
+  censusBusy: null,
+  notes: [],
+  bg: "#0D6E9D",
+};
+
+/* =====================================================================
+   3. Colour + season themes
+   ===================================================================== */
+const THEMES = [
+  { name: "Chonk blue", bg: "#0D6E9D", accent: "#C2643B", sw: ["#0D6E9D", "#FDCB58", "#F4900C", "#E6E7E8"] },
+  { name: "Sunset", bg: "#E8735A", accent: "#D9485F", sw: ["#FF8C61", "#FFC15E", "#D9485F", "#6A2C70"] },
+  { name: "Mint", bg: "#7FC8A9", accent: "#2E8C6A", sw: ["#B8F2E6", "#7FC8A9", "#2E8C6A", "#FAF3DD"] },
+  { name: "Midnight", bg: "#1E2346", accent: "#7B6CF6", sw: ["#1E2346", "#3B3F7A", "#7B6CF6", "#C3B8FF"] },
+  { name: "Candy", bg: "#F6A6C8", accent: "#D6418C", sw: ["#F6A6C8", "#FFD6E8", "#B79CED", "#7ED7F7"] },
+  { name: "Earthy", bg: "#7A8450", accent: "#9C6B3C", sw: ["#7A8450", "#C7A16B", "#9C6B3C", "#4E3B2A"] },
+  { name: "Mono", bg: "#3A3D40", accent: "#6B7177", sw: ["#111111", "#5A5E63", "#B9BDC2", "#FFFFFF"] },
+];
+const SEASONS = {
+  none: { name: "None" },
+  // [pattern, points, slots it applies to (null = any)]
+  summer: {
+    name: "Summer", tag: "shorts, skirts and swimwear in bright, sunny colours",
+    boost: [
+      [/short|bikini|skirt|swim|trunk|board|sarong|bermuda/i, 6, ["bottom", "top"]],
+      [/tank|crop|bikini|tee\b|t-?shirt|hawaii|tropical|sundress|bandeau|halter|sleeveless|polo/i, 4, ["top"]],
+      [/flip|sandal|slide|croc|barefoot|espadrille/i, 4.5, ["shoes"]],
+      [/sunglass|shades|visor|straw|bucket|sun ?hat|cap\b|bandana|flower/i, 3, ["head", "face", "hair"]],
+      [/ice ?cream|popsicle|surf|beach|palm|lei|float|coconut|juice|lemonade|watermelon|sun\b|summer|tropical/i, 3.5, null],
+    ],
+    avoid: [
+      [/jean|pant|trouser|cord|jogger|cargo|legging/i, -2.5, ["bottom"]],
+      [/puffer|parka|coat|jacket|hood|sweater|jumper|cardigan|fleece|turtleneck|knit|flannel/i, -4.5, ["top"]],
+      [/boot|ugg/i, -3.5, ["shoes"]],
+      [/beanie|earmuff|scarf|mitten|glove|santa|winter|snow|ski\b|fur|wool|cocoa/i, -5, null],
+    ],
+    tone: (h, s, l) => (s > 55 && l > 42 && l < 82 ? 1.3 : 0) + (l > 75 && s > 30 ? .9 : 0) + ((h >= 40 && h <= 65) || (h >= 165 && h <= 200) || (h >= 300 && h <= 350) ? .6 : 0) - (l < 25 ? 1 : 0),
+  },
+  winter: {
+    name: "Winter", tag: "coats, knits, long trousers and boots in icy and festive colours",
+    boost: [
+      [/puffer|parka|coat|jacket|hood|sweater|jumper|fleece|knit|turtleneck|cardigan|onesie/i, 5.5, ["top"]],
+      [/jean|pant|trouser|cord|jogger|cargo|legging|ski/i, 3, ["bottom"]],
+      [/boot|ugg|slipper/i, 4.5, ["shoes"]],
+      [/beanie|earmuff|ushanka|santa|elf|reindeer|bobble|hood|fur|ski/i, 4.5, ["head", "hair"]],
+      [/scarf|mitten|glove|cocoa|snow|candy ?cane|present|gift|xmas|christmas|winter|ice|frost|penguin|hot choc/i, 4, null],
+    ],
+    avoid: [
+      [/short|bikini|skirt|swim|trunk|sarong/i, -6, ["bottom", "top"]],
+      [/tank|crop|hawaii|sleeveless|halter|bandeau/i, -4.5, ["top"]],
+      [/flip|sandal|slide|barefoot/i, -6, ["shoes"]],
+      [/sunglass|shades|visor|straw|sun ?hat/i, -3, ["head", "face"]],
+      [/ice ?cream|popsicle|beach|surf|palm|lei|coconut|tropical/i, -4, null],
+    ],
+    tone: (h, s, l) => (h >= 180 && h <= 260 ? 1.1 : 0) + (l > 80 || (s < 15 && l > 30) ? .8 : 0) + ((h <= 10 || h >= 345 || (h >= 100 && h <= 150)) && s > 45 && l < 50 ? .6 : 0) - (h >= 30 && h <= 70 && s > 60 ? .7 : 0),
+  },
+  autumn: {
+    name: "Autumn", tag: "layers, denim, cords and boots in rust, mustard and brown",
+    boost: [
+      [/flannel|plaid|cardigan|sweater|jumper|hood|leather|denim|trench|vest|knit|corduroy|tweed|blazer/i, 4.5, ["top"]],
+      [/jean|cord|pant|trouser|cargo|denim|plaid|kilt/i, 3.5, ["bottom"]],
+      [/boot|loafer|brogue|clog/i, 4, ["shoes"]],
+      [/beanie|beret|witch|pumpkin|flat cap|newsboy|bucket/i, 3, ["head"]],
+      [/pumpkin|halloween|ghost|witch|bat\b|skull|leaf|maple|acorn|coffee|latte|book|umbrella|candle|scarf|autumn|fall\b/i, 3.5, null],
+    ],
+    avoid: [
+      [/bikini|swim|trunk|board|sarong/i, -5, ["bottom", "top"]],
+      [/short/i, -2.5, ["bottom"]],
+      [/flip|sandal|slide/i, -4, ["shoes"]],
+      [/santa|ski\b|snow|reindeer|candy ?cane|ice ?cream|popsicle|hawaii|tropical/i, -3.5, null],
+    ],
+    tone: (h, s, l) => (h >= 10 && h <= 50 ? 1.5 : 0) + (h >= 50 && h <= 95 && s < 65 ? .8 : 0) + (l < 55 ? .4 : 0) - (s > 85 && l > 55 ? .8 : 0) - (h >= 180 && h <= 300 && s > 60 ? .4 : 0),
+  },
+};
+// How well a trait suits the season: name first, colour second.
+function seasonScore(t) {
+  const se = SEASONS[S.season]; if (!se || !se.boost) return { score: 0, why: [] };
+  let score = 0; const why = [];
+  for (const [re, pts, slots] of se.boost) if ((!slots || slots.includes(t.slot)) && re.test(t.name)) { score += pts; why.push(`${se.name.toLowerCase()} piece`); break; }
+  for (const [re, pts, slots] of se.avoid) if ((!slots || slots.includes(t.slot)) && re.test(t.name)) { score += pts; break; }
+  const [h, s, l] = hsl(t.dom), tone = se.tone(h, s, l);
+  score += tone * 1.4; if (tone >= 1.2) why.push(`${se.name.toLowerCase()} colours`);
+  return { score, why };
+}
+function rgb(c) { return [c >> 16 & 255, c >> 8 & 255, c & 255]; }
+function hsl(c) {
+  let [r, g, b] = rgb(c).map((v) => v / 255);
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2; let h = 0, s = 0;
+  if (mx !== mn) { const d = mx - mn; s = l > .5 ? d / (2 - mx - mn) : d / (mx + mn); h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h *= 60; }
+  return [h, s * 100, l * 100];
+}
+const hexToInt = (h) => parseInt(h.replace("#", ""), 16);
+// The colour a trait reads as: its most common colour, ignoring outline-dark pixels when it can.
+function dominant(cells) {
+  const n = new Map();
+  for (const p of cells) { const [, , l] = hsl(p.col); n.set(p.col, (n.get(p.col) || 0) + (l < 12 ? .3 : 1)); }
+  let best = 0, bc = 0x888888; for (const [c, v] of n) if (v > best) { best = v; bc = c; }
+  return bc;
+}
+const hueDist = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+function colourMatch(c, swatches) {
+  const [h, s, l] = hsl(c); let best = 0;
+  for (const sw of swatches) {
+    const [h2, s2, l2] = hsl(hexToInt(sw));
+    const grey = s < 15 || s2 < 15;
+    const sc = grey ? (s < 15 && s2 < 15 ? 1 - Math.abs(l - l2) / 100 : .2) : (1 - hueDist(h, h2) / 180) * .75 + (1 - Math.abs(l - l2) / 100) * .25;
+    best = Math.max(best, sc);
+  }
+  return best;
+}
+
+/* =====================================================================
+   4. Loading a closet
+   ===================================================================== */
+function status(msg, err) { $("status").textContent = msg; $("status").classList.toggle("err", !!err); }
+function progress(f) { $("bar").hidden = f == null; $("barFill").style.width = `${Math.round((f || 0) * 100)}%`; }
+
+async function chonkIdsFor(raw) {
+  const q = raw.trim();
+  if (/^0x[0-9a-fA-F]{40}$/.test(q)) return { ids: decodeUintArray(await call(CONTRACT, SEL.wallet + pad64(BigInt(q)))), who: q.slice(0, 6) + "…" + q.slice(-4) };
+  if (/^[\d\s,#]+$/.test(q)) return { ids: [...new Set(q.split(/[\s,#]+/).filter(Boolean).map(Number))].filter((n) => n > 0), who: null };
+  if (/\./.test(q)) {
+    status(`Looking up ${q}…`);
+    const a = await resolveName(q);
+    if (!a) throw new Error(`${q} doesn't point to a wallet`);
+    return { ids: decodeUintArray(await call(CONTRACT, SEL.wallet + pad64(BigInt(a)))), who: q };
+  }
+  throw new Error("Enter a wallet address, an ENS name or Basename, or Chonk IDs");
+}
+
+async function openCloset(raw) {
+  $("loadBtn").disabled = true; progress(0);
+  try {
+    const { ids, who } = await chonkIdsFor(raw);
+    if (!ids.length) throw new Error(who ? `${who} doesn't hold any Chonks` : "No Chonk IDs found");
+    const list = ids.slice(0, 400);
+    status(`Opening ${list.length} backpack${list.length > 1 ? "s" : ""}…`);
+    // 1) equipped traits, body and background + every trait token in each backpack
+    const calls = [];
+    for (const id of list) { calls.push({ to: CONTRACT, data: SEL.tokens + pad64(id) }, { to: CONTRACT, data: SEL.backpack + pad64(id) }); }
+    const res = await multi(calls, 60, (d, t) => progress(.25 * d / t));
+    const chonks = [];
+    list.forEach((id, i) => {
+      const a = res[i * 2], b = res[i * 2 + 1];
+      if (!a) return;
+      const c = decodeChonk(a); c.id = id;
+      let held = []; try { held = b ? decodeUintArray(b) : []; } catch {}
+      c.traitIds = [...new Set([...held, ...Object.values(c.equipped).filter(Boolean)])];
+      chonks.push(c);
+    });
+    if (!chonks.length) throw new Error("Those Chonks couldn't be read");
+    // 2) every trait's name, slot and pixels (cached between visits)
+    const cache = store.get("closet-traits-v1") || {};
+    const all = [...new Set(chonks.flatMap((c) => c.traitIds))];
+    const need = all.filter((t) => !cache[t]);
+    status(`Reading ${all.length} traits${need.length < all.length ? ` (${all.length - need.length} remembered)` : ""}…`);
+    const uris = await multi(need.map((t) => ({ to: TRAITS, data: SEL.uri + pad64(t) })), 25, (d, t) => progress(.25 + .65 * d / t));
+    need.forEach((t, i) => {
+      try { const p = uris[i] && parseTrait(decodeString(uris[i])); if (p && p.slot) cache[t] = { s: p.slot, n: p.name, r: p.release, c: packCells(p.cells) }; } catch {}
+    });
+    store.set("closet-traits-v1", cache);
+    // 3) the five bodies (skins)
+    if (!S.realBodies) {
+      const bres = await multi([0, 1, 2, 3, 4].map((i) => ({ to: CONTRACT, data: SEL.body + pad64(i) })), 5);
+      S.bodies = bres.map((r) => { try { return r ? rectsOf(decodeString(r)) : null; } catch { return null; } });
+      if (!S.bodies.some((b) => b && b.length)) S.bodies = DEMO.bodies();
+      S.bodies = S.bodies.map((b, i) => (b && b.length ? b : S.bodies.find((x) => x && x.length))); S.realBodies = S.bodies !== null;
+    }
+    progress(1);
+    S.demo = false;
+    build(chonks, (tid) => cache[tid] && { slot: cache[tid].s, name: cache[tid].n, release: cache[tid].r, cells: unpackCells(cache[tid].c) });
+    const n = S.traits.size, pieces = chonks.reduce((a, c) => a + c.traitIds.length, 0);
+    status(`${chonks.length} backpack${chonks.length > 1 ? "s" : ""}, ${pieces} traits, ${n} different pieces${who ? ` · ${who}` : ""}`);
+    try { history.replaceState(null, "", "#" + encodeURIComponent(raw.trim())); } catch {}
+    startCensus();
+  } catch (e) {
+    if (e.offline) { status(""); loadDemo(); }
+    else status(e.message || "Something went wrong", true);
+  } finally { $("loadBtn").disabled = false; setTimeout(() => progress(null), 600); }
+}
+
+function build(chonks, traitOf) {
+  S.chonks = chonks; S.traits = new Map(); S.tokenToKey = new Map();
+  for (const c of chonks) for (const tid of c.traitIds) {
+    const t = traitOf(tid); if (!t || !t.slot) continue;
+    const key = t.slot + "|" + t.name;
+    let e = S.traits.get(key);
+    if (!e) { e = { key, slot: t.slot, name: t.name, release: t.release || "", cells: t.cells, dom: dominant(t.cells), tokens: [] }; S.traits.set(key, e); }
+    e.tokens.push({ tid, chonk: c.id });
+    S.tokenToKey.set(tid, key);
+  }
+  S.filter = "all"; S.locks.clear(); S.notes = [];
+  const first = chonks[0];
+  wearEquipped(first);
+  $("demoBanner").hidden = !S.demo;
+  $("stageTag").textContent = S.demo ? "Demo closet" : "Live from Base";
+  renderChips(); renderSkins(); renderCloset(); renderWear();
+}
+
+/* =====================================================================
+   5. Rarity: Chonks don't store rarity onchain, so sample the trait supply
+   ===================================================================== */
+const CENSUS_N = 480;
+async function startCensus() {
+  if (S.demo) return;
+  const saved = store.get("closet-census-v1");
+  if (saved && Date.now() - saved.at < 7 * 864e5 && saved.n >= 200) { S.census = saved; renderCloset(); updateRareBtn(); return; }
+  if (S.censusBusy) return S.censusBusy;
+  S.censusBusy = (async () => {
+    try {
+      $("rareSub").textContent = "Sampling…";
+      let supply = 0;
+      try { supply = Number(BigInt(await call(TRAITS, SEL.supply))); } catch {}
+      if (!supply) supply = Math.max(...[...S.tokenToKey.keys()]) || 0;
+      if (!supply) return;
+      const ids = new Set(); while (ids.size < Math.min(CENSUS_N, supply)) ids.add(1 + Math.floor(Math.random() * supply));
+      const list = [...ids];
+      const res = await multi(list.map((t) => ({ to: TRAITS, data: SEL.uri + pad64(t) })), 24, (d, t) => { $("rareSub").textContent = `Sampling ${Math.round(100 * d / t)}%`; });
+      const counts = {}, perSlot = {}; let n = 0;
+      for (const r of res) { if (!r) continue; try { const p = parseTrait(decodeString(r)); if (!p || !p.slot) continue; const k = p.slot + "|" + p.name; counts[k] = (counts[k] || 0) + 1; perSlot[p.slot] = (perSlot[p.slot] || 0) + 1; n++; } catch {} }
+      if (n < 50) return;
+      S.census = { at: Date.now(), n, supply, counts, perSlot };
+      store.set("closet-census-v1", S.census);
+      renderCloset();
+    } catch {} finally { S.censusBusy = null; updateRareBtn(); }
+  })();
+  return S.censusBusy;
+}
+function updateRareBtn() { $("rareSub").textContent = S.census ? "Best of each" : "Rarity loading"; }
+// share of its slot, from the sample (smaller = rarer). Unseen pieces get half a sighting.
+function share(t) {
+  if (!S.census) return null;
+  const tot = S.census.perSlot[t.slot] || 1;
+  return ((S.census.counts[t.key] || 0) || .5) / tot;
+}
+function tier(t) {
+  const s = share(t); if (s == null) return null;
+  if (!S.census.counts[t.key]) return { i: 4, name: "Unseen" };
+  if (s < .006) return { i: 4, name: "Legendary" };
+  if (s < .015) return { i: 3, name: "Epic" };
+  if (s < .035) return { i: 2, name: "Rare" };
+  if (s < .07) return { i: 1, name: "Uncommon" };
+  return { i: 0, name: "Common" };
+}
+
+/* =====================================================================
+   6. Picking outfits
+   ===================================================================== */
+function pool(slot) {
+  const out = [];
+  for (const t of S.traits.values()) if (t.slot === slot && (S.filter === "all" || t.tokens.some((k) => k.chonk === S.filter))) out.push(t);
+  return out;
+}
+function setOutfit(next, notes) {
+  for (const s of SLOTS) if (!S.locks.has(s)) S.outfit[s] = next[s] ?? null;
+  S.notes = notes || [];
+  renderWear(); markTiles();
+}
+function wearEquipped(c) {
+  if (!c) return;
+  const o = {};
+  for (const s of SLOTS) o[s] = c.equipped[s] ? S.tokenToKey.get(c.equipped[s]) || null : null;
+  S.skin = clamp(c.body || 0, 0, 4);
+  if (c.bg) setBg(c.bg);
+  S.locks.clear();
+  setOutfit(o, []);
+  renderSkins();
+}
+function weightedPick(p) {
+  if (S.season === "none") return rnd(p);
+  const w = p.map((t) => Math.exp(seasonScore(t).score * .55)), tot = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * tot; for (let i = 0; i < p.length; i++) { r -= w[i]; if (r <= 0) return p[i]; }
+  return p[p.length - 1];
+}
+// Shuffle: random, but with a season picked the dice are loaded towards that season's clothes.
+function shuffle() {
+  const o = {};
+  for (const s of SLOTS) {
+    const p = pool(s);
+    if (!p.length) { o[s] = null; continue; }
+    const pick = weightedPick(p);
+    const fits = S.season !== "none" && seasonScore(pick).score > 2;
+    o[s] = fits || Math.random() > (OPTIONAL[s] || 0) * (p.length > 3 ? 1 : .6) ? pick.key : null;
+  }
+  if (!o.top && pool("top").length) o.top = weightedPick(pool("top")).key;
+  setOutfit(o, S.season !== "none" ? [`Shuffled with a ${SEASONS[S.season].name.toLowerCase()} lean.`] : []);
+}
+function palette() { return [...THEMES[S.theme].sw, S.bg]; }
+// Stylist: the season decides the clothes (by name, then colour), the colour theme and background decide the colours,
+// and every piece is checked against what's already on.
+function stylist() {
+  const season = SEASONS[S.season], theme = THEMES[S.theme], pal = palette(), o = {}, notes = [], picked = [];
+  for (const s of ["top", "bottom", "shoes", "hair", "head", "face", "accessory"]) {
+    if (S.locks.has(s)) { if (S.outfit[s]) picked.push(S.traits.get(S.outfit[s])); continue; }
+    const p = pool(s); if (!p.length) { o[s] = null; continue; }
+    const scored = [];
+    for (const t of p) {
+      const [h, sa] = hsl(t.dom), ss = seasonScore(t), why = ss.why.slice();
+      let sc = Math.random() * .5 + ss.score;
+      const cm = colourMatch(t.dom, pal); sc += cm * (S.season === "none" ? 3 : 1.8); if (cm > .85) why.push("matches the colours");
+      for (const q of picked) {
+        const [h2, s2] = hsl(q.dom);
+        if (sa < 15 || s2 < 15) sc += .5;
+        else { const d = hueDist(h, h2); sc += d < 35 ? .9 : d > 150 ? .7 : d > 100 ? -.3 : 0; }
+      }
+      scored.push({ t, sc, why, ss: ss.score });
+    }
+    // anything within a point and a half of the top pick is fair game, so pressing again gives a new look
+    const top = Math.max(...scored.map((x) => x.sc)), close = scored.filter((x) => x.sc >= top - 1.5);
+    const ch = rnd(close), best = ch.t, bestWhy = ch.why, bestSeason = ch.ss;
+    const opt = OPTIONAL[s] || 0;
+    const keep = !opt || bestSeason > 2 || Math.random() > opt * (S.season === "summer" && s === "head" ? 1 : .6);
+    o[s] = keep ? best.key : null;
+    if (keep) { picked.push(best); if (bestWhy.length) notes.push(`${best.name}: ${[...new Set(bestWhy)].join(", ")}`); }
+  }
+  notes.unshift(S.season !== "none" ? `${season.name} look: ${season.tag}, tuned to the ${theme.name} colours.` : `Matched to the ${theme.name} colours.`);
+  setOutfit(o, notes);
+}
+async function rarest() {
+  if (!S.census && !S.demo) {
+    $("rareBtn").disabled = true; status("Sampling the trait supply to estimate rarity. This takes a few seconds the first time…");
+    await startCensus(); $("rareBtn").disabled = false;
+    if (!S.census) { status("Couldn't sample enough traits to rank rarity", true); return; }
+    status("");
+  }
+  const o = {}, notes = [];
+  for (const s of SLOTS) {
+    const p = pool(s); if (!p.length) { o[s] = null; continue; }
+    p.sort((a, b) => share(a) - share(b) || a.tokens.length - b.tokens.length);
+    o[s] = p[0].key;
+    const tr = tier(p[0]); notes.push(`${SLOT_NAMES[s]}: ${p[0].name}${tr ? ` (${tr.name.toLowerCase()}${S.census.counts[p[0].key] ? `, about ${(share(p[0]) * 100).toFixed(1)}% of ${PLURAL[s]}` : ", not seen in the sample"})` : ""}`);
+  }
+  notes.unshift("Your rarest piece in every slot.");
+  setOutfit(o, notes);
+}
+
+/* =====================================================================
+   7. Drawing: the Chonk's own 30×30 grid on a plain background colour,
+      the same way the official 2D render looks
+   ===================================================================== */
+const G = 30, lo = document.createElement("canvas"); lo.width = lo.height = G;
+const lx = lo.getContext("2d");
+const stage = $("stage"), sx = stage.getContext("2d");
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const hexToInt2 = (h) => parseInt(h.replace("#", ""), 16);
+function composeCells() {
+  const m = new Map();
+  const body = S.bodies[S.skin] || S.bodies[0] || [];
+  for (const p of body) m.set(p.y * 30 + p.x, p.col);
+  for (const s of DRAW_ORDER) { const k = S.outfit[s]; if (!k) continue; const t = S.traits.get(k); if (t) for (const p of t.cells) m.set(p.y * 30 + p.x, p.col); }
+  return m;
+}
+function drawLo() {
+  lx.fillStyle = S.bg; lx.fillRect(0, 0, G, G);
+  for (const [k, c] of composeCells()) { lx.fillStyle = "#" + c.toString(16).padStart(6, "0"); lx.fillRect(k % 30, Math.floor(k / 30), 1, 1); }
+}
+function paint() {
+  drawLo();
+  sx.imageSmoothingEnabled = false; sx.drawImage(lo, 0, 0, stage.width, stage.height);
+  const [, , l] = hsl(hexToInt2(S.bg)); $("stageTag").style.background = l > 60 ? "rgba(0,0,0,.45)" : "rgba(255,255,255,.18)";
+}
+
+/* =====================================================================
+   8. UI
+   ===================================================================== */
+function traitCanvas(t, size = 30) {
+  const c = document.createElement("canvas");
+  if (!t) { c.width = c.height = 9; const x = c.getContext("2d"); x.fillStyle = "#888"; for (let i = 1; i < 8; i++) { x.fillRect(i, i, 1, 1); x.fillRect(8 - i, i, 1, 1); } return c; }
+  let x0 = 30, y0 = 30, x1 = 0, y1 = 0; for (const p of t.cells) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+  const w = Math.max(1, x1 - x0 + 1), h = Math.max(1, y1 - y0 + 1), s = Math.max(w, h) + 2;
+  c.width = c.height = s; const x = c.getContext("2d");
+  const ax = Math.floor((s - w) / 2) - x0, ay = Math.floor((s - h) / 2) - y0;
+  for (const p of t.cells) { x.fillStyle = "#" + p.col.toString(16).padStart(6, "0"); x.fillRect(p.x + ax, p.y + ay, 1, 1); }
+  return c;
+}
+function renderChips() {
+  const el = $("chips"); el.innerHTML = "";
+  if (S.chonks.length < 1) return;
+  const mk = (id, label, sub) => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.dataset.id = id; b.innerHTML = `${label}<small>${sub}</small>`; b.setAttribute("aria-pressed", String(S.filter) === String(id) ? "true" : "false"); el.appendChild(b); };
+  if (S.chonks.length > 1) mk("all", "All backpacks", S.traits.size);
+  for (const c of S.chonks) mk(c.id, `#${c.id}${S.demo ? " demo" : ""}`, c.traitIds.length);
+  el.onclick = (e) => {
+    const b = e.target.closest(".chip"); if (!b) return;
+    S.filter = b.dataset.id === "all" ? "all" : Number(b.dataset.id);
+    if (S.filter !== "all") wearEquipped(S.chonks.find((c) => c.id === S.filter));
+    renderChips(); renderCloset(); renderWear();
+  };
+}
+function renderSkins() {
+  const el = $("skins"); el.innerHTML = "";
+  S.bodies.forEach((b, i) => {
+    const btn = document.createElement("button"); btn.type = "button";
+    const counts = new Map(); for (const p of b || []) counts.set(p.col, (counts.get(p.col) || 0) + 1);
+    let col = 0, n = 0; for (const [c, v] of counts) if (v > n) { n = v; col = c; }
+    btn.style.background = "#" + col.toString(16).padStart(6, "0");
+    btn.setAttribute("aria-label", `Skin ${i + 1}`); btn.setAttribute("aria-pressed", i === S.skin ? "true" : "false");
+    btn.onclick = () => { S.skin = i; renderSkins(); paint(); };
+    el.appendChild(btn);
+  });
+}
+function renderThemes() {
+  const el = $("themes"); el.innerHTML = "";
+  THEMES.forEach((t, i) => {
+    const b = document.createElement("button"); b.type = "button"; b.className = "sw";
+    b.innerHTML = `<i>${t.sw.map((c) => `<b style="background:${c}"></b>`).join("")}</i>${t.name}`;
+    b.setAttribute("aria-pressed", i === S.theme ? "true" : "false");
+    b.onclick = () => { S.theme = i; setBg(t.bg); applyTheme(); renderThemes(); };
+    el.appendChild(b);
+  });
+}
+function setBg(hex) {
+  hex = "#" + hex.replace(/^#/, "").toLowerCase();
+  if (/^#[0-9a-f]{3}$/.test(hex)) hex = "#" + hex.slice(1).split("").map((c) => c + c).join("");
+  if (!/^#[0-9a-f]{6}$/.test(hex)) return false;
+  S.bg = hex; $("bgPick").value = hex; $("bgHex").value = hex; $("bgHex").removeAttribute("aria-invalid");
+  renderBgSwatches(); paint(); store.set("closet-look", { theme: S.theme, season: S.season, bg: S.bg });
+  return true;
+}
+function renderBgSwatches() {
+  const el = $("bgSw"); el.innerHTML = "";
+  const opts = [...new Set([...THEMES[S.theme].sw, "#ffffff"].map((c) => c.toLowerCase()))];
+  for (const c of opts) { const b = document.createElement("button"); b.type = "button"; b.style.background = c; b.title = c; b.setAttribute("aria-label", `Background ${c}`); b.setAttribute("aria-pressed", c === S.bg ? "true" : "false"); b.onclick = () => setBg(c); el.appendChild(b); }
+}
+function applyTheme() {
+  const t = THEMES[S.theme], r = document.documentElement.style;
+  r.setProperty("--accent", t.accent);
+  const [a, b, c] = rgb(hexToInt(t.accent)); r.setProperty("--accent-soft", `rgba(${a},${b},${c},.14)`);
+  store.set("closet-look", { theme: S.theme, season: S.season, bg: S.bg });
+}
+function renderSeasons() {
+  const el = $("seasons"); el.innerHTML = "";
+  for (const k of ["none", "winter", "summer", "autumn"]) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = SEASONS[k].name;
+    b.setAttribute("aria-pressed", S.season === k ? "true" : "false");
+    b.onclick = () => { S.season = k; applyTheme(); renderSeasons(); $("styleSub").textContent = k === "none" ? "Dress me" : `For ${SEASONS[k].name.toLowerCase()}`; };
+    el.appendChild(b);
+  }
+}
+function renderCloset() {
+  const q = $("search").value.trim().toLowerCase(), sort = $("sort").value;
+  const slotsEl = $("slots"), jump = $("jump"); slotsEl.innerHTML = ""; jump.innerHTML = "";
+  let shown = 0;
+  for (const s of SLOTS) {
+    let items = pool(s).filter((t) => !q || t.name.toLowerCase().includes(q));
+    const cmp = {
+      name: (a, b) => a.name.localeCompare(b.name),
+      rare: (a, b) => (share(a) ?? 1) - (share(b) ?? 1) || a.name.localeCompare(b.name),
+      count: (a, b) => b.tokens.length - a.tokens.length || a.name.localeCompare(b.name),
+      colour: (a, b) => { const A = hsl(a.dom), B = hsl(b.dom); const ga = A[1] < 15, gb = B[1] < 15; return ga - gb || (ga ? B[2] - A[2] : A[0] - B[0]); },
+    }[sort];
+    items.sort(cmp); shown += items.length;
+    const a = document.createElement("a"); a.href = "#slot-" + s; a.innerHTML = `${SLOT_NAMES[s]}<b>${items.length}</b>`;
+    a.onclick = (e) => { e.preventDefault(); $("slot-" + s).scrollIntoView({ behavior: reduced ? "auto" : "smooth", block: "start" }); };
+    jump.appendChild(a);
+    const sec = document.createElement("section"); sec.className = "slot"; sec.id = "slot-" + s;
+    sec.innerHTML = `<h3>${SLOT_NAMES[s]} <small>${items.length} piece${items.length === 1 ? "" : "s"}</small></h3>`;
+    const grid = document.createElement("div"); grid.className = "grid";
+    const none = document.createElement("button"); none.type = "button"; none.className = "tile none"; none.dataset.slot = s; none.dataset.key = "";
+    none.appendChild(traitCanvas(null)); none.insertAdjacentHTML("beforeend", `<span class="nm">No ${SLOT_NAMES[s].toLowerCase()}</span>`);
+    grid.appendChild(none);
+    for (const t of items) {
+      const b = document.createElement("button"); b.type = "button"; b.className = "tile"; b.dataset.slot = s; b.dataset.key = t.key;
+      const holders = [...new Set(t.tokens.map((k) => "#" + k.chonk))];
+      b.title = `${t.name}${t.release ? ` · ${t.release}` : ""}\nIn ${holders.join(", ")}`;
+      b.appendChild(traitCanvas(t));
+      b.insertAdjacentHTML("beforeend", `<span class="nm">${esc(t.name)}</span>`);
+      if (t.tokens.length > 1) b.insertAdjacentHTML("beforeend", `<span class="ct">×${t.tokens.length}</span>`);
+      const tr = tier(t); if (tr) b.insertAdjacentHTML("beforeend", `<span class="rb r${tr.i}">${tr.name}</span>`);
+      grid.appendChild(b);
+    }
+    if (!items.length) grid.insertAdjacentHTML("beforeend", `<p class="empty">${q ? "Nothing matches." : "None in this backpack."}</p>`);
+    sec.appendChild(grid); slotsEl.appendChild(sec);
+  }
+  $("closetCount").textContent = `${shown} piece${shown === 1 ? "" : "s"}${S.filter !== "all" ? ` in #${S.filter}` : ""}`;
+  $("rarityNote").textContent = S.demo ? "Rarity in the demo closet is made up." : S.census
+    ? `Rarity is an estimate: Chonks don't store it onchain, so it comes from ${S.census.n} randomly sampled trait tokens (of ${S.census.supply.toLocaleString()}), compared within each slot. Refreshed weekly.`
+    : (S.censusBusy ? "Estimating rarity from a sample of the trait supply…" : "");
+  markTiles();
+}
+function markTiles() {
+  for (const b of document.querySelectorAll(".tile")) b.setAttribute("aria-pressed", (S.outfit[b.dataset.slot] || "") === b.dataset.key ? "true" : "false");
+}
+$("slots").onclick = (e) => {
+  const b = e.target.closest(".tile"); if (!b) return;
+  const s = b.dataset.slot, k = b.dataset.key || null;
+  S.outfit[s] = S.outfit[s] === k && k ? null : k; S.notes = [];
+  renderWear(); markTiles();
+};
+function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
+function renderWear() {
+  const el = $("wear"); el.innerHTML = "";
+  const sources = new Set();
+  for (const s of SLOTS) {
+    const t = S.outfit[s] && S.traits.get(S.outfit[s]);
+    const li = document.createElement("li");
+    let where = "";
+    if (t) {
+      const holders = [...new Set(t.tokens.map((k) => k.chonk))];
+      const home = S.filter !== "all" && holders.includes(S.filter) ? S.filter : holders[0];
+      sources.add(home);
+      where = holders.length > 1 ? `#${home} +${holders.length - 1}` : `#${home}`;
+    }
+    li.innerHTML = `<span class="k">${SLOT_NAMES[s]}</span><span class="v${t ? "" : " none"}">${t ? esc(t.name) + `<span>${where}</span>` : "None"}</span>`;
+    const lock = document.createElement("button"); lock.type = "button"; lock.className = "ic"; lock.textContent = S.locks.has(s) ? "🔒" : "🔓";
+    lock.title = "Keep this slot when shuffling or styling"; lock.setAttribute("aria-label", `Lock ${SLOT_NAMES[s]}`); lock.setAttribute("aria-pressed", S.locks.has(s) ? "true" : "false");
+    lock.onclick = () => { S.locks.has(s) ? S.locks.delete(s) : S.locks.add(s); renderWear(); };
+    const x = document.createElement("button"); x.type = "button"; x.className = "ic"; x.textContent = "✕"; x.setAttribute("aria-label", `Take off ${SLOT_NAMES[s]}`); x.disabled = !t;
+    x.onclick = () => { S.outfit[s] = null; renderWear(); markTiles(); };
+    li.append(lock, x); el.appendChild(li);
+  }
+  const n = sources.size;
+  $("wearSrc").textContent = n ? `from ${n} backpack${n > 1 ? "s" : ""}` : "";
+  $("wearNote").innerHTML = !n ? "Pick traits from the closet, or let the buttons above dress your Chonk." : n === 1
+    ? `Everything here lives in #${[...sources][0]}'s backpack, so it can wear this for real on <a href="https://www.chonks.xyz/" target="_blank" rel="noopener">chonks.xyz</a>.`
+    : `This fit pulls from ${n} backpacks. To wear it for real, move the pieces into one Chonk on <a href="https://www.chonks.xyz/" target="_blank" rel="noopener">chonks.xyz</a>. Pick a single backpack above to style from just that one.`;
+  const nl = $("styleNotes"); nl.hidden = !S.notes.length; nl.innerHTML = S.notes.map((t) => `<li>${esc(t)}</li>`).join("");
+  paint();
+}
+function outfitText() {
+  const lines = SLOTS.map((s) => { const t = S.outfit[s] && S.traits.get(S.outfit[s]); return t ? `${SLOT_NAMES[s]}: ${t.name} (in ${[...new Set(t.tokens.map((k) => "#" + k.chonk))].join(", ")})` : null; }).filter(Boolean);
+  return `My Chonk fit${S.season !== "none" ? ` for ${SEASONS[S.season].name.toLowerCase()}` : ""}:\n${lines.join("\n")}\nmade with chonkit.xyz/closet`;
+}
+
+/* =====================================================================
+   9. Demo closet (used only when Base can't be reached)
+   ===================================================================== */
+const DEMO = (() => {
+  const R = (list) => { const m = new Map(); for (const [x, y, w, h, c] of list) for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) m.set(yy * 30 + xx, { x: xx, y: yy, col: parseInt(c, 16) }); return [...m.values()]; };
+  const SK = [["F6D3B8", "E3B596"], ["E9B48C", "D19A70"], ["C68B5E", "AC7448"], ["8D5A3B", "74482D"], ["5B3A29", "48291C"]];
+  const body = ([s, d]) => R([[10, 10, 10, 1, s], [9, 11, 12, 1, s], [8, 12, 14, 13, s], [21, 12, 1, 13, d], [9, 25, 12, 1, d], [6, 17, 2, 5, s], [22, 17, 2, 5, d], [10, 26, 4, 2, s], [16, 26, 4, 2, d],
+    [10, 14, 3, 3, "FFFFFF"], [11, 15, 2, 2, "1E1E1E"], [16, 14, 3, 3, "FFFFFF"], [17, 15, 2, 2, "1E1E1E"], [13, 19, 3, 1, d], [9, 18, 1, 1, "F28B8B"], [20, 18, 1, 1, "F28B8B"]]);
+  const T = {
+    "head|Red Beanie": R([[8, 7, 14, 4, "D64545"], [8, 11, 14, 2, "B83232"], [9, 11, 1, 2, "D64545"], [12, 11, 1, 2, "D64545"], [15, 11, 1, 2, "D64545"], [18, 11, 1, 2, "D64545"], [13, 6, 4, 2, "F4F4F4"]]),
+    "head|Sun Visor": R([[8, 11, 14, 1, "FFFFFF"], [14, 12, 10, 1, "FFC83D"], [15, 13, 8, 1, "E6A92A"]]),
+    "head|Witch Hat": R([[5, 11, 20, 1, "2B2140"], [8, 10, 14, 1, "2B2140"], [10, 9, 10, 1, "E07A2E"], [11, 7, 8, 2, "2B2140"], [12, 5, 6, 2, "2B2140"], [14, 3, 3, 2, "2B2140"], [16, 2, 2, 1, "2B2140"]]),
+    "hair|Messy Brown": R([[8, 8, 14, 4, "6B4423"], [9, 7, 1, 1, "6B4423"], [12, 7, 2, 1, "6B4423"], [16, 7, 2, 1, "6B4423"], [19, 7, 1, 1, "6B4423"], [8, 12, 2, 2, "6B4423"], [20, 12, 2, 2, "6B4423"], [11, 9, 3, 1, "8A5A33"]]),
+    "hair|Golden Bob": R([[8, 8, 14, 4, "F2C94C"], [7, 10, 2, 8, "F2C94C"], [21, 10, 2, 8, "E0B53A"], [10, 12, 4, 1, "F2C94C"], [16, 12, 4, 1, "F2C94C"], [12, 9, 6, 1, "FFE38A"]]),
+    "face|Black Shades": R([[9, 14, 11, 1, "111111"], [10, 15, 4, 2, "111111"], [16, 15, 4, 2, "111111"], [10, 15, 1, 1, "5A5A5A"], [16, 15, 1, 1, "5A5A5A"]]),
+    "face|Round Specs": R([[9, 14, 5, 1, "5A3E2B"], [15, 14, 5, 1, "5A3E2B"], [9, 15, 1, 2, "5A3E2B"], [13, 15, 1, 2, "5A3E2B"], [15, 15, 1, 2, "5A3E2B"], [19, 15, 1, 2, "5A3E2B"], [9, 17, 5, 1, "5A3E2B"], [15, 17, 5, 1, "5A3E2B"], [14, 15, 1, 1, "5A3E2B"]]),
+    "top|Puffer Jacket": R([[8, 17, 14, 7, "3E7CB1"], [8, 19, 14, 1, "2F6491"], [8, 22, 14, 1, "2F6491"], [6, 17, 2, 5, "3E7CB1"], [22, 17, 2, 5, "2F6491"], [11, 17, 8, 1, "F4F4F4"], [15, 18, 1, 6, "234E73"]]),
+    "top|Hawaiian Shirt": R([[8, 18, 14, 6, "F28C28"], [6, 17, 2, 2, "F28C28"], [22, 17, 2, 2, "D9761A"], [10, 19, 1, 1, "FFE36E"], [13, 21, 1, 1, "3BB273"], [17, 19, 1, 1, "FFE36E"], [19, 22, 1, 1, "3BB273"], [11, 23, 1, 1, "FFE36E"], [15, 18, 1, 6, "FFFFFF"]]),
+    "top|Flannel Shirt": R([[8, 17, 14, 7, "A33B2B"], [6, 17, 2, 5, "A33B2B"], [22, 17, 2, 5, "8A2F22"], [10, 17, 1, 7, "5E1F17"], [14, 17, 1, 7, "5E1F17"], [18, 17, 1, 7, "5E1F17"], [8, 19, 14, 1, "5E1F17"], [8, 22, 14, 1, "5E1F17"]]),
+    "top|Cozy Hoodie": R([[8, 17, 14, 7, "8E7CC3"], [6, 17, 2, 5, "8E7CC3"], [22, 17, 2, 5, "7A69AE"], [11, 21, 8, 2, "7A69AE"], [13, 17, 1, 3, "FFFFFF"], [16, 17, 1, 3, "FFFFFF"]]),
+    "top|White Tee": R([[8, 18, 14, 6, "F4F4F4"], [6, 17, 2, 2, "F4F4F4"], [22, 17, 2, 2, "DADADA"], [21, 18, 1, 6, "DADADA"], [13, 18, 4, 1, "DADADA"]]),
+    "bottom|Blue Jeans": R([[8, 23, 14, 3, "3A5BA0"], [10, 26, 4, 1, "3A5BA0"], [16, 26, 4, 1, "2F4A85"], [15, 24, 1, 2, "2F4A85"], [8, 23, 14, 1, "2A3F70"]]),
+    "bottom|Board Shorts": R([[8, 23, 14, 3, "2EC4B6"], [9, 24, 2, 1, "FFFFFF"], [14, 25, 2, 1, "FFFFFF"], [18, 24, 2, 1, "FFFFFF"], [8, 23, 14, 1, "1F9E93"]]),
+    "bottom|Pleated Skirt": R([[8, 23, 14, 2, "FFB3C7"], [7, 25, 16, 1, "FF8FB0"], [9, 23, 1, 3, "FF8FB0"], [13, 23, 1, 3, "FF8FB0"], [17, 23, 1, 3, "FF8FB0"], [20, 23, 1, 3, "FF8FB0"]]),
+    "top|Striped Tank Top": R([[9, 18, 12, 6, "FFFFFF"], [9, 19, 12, 1, "2EC4B6"], [9, 21, 12, 1, "2EC4B6"], [9, 23, 12, 1, "2EC4B6"], [10, 17, 2, 1, "FFFFFF"], [18, 17, 2, 1, "FFFFFF"]]),
+    "bottom|Corduroy Pants": R([[8, 23, 14, 3, "8B5E34"], [10, 26, 4, 1, "8B5E34"], [16, 26, 4, 1, "74502B"], [9, 23, 1, 3, "74502B"], [12, 23, 1, 3, "74502B"], [17, 23, 1, 3, "74502B"], [20, 23, 1, 3, "74502B"]]),
+    "shoes|Snow Boots": R([[9, 26, 5, 3, "6B4A2F"], [16, 26, 5, 3, "6B4A2F"], [9, 26, 5, 1, "EFE6D8"], [16, 26, 5, 1, "EFE6D8"], [9, 28, 5, 1, "3D2A1B"], [16, 28, 5, 1, "3D2A1B"]]),
+    "shoes|Flip Flops": R([[9, 28, 5, 1, "FF6FA8"], [16, 28, 5, 1, "FF6FA8"], [11, 27, 1, 1, "FFFFFF"], [18, 27, 1, 1, "FFFFFF"]]),
+    "shoes|Red Sneakers": R([[9, 27, 5, 2, "FFFFFF"], [16, 27, 5, 2, "FFFFFF"], [10, 27, 3, 1, "E63946"], [17, 27, 3, 1, "E63946"], [9, 28, 5, 1, "CFCFCF"], [16, 28, 5, 1, "CFCFCF"]]),
+    "accessory|Wool Scarf": R([[8, 17, 14, 2, "C0392B"], [9, 17, 1, 2, "E74C3C"], [13, 17, 1, 2, "E74C3C"], [17, 17, 1, 2, "E74C3C"], [17, 19, 3, 4, "C0392B"], [17, 23, 3, 1, "F4F4F4"]]),
+    "accessory|Ice Cream": R([[24, 18, 2, 4, "D9A066"], [24, 19, 1, 1, "B07D45"], [23, 15, 4, 3, "FF9EC7"], [24, 14, 2, 1, "FF9EC7"], [24, 15, 1, 1, "FFFFFF"]]),
+    "accessory|Pumpkin Bucket": R([[23, 19, 5, 4, "F28C28"], [24, 18, 3, 1, "F28C28"], [25, 17, 1, 1, "3B7A2A"], [24, 20, 1, 1, "2B1A0F"], [26, 20, 1, 1, "2B1A0F"], [24, 21, 3, 1, "2B1A0F"], [22, 17, 1, 3, "5A3E2B"]]),
+    "accessory|Cocoa Mug": R([[23, 18, 3, 4, "F4F4F4"], [23, 18, 3, 1, "6B4423"], [26, 19, 1, 2, "F4F4F4"], [24, 16, 1, 1, "FFFFFF"], [25, 15, 1, 1, "FFFFFF"]]),
+  };
+  const census = { n: 400, counts: { "head|Red Beanie": 14, "head|Sun Visor": 6, "head|Witch Hat": 1, "hair|Messy Brown": 30, "hair|Golden Bob": 9, "face|Black Shades": 12, "face|Round Specs": 3, "top|Puffer Jacket": 4, "top|Hawaiian Shirt": 7, "top|Flannel Shirt": 10, "top|Cozy Hoodie": 18, "top|White Tee": 33, "bottom|Blue Jeans": 40, "bottom|Board Shorts": 8, "bottom|Corduroy Pants": 2, "bottom|Pleated Skirt": 5, "top|Striped Tank Top": 11, "shoes|Snow Boots": 3, "shoes|Flip Flops": 9, "shoes|Red Sneakers": 22, "accessory|Wool Scarf": 6, "accessory|Pumpkin Bucket": 1, "accessory|Cocoa Mug": 4 }, perSlot: { head: 60, hair: 60, face: 60, accessory: 60, top: 60, bottom: 60, shoes: 60 } };
+  const keys = Object.keys(T);
+  const ids = Object.fromEntries(keys.map((k, i) => [k, 1000 + i]));
+  const pack = (id, body, list, eq) => ({ id, body, bg: "#0D6E9D", traitIds: list.map((k) => ids[k]), equipped: Object.fromEntries(SLOTS.map((s) => [s, eq.find((k) => k.startsWith(s + "|")) ? ids[eq.find((k) => k.startsWith(s + "|"))] : 0])) });
+  return {
+    bodies: () => SK.map(body),
+    census,
+    chonks: () => [
+      pack(101, 1, ["head|Red Beanie", "hair|Messy Brown", "face|Round Specs", "top|Puffer Jacket", "top|Cozy Hoodie", "bottom|Blue Jeans", "shoes|Snow Boots", "accessory|Wool Scarf", "accessory|Cocoa Mug"], ["hair|Messy Brown", "top|Cozy Hoodie", "bottom|Blue Jeans", "shoes|Snow Boots"]),
+      pack(2077, 0, ["head|Sun Visor", "hair|Golden Bob", "face|Black Shades", "top|Hawaiian Shirt", "top|White Tee", "top|Striped Tank Top", "bottom|Board Shorts", "bottom|Pleated Skirt", "shoes|Flip Flops", "shoes|Red Sneakers", "accessory|Ice Cream"], ["hair|Golden Bob", "face|Black Shades", "top|Hawaiian Shirt", "bottom|Board Shorts", "shoes|Flip Flops"]),
+      pack(4444, 3, ["head|Witch Hat", "hair|Messy Brown", "top|Flannel Shirt", "top|White Tee", "bottom|Corduroy Pants", "shoes|Red Sneakers", "accessory|Pumpkin Bucket"], ["head|Witch Hat", "top|Flannel Shirt", "bottom|Corduroy Pants", "shoes|Red Sneakers", "accessory|Pumpkin Bucket"]),
+    ],
+    trait: (tid) => { const k = keys[tid - 1000]; if (!k) return null; const [slot, name] = k.split("|"); return { slot, name, release: "Demo", cells: T[k] }; },
+  };
+})();
+function loadDemo() {
+  S.demo = true; S.bodies = DEMO.bodies(); S.census = DEMO.census;
+  build(DEMO.chonks(), DEMO.trait);
+  status("Demo closet: 3 backpacks, " + S.traits.size + " pieces");
+}
+
+/* =====================================================================
+   10. Wiring
+   ===================================================================== */
+$("findForm").onsubmit = (e) => { e.preventDefault(); const v = $("q").value.trim(); if (v) openCloset(v); };
+$("randBtn").onclick = shuffle;
+$("styleBtn").onclick = stylist;
+$("rareBtn").onclick = rarest;
+$("resetBtn").onclick = () => wearEquipped(S.chonks.find((c) => c.id === S.filter) || S.chonks[0]);
+$("clearBtn").onclick = () => setOutfit(Object.fromEntries(SLOTS.map((s) => [s, null])), []);
+$("search").oninput = renderCloset;
+$("bgPick").oninput = (e) => setBg(e.target.value);
+$("bgHex").onchange = (e) => { if (!setBg(e.target.value)) e.target.setAttribute("aria-invalid", "true"); };
+$("bgHex").onkeydown = (e) => { if (e.key === "Enter") e.target.onchange(e); };
+$("sort").onchange = renderCloset;
+$("themeBtn").onclick = () => { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("chonk-theme", r.dataset.theme); } catch {} };
+$("saveBtn").onclick = () => {
+  const out = document.createElement("canvas"); out.width = out.height = G * 24;
+  drawLo();
+  const o = out.getContext("2d"); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, out.width, out.height);
+  const url = out.toDataURL("image/png");
+  $("ovImg").src = url; $("ovDl").href = url; $("ov").hidden = false; $("ovClose").focus();
+};
+$("ovClose").onclick = () => { $("ov").hidden = true; };
+$("ov").onclick = (e) => { if (e.target === $("ov")) $("ov").hidden = true; };
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("ov").hidden = true; });
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(outfitText()); $("copyBtn").textContent = "Copied"; }
+  catch { $("copyBtn").textContent = "Copy failed"; }
+  setTimeout(() => { $("copyBtn").textContent = "Copy list"; }, 1400);
+};
+
+(function init() {
+  const look = store.get("closet-look");
+  if (look) { S.theme = clamp(look.theme | 0, 0, THEMES.length - 1); if (SEASONS[look.season]) S.season = look.season; }
+  applyTheme(); renderThemes(); renderSeasons();
+  setBg((look && look.bg) || THEMES[S.theme].bg);
+  if (S.season !== "none") $("styleSub").textContent = `For ${SEASONS[S.season].name.toLowerCase()}`;
+  S.bodies = DEMO.bodies();
+  paint();
+  let h = ""; try { h = decodeURIComponent((location.hash || "").slice(1)); } catch {} if (/^slot-/.test(h)) h = "";
+  const start = h || store.get("closet-last");
+  if (start) { $("q").value = start; openCloset(start); }
+  else {
+    // Probe Base once: if it's reachable, wait for an address; if not, show the demo closet.
+    call(CONTRACT, SEL.supply, 6000).then(() => status("Enter a wallet or some Chonk IDs to open the closet.")).catch((e) => { if (e.offline) loadDemo(); });
+  }
+  $("findForm").addEventListener("submit", () => store.set("closet-last", $("q").value.trim()));
+})();
+</script>
+</body>
+</html>
