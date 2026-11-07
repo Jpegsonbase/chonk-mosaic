@@ -75,6 +75,10 @@ button, input { font: inherit; color: inherit; }
 .banner { margin-top: 10px; font-size: 13px; border-radius: 12px; padding: 10px 12px; background: var(--accent-soft); color: var(--ink); }
 .ownerbtn { margin-top: 10px; font-size: 13px; padding: 9px 13px; }
 @media (max-width: 560px) { .find { flex-wrap: wrap; } .find input { flex-basis: 100%; } .find .btn { flex: 1; } }
+.statusrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 9px; }
+.statusrow .status { margin: 0; flex: 1; min-width: 200px; }
+#pack { border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 6px 10px; font: 600 12.5px var(--mono); max-width: 100%; cursor: pointer; }
+#pack:focus { border-color: var(--ink); outline: none; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-height: 108px; overflow: auto; }
 .chip { font: 700 12px var(--mono); border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 10px; cursor: pointer; }
 .chip small { font-weight: 500; color: var(--muted); margin-left: 4px; }
@@ -193,9 +197,11 @@ button, input { font: inherit; color: inherit; }
       <button class="btn ghost" id="walletBtn" type="button">Connect wallet</button>
     </form>
     <div class="bar" id="bar" hidden><i id="barFill"></i></div>
-    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <div class="statusrow">
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <select id="pack" aria-label="Show traits from" hidden></select>
+    </div>
     <div class="banner" id="demoBanner" hidden>Base can't be reached from this page, so this is a <b>demo closet</b> with stand-in traits drawn for the preview. On chonkit.xyz it opens your real backpacks.</div>
-    <div class="chips" id="chips" aria-label="Backpacks"></div>
     <button class="btn ghost ownerbtn" id="ownerBtn" type="button" hidden></button>
   </section>
 
@@ -937,17 +943,19 @@ function traitCanvas(t, size = 30) {
   for (const p of t.cells) { x.fillStyle = "#" + p.col.toString(16).padStart(6, "0"); x.fillRect(p.x + ax, p.y + ay, 1, 1); }
   return c;
 }
+// One dropdown: every backpack in the wallet, or all of them together.
 function renderChips() {
-  const el = $("chips"); el.innerHTML = "";
-  if (S.chonks.length < 1) return;
-  const mk = (id, label, sub) => { const b = document.createElement("button"); b.type = "button"; b.className = "chip"; b.dataset.id = id; b.innerHTML = `${label}<small>${sub}</small>`; b.setAttribute("aria-pressed", String(S.filter) === String(id) ? "true" : "false"); el.appendChild(b); };
-  if (S.chonks.length > 1) mk("all", "All backpacks", S.traits.size);
-  for (const c of S.chonks) mk(c.id, `#${c.id}${S.demo ? " demo" : ""}`, c.traitIds.length);
-  el.onclick = (e) => {
-    const b = e.target.closest(".chip"); if (!b) return;
-    S.filter = b.dataset.id === "all" ? "all" : Number(b.dataset.id);
+  const el = $("pack"); el.innerHTML = "";
+  el.hidden = S.chonks.length < 2;
+  if (el.hidden) return;
+  const opt = (v, label) => { const o = document.createElement("option"); o.value = v; o.textContent = label; el.appendChild(o); };
+  opt("all", `All ${S.chonks.length} Chonks · ${S.traits.size} pieces`);
+  for (const c of [...S.chonks].sort((a, b) => a.id - b.id)) opt(c.id, `Chonk #${c.id}${S.demo ? " (demo)" : ""} · ${c.traitIds.length} traits`);
+  el.value = String(S.filter);
+  el.onchange = () => {
+    S.filter = el.value === "all" ? "all" : Number(el.value);
     if (S.filter !== "all") wearEquipped(S.chonks.find((c) => c.id === S.filter));
-    renderChips(); renderCloset(); renderWear();
+    renderCloset(); renderWear();
   };
 }
 function renderSkins() {
@@ -1086,7 +1094,7 @@ function renderWear() {
   $("wearSrc").textContent = n ? `from ${n} backpack${n > 1 ? "s" : ""}` : "";
   $("wearNote").innerHTML = !n ? "Pick traits from the closet, or let the buttons above dress your Chonk." : n === 1
     ? `Everything here lives in #${[...sources][0]}'s backpack, so it can wear this for real on <a href="https://www.chonks.xyz/" target="_blank" rel="noopener">chonks.xyz</a>.`
-    : `This fit pulls from ${n} backpacks. To wear it for real, move the pieces into one Chonk on <a href="https://www.chonks.xyz/" target="_blank" rel="noopener">chonks.xyz</a>. Pick a single backpack above to style from just that one.`;
+    : `This fit pulls from ${n} backpacks. To wear it for real, move the pieces into one Chonk on <a href="https://www.chonks.xyz/" target="_blank" rel="noopener">chonks.xyz</a>. Pick one Chonk from the dropdown up top to style from just its backpack.`;
   const nl = $("styleNotes"); nl.hidden = !S.notes.length; nl.innerHTML = S.notes.map((t) => `<li>${esc(t)}</li>`).join("");
   paint();
 }
