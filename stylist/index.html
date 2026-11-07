@@ -973,7 +973,7 @@ async function rarest() {
     const p = pool(s); if (!p.length) { o[s] = null; continue; }
     p.sort((a, b) => (share(a) ?? 1e9) - (share(b) ?? 1e9) || a.tokens.length - b.tokens.length);
     o[s] = p[0].key;
-    const tr = tier(p[0]); notes.push(`${SLOT_NAMES[s]}: ${p[0].name}${tr ? ` (${tr.name.toLowerCase()}, ${tr.count.toLocaleString()} exist)` : ""}`);
+    const tr = tier(p[0]); notes.push(`${SLOT_NAMES[s]}: ${p[0].name}${tr ? ` (${tr.name.toLowerCase()}, ${tr.count.toLocaleString()} exist${tr.count === 1 ? "s" : ""})` : ""}`);
   }
   notes.unshift("Your rarest piece in every slot.");
   setOutfit(o, notes);
@@ -1047,8 +1047,9 @@ async function loadZ() {
   }
   return { vox: [...m.values()], real };
 }
-async function three() {
-  if (Z.three) return Z.three;
+// One scene only: page start-up can ask for it from two places at once.
+function three() { return Z.threeP || (Z.threeP = makeThree()); }
+async function makeThree() {
   const THREE = await import("https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js");
   const host = $("stage3d");
   const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -1400,7 +1401,7 @@ function renderCloset() {
       b.appendChild(traitCanvas(t));
       b.insertAdjacentHTML("beforeend", `<span class="nm">${esc(t.name)}</span>`);
       if (t.tokens.length > 1) b.insertAdjacentHTML("beforeend", `<span class="ct">×${t.tokens.length}</span>`);
-      const tr = tier(t); if (tr) { b.insertAdjacentHTML("beforeend", `<span class="rb r${tr.i}">${tr.name} · ${tr.count.toLocaleString()}</span>`); b.title += `\n${tr.count.toLocaleString()} exist`; }
+      const tr = tier(t); if (tr) { b.insertAdjacentHTML("beforeend", `<span class="rb r${tr.i}">${tr.name} · ${tr.count.toLocaleString()}</span>`); b.title += `\n${tr.count.toLocaleString()} exist${tr.count === 1 ? "s" : ""}`; }
       grid.appendChild(b);
     }
     if (!items.length) grid.insertAdjacentHTML("beforeend", `<p class="empty">${q ? "Nothing matches." : "None in this backpack."}</p>`);
