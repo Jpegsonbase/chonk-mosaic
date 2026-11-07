@@ -136,6 +136,7 @@ button, input { font: inherit; color: inherit; }
 .bgsw { display: flex; gap: 5px; }
 .bgsw button { width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid var(--line); cursor: pointer; padding: 0; }
 .bgsw button[aria-pressed="true"] { outline: 2px solid var(--ink); outline-offset: 2px; }
+.bgdice { padding: 7px 11px; font-size: 13px; border-radius: 10px; }
 .hint2 { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
 .closet-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
 .closet-top input { flex: 1; min-width: 140px; border: 1.5px solid var(--line); background: var(--bg); border-radius: 11px; padding: 8px 11px; font: 500 14px var(--body); outline: none; }
@@ -228,6 +229,7 @@ button, input { font: inherit; color: inherit; }
           <div class="bgrow">
             <input type="color" id="bgPick" aria-label="Pick a background colour">
             <input type="text" id="bgHex" maxlength="7" spellcheck="false" aria-label="Background hex colour">
+            <button class="btn ghost bgdice" id="bgRand" type="button" title="Random background colour">🎲 Random</button>
             <span class="bgsw" id="bgSw"></span>
           </div>
           <p class="hint2">Plain colour, set by hex like the official wardrobe.</p>
@@ -974,6 +976,16 @@ function setBg(hex) {
   renderBgSwatches(); paint(); store.set("closet-look", { theme: S.theme, season: S.season, bg: S.bg });
   return true;
 }
+// A random background that still looks good behind a Chonk: any hue, soft-to-rich saturation, never muddy or neon.
+function hslHex(h, s, l) {
+  s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+  const f = (n) => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)))).toString(16).padStart(2, "0");
+  return "#" + f(0) + f(8) + f(4);
+}
+function randomBg() {
+  let hex; do { hex = hslHex(Math.random() * 360, 35 + Math.random() * 45, 42 + Math.random() * 40); } while (hex === S.bg);
+  setBg(hex);
+}
 function renderBgSwatches() {
   const el = $("bgSw"); el.innerHTML = "";
   const opts = [...new Set([...THEMES[S.theme].sw, "#ffffff"].map((c) => c.toLowerCase()))];
@@ -1154,6 +1166,7 @@ $("resetBtn").onclick = () => wearEquipped(S.chonks.find((c) => c.id === S.filte
 $("clearBtn").onclick = () => setOutfit(Object.fromEntries(SLOTS.map((s) => [s, null])), []);
 $("search").oninput = renderCloset;
 $("bgPick").oninput = (e) => setBg(e.target.value);
+$("bgRand").onclick = randomBg;
 $("bgHex").onchange = (e) => { if (!setBg(e.target.value)) e.target.setAttribute("aria-invalid", "true"); };
 $("bgHex").onkeydown = (e) => { if (e.key === "Enter") e.target.onchange(e); };
 $("sort").onchange = renderCloset;
