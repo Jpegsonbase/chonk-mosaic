@@ -189,6 +189,7 @@ td.d em { font-style: normal; color: var(--accent); }
         <div class="seg" id="foilSeg">
           <button type="button" data-v="auto" aria-pressed="true">Auto</button>
           <button type="button" data-v="chonk">Chonk</button>
+          <button type="button" data-v="hair">Hair</button>
           <button type="button" data-v="outfit">Outfit</button>
           <button type="button" data-v="scene">Scene</button>
           <button type="button" data-v="reverse">Reverse</button>
@@ -422,7 +423,7 @@ async function getTraits(id) {
       if (!value || /^(none|null|0|false|-|n\/a)$/i.test(value)) continue;
       list.push({ type, value });
     }
-    return { name: typeof j.name === "string" ? j.name : "", list };
+    return { name: typeof j.name === "string" ? j.name : "", list, art: parseArt(j.image, list.length) };
   } catch { return null; }
 }
 
@@ -430,6 +431,51 @@ async function getTraits(id) {
    2. Sprite: the Chonk seen face-on. For every (x, y) the front-most voxel
       wins, which gives the familiar 30×30 pixel Chonk.
    ===================================================================== */
+// The Chonk's own 2D art: an SVG of 1px rects, a <g id="Body"> then one <g id="Trait"> per attribute, in attribute order.
+function parseArt(image, nTraits) {
+  try {
+    if (typeof image !== "string") return null;
+    let svg = image;
+    if (image.startsWith("data:")) { const c = image.indexOf(","), h = image.slice(0, c), b = image.slice(c + 1); svg = h.includes("base64") ? new TextDecoder().decode(bytesOf(atob(b))) : decodeURIComponent(b); }
+    const cells = new Map(); let layer = -2, traitIdx = -1, depth = 0, traitGroups = 0;
+    const re = /<g\b([^>]*)>|<\/g>|<rect\b([^>]*?)\/?>/g; let m;
+    while ((m = re.exec(svg))) {
+      if (m[0].startsWith("<g")) { depth++; const gid = (m[1].match(/\bid="([^"]*)"/) || [])[1]; if (gid === "Body") layer = -1; else if (gid === "Trait") { traitIdx++; traitGroups++; layer = traitIdx; } continue; }
+      if (m[0] === "</g>") { depth--; continue; }
+      const a = m[2], num = (k) => { const r = a.match(new RegExp(`\\b${k}="([\\d.]+)"`)); return r ? Math.round(+r[1]) : null; };
+      const fill = (a.match(/fill="#([0-9a-fA-F]{6})"/) || [])[1];
+      const x = num("x"), y = num("y"), w = num("width") || 1, h = num("height") || 1;
+      if (x === null || y === null || !fill || layer === -2 || w > 4 || h > 4) continue;
+      for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) cells.set(yy * 64 + xx, { x: xx, y: yy, col: parseInt(fill, 16), layer });
+    }
+    if (cells.size < 40) return null;
+    return { cells: [...cells.values()], mapped: traitGroups === nTraits };
+  } catch { return null; }
+}
+function spriteFrom(cells, slotOfLayer) {
+  let x0 = 99, y0 = 99, x1 = -1, y1 = -1;
+  for (const p of cells) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const mk = () => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; };
+  const art = mk(), all = mk(), outfit = mk(), hair = mk();
+  const ia = new ImageData(w, h), im = new ImageData(w, h), io = new ImageData(w, h), ih = new ImageData(w, h);
+  const on = (d, i) => { d.data[i] = d.data[i + 1] = d.data[i + 2] = 255; d.data[i + 3] = 255; };
+  for (const p of cells) {
+    const i = ((p.y - y0) * w + (p.x - x0)) * 4, slot = slotOfLayer(p);
+    ia.data[i] = p.col >> 16 & 255; ia.data[i + 1] = p.col >> 8 & 255; ia.data[i + 2] = p.col & 255; ia.data[i + 3] = 255;
+    on(im, i);
+    if (slot === "top" || slot === "bottom" || slot === "shoes") on(io, i);
+    if (slot === "hair") on(ih, i);
+  }
+  art.getContext("2d").putImageData(ia, 0, 0); all.getContext("2d").putImageData(im, 0, 0); outfit.getContext("2d").putImageData(io, 0, 0); hair.getContext("2d").putImageData(ih, 0, 0);
+  return { w, h, px: cells, art, all, outfit, hair, count: cells.length };
+}
+function buildSprite2D(artData, list) {
+  return spriteFrom(artData.cells, (p) => {
+    if (artData.mapped && p.layer >= 0 && list[p.layer]) return slotOf(list[p.layer].type, list[p.layer].value);
+    return artData.mapped ? "body" : (p.y >= 17 ? "top" : p.y <= 10 ? "hair" : "body");
+  });
+}
 function buildSprite(z) {
   const hex = z.startsWith("0x") ? z.slice(2) : z, front = new Map();
   for (let i = 0; i + 12 <= hex.length; i += 12) {
@@ -439,6 +485,7 @@ function buildSprite(z) {
   }
   let x0 = 99, y0 = 99, x1 = -1, y1 = -1;
   for (const p of front.values()) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+  return spriteFrom([...front.values()], (p) => p.y >= 17 ? "top" : p.y <= 9 ? "hair" : "body");
   const w = x1 - x0 + 1, h = y1 - y0 + 1;
   const mk = () => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; };
   const art = mk(), all = mk(), outfit = mk();
@@ -744,6 +791,7 @@ function paintMasks(hard, soft, card, sprite, layout, mode) {
   hard.imageSmoothingEnabled = false; soft.imageSmoothingEnabled = false;
   if (m === "chonk" || m === "full") { hard.globalAlpha = 0.85; hard.drawImage(sprite.all, sr.x, sr.y, sr.w, sr.h); hard.globalAlpha = 1; }
   if (m === "outfit") { hard.globalAlpha = 0.9; hard.drawImage(sprite.outfit, sr.x, sr.y, sr.w, sr.h); hard.globalAlpha = 1; }
+  if (m === "hair") { hard.globalAlpha = 0.9; hard.drawImage(sprite.hair, sr.x, sr.y, sr.w, sr.h); hard.globalAlpha = 1; }
   if (m === "scene" || m === "full") {
     soft.fillStyle = "rgba(255,255,255,1)"; soft.fillRect(AX, AY, AW, AH);
     if (m === "scene") { soft.globalCompositeOperation = "destination-out"; soft.drawImage(sprite.all, sr.x, sr.y, sr.w, sr.h); soft.globalCompositeOperation = "source-over"; }
@@ -879,7 +927,7 @@ async function loadChonk(id, quiet) {
   try {
     const [{ z, src }, traits] = await Promise.all([getZMap(id), getTraits(id)]);
     if (tok !== loadTok) return;
-    S.id = id; S.sprite = buildSprite(z); S.traits = traits;
+    S.id = id; S.sprite = traits && traits.art ? buildSprite2D(traits.art, traits.list) : buildSprite(z); S.traits = traits;
     S.card = computeCard(id, S.sprite, traits);
     if (traits && traits.name && /\S/.test(traits.name) && traits.name.length <= 20) S.card.defaultName = traits.name;
     S.name = ""; $("nameIn").value = "";
