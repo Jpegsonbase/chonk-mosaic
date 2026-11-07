@@ -77,6 +77,16 @@ button, input { font: inherit; color: inherit; }
 .banner { margin-top: 10px; font-size: 13px; border-radius: 12px; padding: 10px 12px; background: var(--accent-soft); color: var(--ink); }
 .ownerbtn { margin-top: 10px; font-size: 13px; padding: 9px 13px; }
 @media (max-width: 560px) { .find { flex-wrap: wrap; } .find input { flex-basis: 100%; } .find .btn { flex: 1; } }
+.lookbook { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 8px; }
+.lk { position: relative; border: 1.5px solid var(--line); border-radius: 12px; padding: 4px 4px 5px; background: var(--bg); cursor: pointer; display: flex; flex-direction: column; gap: 3px; text-align: center; }
+.lk:hover { border-color: var(--muted); }
+.lk img { width: 100%; aspect-ratio: 1; border-radius: 8px; image-rendering: pixelated; display: block; }
+.lk span { font: 600 10.5px/1.2 var(--mono); color: var(--muted); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.lk .del { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--line); background: var(--card); font-size: 11px; line-height: 1; cursor: pointer; display: none; padding: 0; }
+.lk:hover .del, .lk:focus-within .del { display: block; }
+@media (hover: none) { .lk .del { display: block; } }
+.sharebox { display: flex; gap: 8px; }
+.sharebox input { flex: 1; min-width: 0; border: 1.5px solid var(--line); background: var(--bg); border-radius: 10px; padding: 9px 10px; font: 500 12px var(--mono); }
 .statusrow { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 9px; }
 .statusrow .status { margin: 0; flex: 1; min-width: 200px; }
 #pack { border: 1.5px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 10px; padding: 6px 10px; font: 600 12.5px var(--mono); max-width: 100%; cursor: pointer; }
@@ -112,6 +122,7 @@ button, input { font: inherit; color: inherit; }
 .act:active { transform: translateY(1px); }
 .minor { display: flex; gap: 8px; flex-wrap: wrap; }
 .minor .btn { flex: 1; padding: 9px 10px; font-size: 13px; }
+.minor .btn:disabled { opacity: .45; cursor: default; }
 
 .card { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 16px 18px; box-shadow: 0 1px 0 rgba(0,0,0,.02), 0 18px 34px -24px rgba(30, 42, 42, .35); }
 .card h2 { font: 700 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
@@ -233,15 +244,29 @@ button, input { font: inherit; color: inherit; }
       </div>
       <div class="minor">
         <button class="btn ghost" id="resetBtn" type="button">Wear equipped</button>
+        <button class="btn ghost" id="undoBtn" type="button" disabled title="Undo (Ctrl+Z)">↶ Undo</button>
         <button class="btn ghost" id="clearBtn" type="button">Strip</button>
         <button class="btn ghost" id="saveBtn" type="button">Save PNG</button>
         <button class="btn ghost" id="copyBtn" type="button">Download list</button>
+      </div>
+      <div class="minor">
+        <button class="btn ghost" id="shareBtn" type="button">🔗 Share look</button>
+        <button class="btn ghost" id="keepBtn" type="button">★ Save to lookbook</button>
+      </div>
+      <div class="minor spin3d" id="spinRow" hidden>
+        <button class="btn ghost" id="gifBtn" type="button">Spin GIF</button>
+        <button class="btn ghost" id="vidBtn" type="button">Spin video</button>
       </div>
       <div class="card">
         <h2>Wearing <span class="sp" id="wearSrc"></span></h2>
         <ul class="wear" id="wear"></ul>
         <p class="note" id="wearNote"></p>
         <ul class="notes" id="styleNotes" hidden></ul>
+      </div>
+      <div class="card" id="lookbookCard">
+        <h2>Lookbook <span class="sp" id="lbCount"></span></h2>
+        <div class="lookbook" id="lookbook"></div>
+        <p class="note" id="lbEmpty">Save outfits you like with ★ and they'll wait here, even after you close the page.</p>
       </div>
     </div>
 
@@ -289,7 +314,8 @@ button, input { font: inherit; color: inherit; }
 <div class="ov" id="ov" hidden>
   <div class="ovbox" role="dialog" aria-modal="true" aria-label="Saved outfit">
     <img id="ovImg" alt="Your Chonk outfit">
-    <p>Right-click or long-press the picture to save it if the download doesn't start.</p>
+    <div class="sharebox" id="ovText" hidden><input id="ovLink" readonly aria-label="Link to this look"><button class="btn" id="ovCopy" type="button">Copy</button></div>
+    <p id="ovMsg">Right-click or long-press the picture to save it if the download doesn't start.</p>
     <div class="ovrow"><a class="btn ghost" id="ovDl" download="chonk-outfit.png">Download</a><button class="btn" id="ovClose" type="button">Done</button></div>
   </div>
 </div>
@@ -554,7 +580,7 @@ const S = {
   skin: 0,
   theme: 1,
   season: "none",
-  census: null,          // {n, perSlot:{slot:total}, counts:{key:n}}
+  census: null,          // {counts:{"slot|name": how many exist}, live}
   censusBusy: null,
   notes: [],
   bg: "#0D6E9D",
@@ -794,9 +820,10 @@ function build(chonks, traitOf) {
     e.tokens.push({ tid, chonk: c.id });
     S.tokenToKey.set(tid, key);
   }
-  S.filter = "all"; S.locks.clear(); S.notes = [];
+  S.filter = "all"; S.locks.clear(); S.notes = []; S.shared = false; S.hist = []; $("undoBtn").disabled = true;
   const first = chonks[0];
   wearEquipped(first);
+  S.hist = []; $("undoBtn").disabled = true;
   $("demoBanner").hidden = !S.demo;
   $("stageTag").textContent = S.demo ? "Demo closet" : "Live from Base";
   renderChips(); renderSkins(); renderCloset(); renderWear();
@@ -805,47 +832,42 @@ function build(chonks, traitOf) {
 /* =====================================================================
    5. Rarity: Chonks don't store rarity onchain, so sample the trait supply
    ===================================================================== */
-const CENSUS_N = 480;
+// How many of each trait exist, from the official Chonks indexer (the numbers on chonks.xyz/traits).
+// Live when it answers; otherwise the copy saved next to this page.
+const COUNTS_URL = "https://indexer.chonks.xyz/trait/counts";
+const CAT = { 1: "head", 2: "hair", 3: "face", 4: "accessory", 5: "top", 6: "bottom", 7: "shoes" };
+function parseCounts(j) {
+  const counts = {};
+  for (const x of (j && j.traitCounts) || []) {
+    const i = String(x.traitName).indexOf(","), s = CAT[String(x.traitName).slice(0, i)];
+    if (s) counts[s + "|" + String(x.traitName).slice(i + 1).trim()] = Number(x.traitCount);
+  }
+  return counts;
+}
 async function startCensus() {
-  if (S.demo) return;
-  const saved = store.get("closet-census-v1");
-  if (saved && Date.now() - saved.at < 7 * 864e5 && saved.n >= 200) { S.census = saved; renderCloset(); updateRareBtn(); return; }
+  if (S.demo || S.census) return;
   if (S.censusBusy) return S.censusBusy;
   S.censusBusy = (async () => {
-    try {
-      $("rareSub").textContent = "Sampling…";
-      let supply = 0;
-      try { supply = Number(BigInt(await call(TRAITS, SEL.supply))); } catch {}
-      if (!supply) supply = Math.max(...[...S.tokenToKey.keys()]) || 0;
-      if (!supply) return;
-      const ids = new Set(); while (ids.size < Math.min(CENSUS_N, supply)) ids.add(1 + Math.floor(Math.random() * supply));
-      const list = [...ids];
-      const res = await multi(list.map((t) => ({ to: TRAITS, data: SEL.uri + pad64(t) })), 24, (d, t) => { $("rareSub").textContent = `Sampling ${Math.round(100 * d / t)}%`; });
-      const counts = {}, perSlot = {}; let n = 0;
-      for (const r of res) { if (!r) continue; try { const p = parseTrait(decodeString(r)); if (!p || !p.slot) continue; const k = p.slot + "|" + p.name; counts[k] = (counts[k] || 0) + 1; perSlot[p.slot] = (perSlot[p.slot] || 0) + 1; n++; } catch {} }
-      if (n < 50) return;
-      S.census = { at: Date.now(), n, supply, counts, perSlot };
-      store.set("closet-census-v1", S.census);
-      renderCloset();
-    } catch {} finally { S.censusBusy = null; updateRareBtn(); }
-  })();
+    $("rareSub").textContent = "Loading counts…";
+    for (const url of [COUNTS_URL, "trait-counts.json"]) {
+      try {
+        const r = await fetch(url, { cache: "no-store" }); if (!r.ok) continue;
+        const c = parseCounts(await r.json());
+        if (Object.keys(c).length > 50) { S.census = { counts: c, live: url === COUNTS_URL }; break; }
+      } catch {}
+    }
+    renderCloset();
+  })().finally(() => { S.censusBusy = null; updateRareBtn(); });
   return S.censusBusy;
 }
 function updateRareBtn() { $("rareSub").textContent = S.census ? "Best of each" : "Rarity loading"; }
 // share of its slot, from the sample (smaller = rarer). Unseen pieces get half a sighting.
-function share(t) {
-  if (!S.census) return null;
-  const tot = S.census.perSlot[t.slot] || 1;
-  return ((S.census.counts[t.key] || 0) || .5) / tot;
-}
+// how many of this trait exist (null if unknown). Smaller = rarer.
+function share(t) { const c = S.census && S.census.counts[t.key]; return c == null ? null : c; }
 function tier(t) {
-  const s = share(t); if (s == null) return null;
-  if (!S.census.counts[t.key]) return { i: 4, name: "Unseen" };
-  if (s < .006) return { i: 4, name: "Legendary" };
-  if (s < .015) return { i: 3, name: "Epic" };
-  if (s < .035) return { i: 2, name: "Rare" };
-  if (s < .07) return { i: 1, name: "Uncommon" };
-  return { i: 0, name: "Common" };
+  const c = share(t); if (c == null) return null;
+  const n = c <= 10 ? [4, "Legendary"] : c <= 50 ? [3, "Epic"] : c <= 200 ? [2, "Rare"] : c <= 1000 ? [1, "Uncommon"] : [0, "Common"];
+  return { i: n[0], name: n[1], count: c };
 }
 
 /* =====================================================================
@@ -856,7 +878,23 @@ function pool(slot) {
   for (const t of S.traits.values()) if (t.slot === slot && (S.filter === "all" || t.tokens.some((k) => k.chonk === S.filter))) out.push(t);
   return out;
 }
+// ---- undo: every change to the outfit is remembered (last 60) ----
+S.hist = [];
+function snapshot() {
+  const snap = { o: { ...S.outfit }, skin: S.skin, notes: S.notes };
+  const last = S.hist[S.hist.length - 1];
+  if (last && last.skin === snap.skin && SLOTS.every((s) => last.o[s] === snap.o[s])) return;
+  S.hist.push(snap); if (S.hist.length > 60) S.hist.shift();
+  $("undoBtn").disabled = false;
+}
+function undo() {
+  const snap = S.hist.pop(); if (!snap) return;
+  Object.assign(S.outfit, snap.o); S.skin = snap.skin; S.notes = snap.notes || [];
+  $("undoBtn").disabled = !S.hist.length;
+  renderSkins(); renderWear(); markTiles();
+}
 function setOutfit(next, notes) {
+  snapshot();
   for (const s of SLOTS) if (!S.locks.has(s)) S.outfit[s] = next[s] ?? null;
   S.notes = notes || [];
   renderWear(); markTiles();
@@ -925,17 +963,17 @@ function stylist() {
 }
 async function rarest() {
   if (!S.census && !S.demo) {
-    $("rareBtn").disabled = true; status("Sampling the trait supply to estimate rarity. This takes a few seconds the first time…");
+    $("rareBtn").disabled = true; status("Loading trait counts from chonks.xyz…");
     await startCensus(); $("rareBtn").disabled = false;
-    if (!S.census) { status("Couldn't sample enough traits to rank rarity", true); return; }
+    if (!S.census) { status("Couldn't load the trait counts from chonks.xyz", true); return; }
     status("");
   }
   const o = {}, notes = [];
   for (const s of SLOTS) {
     const p = pool(s); if (!p.length) { o[s] = null; continue; }
-    p.sort((a, b) => share(a) - share(b) || a.tokens.length - b.tokens.length);
+    p.sort((a, b) => (share(a) ?? 1e9) - (share(b) ?? 1e9) || a.tokens.length - b.tokens.length);
     o[s] = p[0].key;
-    const tr = tier(p[0]); notes.push(`${SLOT_NAMES[s]}: ${p[0].name}${tr ? ` (${tr.name.toLowerCase()}${S.census.counts[p[0].key] ? `, about ${(share(p[0]) * 100).toFixed(1)}% of ${PLURAL[s]}` : ", not seen in the sample"})` : ""}`);
+    const tr = tier(p[0]); notes.push(`${SLOT_NAMES[s]}: ${p[0].name}${tr ? ` (${tr.name.toLowerCase()}, ${tr.count.toLocaleString()} exist)` : ""}`);
   }
   notes.unshift("Your rarest piece in every slot.");
   setOutfit(o, notes);
@@ -1050,7 +1088,7 @@ async function three() {
   host.addEventListener("wheel", (e) => { e.preventDefault(); view.r = clamp(view.r * Math.exp(e.deltaY * .0012), 28, 170); }, { passive: false });
   host.addEventListener("dblclick", () => { view.auto = true; setSpin(true); view.r = 78; view.pitch = .12; });
   function frame(t) {
-    if (S.mode === "3d") {
+    if (S.mode === "3d" && !S.exporting) {
       if (!view.drag && !view.pinch) {
         if (Math.abs(view.vy) + Math.abs(view.vp) > .0004) { view.yaw += view.vy; view.pitch = clamp(view.pitch + view.vp, -.6, 1.2); view.vy *= .93; view.vp *= .93; }
         else if (S.spin && (view.auto || t - view.last > 6000)) { view.auto = true; view.yaw -= .006; }
@@ -1062,7 +1100,7 @@ async function three() {
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-  Z.three = { THREE, renderer, scene, camera, group, geo, mat, mesh: null };
+  Z.three = { THREE, renderer, scene, camera, group, geo, mat, mesh: null, view };
   return Z.three;
 }
 async function update3D() {
@@ -1093,11 +1131,155 @@ function setMode(m) {
   S.mode = m;
   $("mode2d").setAttribute("aria-pressed", m === "2d" ? "true" : "false");
   $("mode3d").setAttribute("aria-pressed", m === "3d" ? "true" : "false");
-  $("stage").hidden = m === "3d"; $("stage3d").hidden = m !== "3d"; $("hint3").hidden = m !== "3d"; $("spinBtn").hidden = m !== "3d";
+  $("stage").hidden = m === "3d"; $("stage3d").hidden = m !== "3d"; $("hint3").hidden = m !== "3d"; $("spinBtn").hidden = m !== "3d"; $("spinRow").hidden = m !== "3d";
   if (m === "2d") $("stageTag").textContent = S.demo ? "Demo closet" : "Live from Base";
   else { $("stageTag").textContent = "Loading 3D…"; Z.sig = ""; }
   store.set("closet-mode", m);
   paint();
+}
+
+/* =====================================================================
+   7c. Looks: a look is the outfit as trait token ids, so anyone can rebuild it
+       from Base. Link format: #look-<skin>-<bg hex>-<ids in base36, one per slot>[-3d]
+   ===================================================================== */
+function lookSpec() {
+  const ids = SLOTS.map((s) => { const k = S.outfit[s]; return k ? S.traits.get(k).tokens[0].tid.toString(36) : "0"; });
+  return `look-${S.skin}-${S.bg.slice(1)}-${ids.join(".")}${S.mode === "3d" ? "-3d" : ""}`;
+}
+function parseLook(spec) {
+  const m = /^look-([0-4])-([0-9a-f]{6})-([0-9a-z.]+)(-3d)?$/i.exec(spec || ""); if (!m) return null;
+  const ids = m[3].split(".").map((x) => parseInt(x, 36) || 0); if (ids.length !== SLOTS.length) return null;
+  return { skin: +m[1], bg: "#" + m[2].toLowerCase(), ids, d3: !!m[4] };
+}
+// Open a shared look on its own: read just those traits from Base.
+async function openLook(spec) {
+  const L = parseLook(spec); if (!L) return false;
+  $("loadBtn").disabled = true; status("Opening a shared look…");
+  try {
+    const cache = store.get("closet-traits-v1") || {};
+    const need = L.ids.filter((x) => x && !cache[x]);
+    if (need.length) {
+      const res = await multi(need.map((x) => ({ to: TRAITS, data: SEL.uri + pad64(x) })), 10);
+      need.forEach((x, i) => { try { const p = res[i] && parseTrait(decodeString(res[i])); if (p && p.slot) cache[x] = { s: p.slot, n: p.name, r: p.release, c: packCells(p.cells) }; } catch {} });
+      store.set("closet-traits-v1", cache);
+    }
+    const ids = L.ids.filter((x) => x && cache[x]);
+    S.demo = false; S.bodies = REAL_BODIES;
+    const look = { id: 0, body: L.skin, bg: L.bg, traitIds: ids, equipped: Object.fromEntries(SLOTS.map((s, i) => [s, L.ids[i]])) };
+    build([look], (x) => cache[x] && { slot: cache[x].s, name: cache[x].n, release: cache[x].r, cells: unpackCells(cache[x].c) });
+    S.shared = true; $("ownerBtn").hidden = true;
+    if (L.d3 && S.mode !== "3d") setMode("3d");
+    status(`Shared look · ${ids.length} pieces. Open your own wallet above to remix it with your traits.`);
+    startCensus();
+    return true;
+  } catch (e) { status(e.offline ? "Base can't be reached to open this look" : "Couldn't open that look", true); return false; }
+  finally { $("loadBtn").disabled = false; }
+}
+function shareLook() {
+  if (!SLOTS.some((s) => S.outfit[s])) { status("Put something on first, then share it.", true); return; }
+  const url = `${location.origin}${location.pathname}#${lookSpec()}`;
+  $("ovImg").hidden = true; $("ovText").hidden = false; $("ovDl").hidden = true;
+  $("ovMsg").textContent = "Anyone with this link sees this exact look, built live from Base.";
+  $("ovLink").value = url; $("ov").hidden = false; $("ovLink").select();
+  try { navigator.clipboard.writeText(url).then(() => { $("ovCopy").textContent = "Copied ✓"; }, () => {}); } catch {}
+}
+// ---- Lookbook: saved in this browser ----
+const LB_KEY = "stylist-lookbook-v1";
+function lookbook() { return store.get(LB_KEY) || []; }
+function thumbOf() {
+  const c = document.createElement("canvas"); c.width = c.height = 90; const x = c.getContext("2d");
+  drawLo(); x.imageSmoothingEnabled = false; x.drawImage(lo, 0, 0, 90, 90);
+  return c.toDataURL("image/png");
+}
+function saveLook() {
+  if (!SLOTS.some((s) => S.outfit[s])) { status("Put something on first, then save it.", true); return; }
+  const lb = lookbook(), spec = lookSpec().replace(/-3d$/, "");
+  if (lb.some((l) => l.spec === spec)) { status("That look is already in your lookbook."); return; }
+  const tag = S.season !== "none" ? SEASONS[S.season].name : (THEMES[S.theme].none ? "Look" : THEMES[S.theme].name);
+  lb.unshift({ spec, keys: SLOTS.map((s) => S.outfit[s] || ""), name: `${tag} ${lb.length + 1}`, thumb: thumbOf(), at: Date.now() });
+  store.set(LB_KEY, lb.slice(0, 48)); renderLookbook();
+  $("keepBtn").textContent = "★ Saved"; setTimeout(() => { $("keepBtn").textContent = "★ Save to lookbook"; }, 1200);
+}
+function wearLook(l) {
+  // every piece in the open closet? just put it on. Otherwise open it as a shared look from Base.
+  if (l.keys && l.keys.every((k) => !k || S.traits.has(k))) {
+    const L = parseLook(l.spec);
+    const o = {}; SLOTS.forEach((s, i) => { o[s] = l.keys[i] || null; });
+    S.locks.clear(); setOutfit(o, [`From your lookbook: ${l.name}.`]);
+    if (L) { S.skin = L.skin; setBg(L.bg); renderSkins(); paint(); }
+  } else openLook(l.spec);
+}
+function renderLookbook() {
+  const lb = lookbook(), el = $("lookbook"); el.innerHTML = "";
+  $("lbEmpty").hidden = lb.length > 0; $("lbCount").textContent = lb.length ? `${lb.length} saved` : "";
+  lb.forEach((l, i) => {
+    const d = document.createElement("div"); d.className = "lk"; d.tabIndex = 0; d.title = l.keys.filter(Boolean).map((k) => k.split("|")[1]).join(", ");
+    d.innerHTML = `<img src="${l.thumb}" alt=""><span>${esc(l.name)}</span><button class="del" type="button" aria-label="Remove ${esc(l.name)}">✕</button>`;
+    d.onclick = (e) => { if (e.target.closest(".del")) { const a = lookbook(); a.splice(i, 1); store.set(LB_KEY, a); renderLookbook(); return; } wearLook(l); };
+    d.onkeydown = (e) => { if (e.key === "Enter") wearLook(l); };
+    el.appendChild(d);
+  });
+}
+
+/* =====================================================================
+   7d. Spin export (3D): one full turn as a GIF or a video
+   ===================================================================== */
+async function spinFrames(size, n, each) {
+  const T = Z.three; if (!T) return;
+  const was = T.renderer.domElement.width / T.renderer.getPixelRatio(), pr = T.renderer.getPixelRatio();
+  T.renderer.setPixelRatio(1); T.renderer.setSize(size, size, false);
+  S.exporting = true;
+  try {
+    for (let i = 0; i < n; i++) {
+      const yaw = -i / n * Math.PI * 2, r = T.view ? T.view.r : 78, pitch = .14;
+      T.camera.position.set(Math.sin(yaw) * Math.cos(pitch) * r, Math.sin(pitch) * r + 2, Math.cos(yaw) * Math.cos(pitch) * r);
+      T.camera.lookAt(0, 1, 0); T.renderer.render(T.scene, T.camera);
+      await each(T.renderer.domElement, i);
+    }
+  } finally { T.renderer.setPixelRatio(pr); T.renderer.setSize(was, was, false); S.exporting = false; }
+}
+function busy(btn, on, label) { btn.disabled = on; if (label) btn.textContent = label; }
+async function exportGif() {
+  if (S.mode !== "3d" || !Z.three) return;
+  const btn = $("gifBtn"); busy(btn, true, "Making GIF…");
+  try {
+    const { GIFEncoder, quantize, applyPalette } = await import("https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm");
+    const size = 480, n = 60, gif = GIFEncoder();
+    const c = document.createElement("canvas"); c.width = c.height = size; const x = c.getContext("2d", { willReadFrequently: true });
+    await spinFrames(size, n, async (src, i) => {
+      x.drawImage(src, 0, 0, size, size);
+      const data = x.getImageData(0, 0, size, size).data;
+      const pal = quantize(data, 256), idx = applyPalette(data, pal);
+      gif.writeFrame(idx, size, size, { palette: pal, delay: 50 });
+      if (i % 6 === 0) { btn.textContent = `Making GIF ${Math.round(100 * i / n)}%`; await new Promise((r) => setTimeout(r)); }
+    });
+    gif.finish();
+    const url = URL.createObjectURL(new Blob([gif.bytes()], { type: "image/gif" }));
+    showSaved(url, "chonk-stylist-spin.gif", "A full turn, looping.");
+  } catch (e) { status("Couldn't make the GIF", true); }
+  finally { busy(btn, false, "Spin GIF"); }
+}
+async function exportVideo() {
+  if (S.mode !== "3d" || !Z.three) return;
+  const btn = $("vidBtn");
+  const types = ["video/mp4;codecs=avc1.42E01E", "video/mp4", "video/webm;codecs=vp9", "video/webm"];
+  const type = window.MediaRecorder && types.find((m) => MediaRecorder.isTypeSupported(m));
+  if (!type) { status("This browser can't record video. Try Spin GIF instead.", true); return; }
+  busy(btn, true, "Recording…");
+  try {
+    const size = 720, n = 120, c = document.createElement("canvas"); c.width = c.height = size; const x = c.getContext("2d");
+    const stream = c.captureStream(30), rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: 6e6 }), parts = [];
+    rec.ondataavailable = (e) => { if (e.data.size) parts.push(e.data); };
+    const done = new Promise((r) => (rec.onstop = r));
+    rec.start();
+    await spinFrames(size, n, async (src, i) => { x.drawImage(src, 0, 0, size, size); btn.textContent = `Recording ${Math.round(100 * i / n)}%`; await new Promise((r) => setTimeout(r, 1000 / 30)); });
+    rec.stop(); await done;
+    const ext = type.startsWith("video/mp4") ? "mp4" : "webm";
+    const url = URL.createObjectURL(new Blob(parts, { type: type.split(";")[0] }));
+    const a = document.createElement("a"); a.href = url; a.download = `chonk-stylist-spin.${ext}`; document.body.appendChild(a); a.click(); a.remove();
+    status(`Saved a 4-second spin as .${ext}.`);
+  } catch (e) { status("Couldn't record the video", true); }
+  finally { busy(btn, false, "Spin video"); }
 }
 
 /* =====================================================================
@@ -1136,7 +1318,7 @@ function renderSkins() {
     let col = 0, n = 0; for (const [c, v] of counts) if (v > n) { n = v; col = c; }
     btn.style.background = "#" + col.toString(16).padStart(6, "0");
     btn.setAttribute("aria-label", `Skin ${i + 1}`); btn.setAttribute("aria-pressed", i === S.skin ? "true" : "false");
-    btn.onclick = () => { S.skin = i; renderSkins(); paint(); };
+    btn.onclick = () => { snapshot(); S.skin = i; renderSkins(); paint(); };
     el.appendChild(btn);
   });
 }
@@ -1197,7 +1379,7 @@ function renderCloset() {
     let items = pool(s).filter((t) => !q || t.name.toLowerCase().includes(q));
     const cmp = {
       name: (a, b) => a.name.localeCompare(b.name),
-      rare: (a, b) => (share(a) ?? 1) - (share(b) ?? 1) || a.name.localeCompare(b.name),
+      rare: (a, b) => (share(a) ?? 1e9) - (share(b) ?? 1e9) || a.name.localeCompare(b.name),
       count: (a, b) => b.tokens.length - a.tokens.length || a.name.localeCompare(b.name),
       colour: (a, b) => { const A = hsl(a.dom), B = hsl(b.dom); const ga = A[1] < 15, gb = B[1] < 15; return ga - gb || (ga ? B[2] - A[2] : A[0] - B[0]); },
     }[sort];
@@ -1218,7 +1400,7 @@ function renderCloset() {
       b.appendChild(traitCanvas(t));
       b.insertAdjacentHTML("beforeend", `<span class="nm">${esc(t.name)}</span>`);
       if (t.tokens.length > 1) b.insertAdjacentHTML("beforeend", `<span class="ct">×${t.tokens.length}</span>`);
-      const tr = tier(t); if (tr) b.insertAdjacentHTML("beforeend", `<span class="rb r${tr.i}">${tr.name}</span>`);
+      const tr = tier(t); if (tr) { b.insertAdjacentHTML("beforeend", `<span class="rb r${tr.i}">${tr.name} · ${tr.count.toLocaleString()}</span>`); b.title += `\n${tr.count.toLocaleString()} exist`; }
       grid.appendChild(b);
     }
     if (!items.length) grid.insertAdjacentHTML("beforeend", `<p class="empty">${q ? "Nothing matches." : "None in this backpack."}</p>`);
@@ -1226,8 +1408,8 @@ function renderCloset() {
   }
   $("closetCount").textContent = `${shown} piece${shown === 1 ? "" : "s"}${S.filter !== "all" ? ` in #${S.filter}` : ""}`;
   $("rarityNote").textContent = S.demo ? "Rarity in the demo closet is made up." : S.census
-    ? `Rarity is an estimate: Chonks don't store it onchain, so it comes from ${S.census.n} randomly sampled trait tokens (of ${S.census.supply.toLocaleString()}), compared within each slot. Refreshed weekly.`
-    : (S.censusBusy ? "Estimating rarity from a sample of the trait supply…" : "");
+    ? `Rarity = how many of each trait exist, from chonks.xyz/traits${S.census.live ? " (live)" : " (saved copy)"}. Legendary ≤10, Epic ≤50, Rare ≤200, Uncommon ≤1,000.`
+    : (S.censusBusy ? "Loading trait counts from chonks.xyz…" : "");
   markTiles();
 }
 function markTiles() {
@@ -1236,7 +1418,9 @@ function markTiles() {
 $("slots").onclick = (e) => {
   const b = e.target.closest(".tile"); if (!b) return;
   const s = b.dataset.slot, k = b.dataset.key || null;
+  snapshot();
   S.outfit[s] = S.outfit[s] === k && k ? null : k; S.notes = [];
+  if (e.shiftKey && S.outfit[s]) S.locks.add(s); // Shift-click: wear it and lock the slot
   renderWear(); markTiles();
 };
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]); }
@@ -1251,16 +1435,17 @@ function renderWear() {
       const holders = [...new Set(t.tokens.map((k) => k.chonk))];
       const home = S.filter !== "all" && holders.includes(S.filter) ? S.filter : holders[0];
       sources.add(home);
-      where = holders.length > 1 ? `#${home} +${holders.length - 1}` : `#${home}`;
+      where = home === 0 ? "shared" : holders.length > 1 ? `#${home} +${holders.length - 1}` : `#${home}`;
     }
     li.innerHTML = `<span class="k">${SLOT_NAMES[s]}</span><span class="v${t ? "" : " none"}">${t ? esc(t.name) + `<span>${where}</span>` : "None"}</span>`;
     const lock = document.createElement("button"); lock.type = "button"; lock.className = "ic"; lock.textContent = S.locks.has(s) ? "🔒" : "🔓";
     lock.title = "Keep this slot when shuffling or styling"; lock.setAttribute("aria-label", `Lock ${SLOT_NAMES[s]}`); lock.setAttribute("aria-pressed", S.locks.has(s) ? "true" : "false");
     lock.onclick = () => { S.locks.has(s) ? S.locks.delete(s) : S.locks.add(s); renderWear(); };
     const x = document.createElement("button"); x.type = "button"; x.className = "ic"; x.textContent = "✕"; x.setAttribute("aria-label", `Take off ${SLOT_NAMES[s]}`); x.disabled = !t;
-    x.onclick = () => { S.outfit[s] = null; renderWear(); markTiles(); };
+    x.onclick = () => { snapshot(); S.outfit[s] = null; renderWear(); markTiles(); };
     li.append(lock, x); el.appendChild(li);
   }
+  sources.delete(0);
   const n = sources.size;
   $("wearSrc").textContent = n ? `from ${n} backpack${n > 1 ? "s" : ""}` : "";
   $("wearNote").innerHTML = !n ? "Pick traits from the closet, or let the buttons above dress your Chonk." : n === 1
@@ -1324,7 +1509,7 @@ const DEMO = (() => {
   };
 })();
 function loadDemo() {
-  S.demo = true; S.bodies = DEMO.bodies(); S.census = DEMO.census;
+  S.demo = true; S.bodies = DEMO.bodies(); S.census = { counts: Object.fromEntries(Object.entries(DEMO.census.counts).map(([k, v]) => [k, v * 9])), live: false };
   build(DEMO.chonks(), DEMO.trait);
   status("Demo closet: 3 backpacks, " + S.traits.size + " pieces");
 }
@@ -1334,6 +1519,15 @@ function loadDemo() {
    ===================================================================== */
 $("findForm").onsubmit = (e) => { e.preventDefault(); const v = $("q").value.trim(); if (v) openCloset(v); };
 $("randBtn").onclick = shuffle;
+$("undoBtn").onclick = undo;
+$("shareBtn").onclick = shareLook;
+$("keepBtn").onclick = saveLook;
+$("gifBtn").onclick = exportGif;
+$("vidBtn").onclick = exportVideo;
+window.addEventListener("hashchange", () => { let h = ""; try { h = decodeURIComponent(location.hash.slice(1)); } catch {} if (parseLook(h)) openLook(h); });
+document.addEventListener("keydown", (e) => {
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); }
+});
 $("walletBtn").onclick = async () => {
   const eth = window.ethereum;
   if (!eth) { status("No browser wallet found here. Paste your wallet address or ENS name instead.", true); return; }
@@ -1366,9 +1560,16 @@ $("saveBtn").onclick = () => {
     const o = out.getContext("2d"); o.imageSmoothingEnabled = false; o.drawImage(lo, 0, 0, out.width, out.height);
     url = out.toDataURL("image/png");
   }
-  $("ovImg").src = url; $("ovDl").href = url; $("ov").hidden = false; $("ovClose").focus();
+  showSaved(url, "chonk-outfit.png");
 };
-$("ovClose").onclick = () => { $("ov").hidden = true; };
+function showSaved(url, name, msg) {
+  $("ovImg").hidden = false; $("ovText").hidden = true; $("ovDl").hidden = false;
+  $("ovImg").src = url; $("ovDl").href = url; $("ovDl").download = name;
+  $("ovMsg").textContent = (msg ? msg + " " : "") + "Right-click or long-press the picture to save it if the download doesn't start.";
+  $("ov").hidden = false; $("ovClose").focus();
+}
+$("ovCopy").onclick = async () => { try { await navigator.clipboard.writeText($("ovLink").value); $("ovCopy").textContent = "Copied ✓"; } catch { $("ovLink").select(); } };
+$("ovClose").onclick = () => { $("ov").hidden = true; $("ovCopy").textContent = "Copy"; };
 $("ov").onclick = (e) => { if (e.target === $("ov")) $("ov").hidden = true; };
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") $("ov").hidden = true; });
 $("copyBtn").onclick = () => {
@@ -1392,6 +1593,8 @@ setSpin(S.spin);
   paint();
   let h = ""; try { h = decodeURIComponent((location.hash || "").slice(1)); } catch {} if (/^slot-/.test(h)) h = "";
   if (store.get("closet-mode") === "3d") setMode("3d");
+  renderLookbook();
+  if (parseLook(h)) { openLook(h); return; }
   const start = h || "1"; // Chonk #1 opens by default
   if (start) { $("q").value = start; openCloset(start); }
   else {
