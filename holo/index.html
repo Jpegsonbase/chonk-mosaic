@@ -400,7 +400,11 @@ function bytesOf(str) { return Uint8Array.from(str, (c) => c.charCodeAt(0) & 255
 async function getTraits(id) {
   if (chain.online === false) return null;
   let s;
-  try { s = decodeString(await ethCall(SEL_URI + pad64(id))); } catch { return null; }
+  // tokenURI renders the whole Chonk onchain, which is too heavy for some public RPCs (they revert), so try each one, mainnet.base.org first.
+  for (const url of ["https://mainnet.base.org", ...RPCS.filter((u) => u !== "https://mainnet.base.org")]) {
+    try { const j = await rpc(url, { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: CONTRACT, data: SEL_URI + pad64(id) }, "latest"] }, 20000); if (j && typeof j.result === "string" && j.result.length > 130) { s = decodeString(j.result); break; } } catch {}
+  }
+  if (!s) return null;
   let txt = s;
   try {
     if (s.startsWith("data:")) {
