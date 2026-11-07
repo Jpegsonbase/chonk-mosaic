@@ -115,6 +115,18 @@ a { color: inherit; text-decoration: none; }
 .panel { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; background: var(--tint); }
 .panel img { position: absolute; inset: 9% 12%; width: 76%; height: 82%; object-fit: cover; border-radius: 9px; box-shadow: 0 10px 22px -10px rgba(0,0,0,.45); transition: transform .4s cubic-bezier(.2,.8,.2,1); }
 .tile:hover .panel img { transform: translateY(-3px) scale(1.04); }
+/* preview clips sit exactly over the still and fade in once they're playing */
+.panel video { position: absolute; inset: 9% 12%; width: 76%; height: 82%; object-fit: cover; border-radius: 9px; opacity: 0; transition: opacity .35s, transform .4s cubic-bezier(.2,.8,.2,1); pointer-events: none; }
+.panel video.on { opacity: 1; }
+.tile:hover .panel video { transform: translateY(-3px) scale(1.04); }
+.feature .panel video { inset: 8% 7% 10%; width: 86%; height: 82%; }
+.feature:hover .panel video { transform: translateY(-3px) scale(1.03); }
+/* live Bitcoin price on the Chonk Wars tile */
+.btc { position: absolute; z-index: 2; left: 9px; bottom: 8px; display: inline-flex; align-items: center; gap: 6px; font: 700 10.5px var(--mono); letter-spacing: .03em; background: var(--card); color: var(--ink); border-radius: 6px; padding: 3px 7px; font-variant-numeric: tabular-nums; transition: background .4s, color .4s; }
+.btc i { width: 6px; height: 6px; border-radius: 50%; background: #5DBB7A; }
+.btc .chg.up { color: #1F9D55; } .btc .chg.down { color: #D64545; }
+.btc.flash-up { background: #D9F5E3; color: #0F5132; } .btc.flash-down { background: #FBE0E0; color: #842029; }
+.feature .btc { left: 12px; bottom: 11px; font-size: 12px; padding: 5px 9px; }
 .panel .dot { position: absolute; left: 10px; top: 10px; width: 6px; height: 6px; border-radius: 50%; background: var(--live); opacity: .7; }
 .panel .badge { position: absolute; right: 9px; bottom: 8px; font: 700 9.5px var(--mono); letter-spacing: .08em; background: var(--card); color: var(--ink); border-radius: 5px; padding: 3px 6px; }
 .meta { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; padding: 11px 8px 6px; }
@@ -165,7 +177,7 @@ a { color: inherit; text-decoration: none; }
 .filters .tally b { color: var(--ink); }
 
 .mock { text-align: center; padding-top: 34px; }
-@media (prefers-reduced-motion: reduce) { .tile { animation: none; } .tile, .panel img, .arrow { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .tile { animation: none; } .tile, .panel img, .arrow { transition: none; } .panel video { display: none; } }
 </style>
 </head>
 <body>
@@ -207,14 +219,14 @@ const FEATURED = "wars";
 const SITE = "";
 const GROUPS = [{ id: "all", name: "Everything" }, { id: "make", name: "Make" }, { id: "play", name: "Play" }, { id: "watch", name: "Download" }];
 const TOOLS = [
-  { id: "mosaic", group: "make", cat: "Mosaic", name: "Mosaic maker", href: "mosaic.html", tint: "--p-blue", desc: "Rebuild any picture out of Chonks.", keys: "mosaic image photo picture pfp", live: true },
-  { id: "studio", group: "make", cat: "Pixel art", name: "Studio", href: "studio.html", tint: "--p-sand", desc: "Paint pixel art where every pixel is a Chonk.", keys: "paint draw pixel canvas" },
-  { id: "ascii", group: "make", cat: "Text art", name: "ASCII", href: "ascii.html", tint: "--p-night", desc: "Text art from any Chonk, spinning in 3D. Export a GIF.", keys: "text ascii gif 3d glb hologram statue" },
+  { id: "mosaic", clip: true, group: "make", cat: "Mosaic", name: "Mosaic maker", href: "mosaic.html", tint: "--p-blue", desc: "Rebuild any picture out of Chonks.", keys: "mosaic image photo picture pfp", live: true },
+  { id: "studio", clip: true, group: "make", cat: "Pixel art", name: "Studio", href: "studio.html", tint: "--p-sand", desc: "Paint pixel art where every pixel is a Chonk.", keys: "paint draw pixel canvas" },
+  { id: "ascii", clip: true, group: "make", cat: "Text art", name: "ASCII", href: "ascii.html", tint: "--p-night", desc: "Text art from any Chonk, spinning in 3D. Export a GIF.", keys: "text ascii gif 3d glb hologram statue" },
   { id: "sketch", group: "make", cat: "Pencil", name: "Sketch", href: "sketchbook.html", tint: "--p-rose", desc: "Any Chonk redrawn in coloured pencil, with a stop-motion spin.", keys: "pencil drawing sketchbook gif spin" },
-  { id: "gallery", group: "play", cat: "3D", name: "Gallery", href: "gallery.html", tint: "--p-sage", desc: "A 3D gallery for your mosaics. Walk it in first person.", keys: "3d museum walk statue hologram" },
-  { id: "wars", group: "play", cat: "Game", name: "Chonk Wars", href: "wars/", tint: "--p-lilac", desc: "200 Chonks battle over the live Bitcoin price. Every trade is a blow, and you can jump in and play as any Chonk.", keys: "game battle bitcoin btc cavalry war", isNew: true, live: true, cta: "Play now",
+  { id: "gallery", clip: true, group: "play", cat: "3D", name: "Gallery", href: "gallery.html", tint: "--p-sage", desc: "A 3D gallery for your mosaics. Walk it in first person.", keys: "3d museum walk statue hologram" },
+  { id: "wars", clip: true, group: "play", cat: "Game", name: "Chonk Wars", href: "wars/", tint: "--p-lilac", desc: "200 Chonks battle over the live Bitcoin price. Every trade is a blow, and you can jump in and play as any Chonk.", keys: "game battle bitcoin btc cavalry war", isNew: true, live: true, cta: "Play now",
     points: ["Live BTC price drives every hit", "Airstrikes and a 10-a-side cavalry charge", "Load any wallet as your army"] },
-  { id: "gifs", group: "watch", cat: "Animation", name: "GIFs", href: "gifs/", tint: "--p-sky", desc: "Blender animations. Download the MP4 or a GIF to post.", keys: "gif mp4 video blender gm animation", isNew: true },
+  { id: "gifs", clip: true, group: "watch", cat: "Animation", name: "GIFs", href: "gifs/", tint: "--p-sky", desc: "Blender animations. Download the MP4 or a GIF to post.", keys: "gif mp4 video blender gm animation", isNew: true },
 ];
 const $ = (id) => document.getElementById(id);
 const link = (t) => /^https?:/.test(t.href) ? t.href : SITE + t.href;
@@ -231,6 +243,10 @@ $("filters").innerHTML = GROUPS.map((g) => `<button type="button" data-g="${g.id
 $("filters").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; group = b.dataset.g; $("filters").querySelectorAll("button").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); render(); });
 $("q").addEventListener("input", render);
 
+// the still shown first (a clip's own first frame, so nothing jumps when it starts) and the clip itself
+const still = (t, wide) => t.clip ? `img/hub/clips/${t.id}.webp` : `img/hub/${wide && t.id === "wars" ? "wars-wide" : t.id}.webp`;
+const clipTag = (t) => t.clip ? `<video muted loop playsinline preload="none" aria-hidden="true"><source src="img/hub/clips/${t.id}.webm" type="video/webm"><source src="img/hub/clips/${t.id}.mp4" type="video/mp4"></video>` : "";
+const btcTag = (t) => t.id === "wars" ? `<span class="btc" data-btc><i></i><span class="px">BTC live</span><span class="chg"></span></span>` : "";
 function render() {
   const q = $("q").value.trim().toLowerCase();
   const list = TOOLS.map((t, i) => ({ ...t, n: i + 1 })).filter((t) => (group === "all" || t.group === group) && (!q || (t.name + " " + t.cat + " " + t.desc + " " + t.keys).toLowerCase().includes(q)));
@@ -241,19 +257,90 @@ function render() {
   fe.hidden = !ft;
   if (ft) {
     fe.href = link(ft); fe.style.setProperty("--tint", `var(${ft.tint})`);
-    fe.innerHTML = `<div class="panel"><span class="flag">FEATURED</span><img src="img/hub/${ft.id === "wars" ? "wars-wide" : ft.id}.webp" alt="">${ft.isNew ? '<span class="badge">NEW</span>' : ""}</div>
+    fe.innerHTML = `<div class="panel"><span class="flag">FEATURED</span><img src="${still(ft, true)}" alt="">${clipTag(ft)}${btcTag(ft)}${ft.isNew ? '<span class="badge">NEW</span>' : ""}</div>
       <div class="side"><span class="cat">${esc(ft.cat)} · ${pad(ft.n)}</span><h2>${esc(ft.name)}</h2><p>${esc(ft.desc)}</p>
       ${ft.points ? `<ul class="points">${ft.points.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}<span class="cta">${esc(ft.cta || "Open")} ↗</span></div>`;
   }
   $("allLabel").textContent = ft ? "More tools" : group === "all" ? "All tools" : GROUPS.find((g) => g.id === group).name;
   $("allLabel").parentElement.hidden = !rest.length;
   $("grid").innerHTML = rest.map((t, k) => `<a class="tile" style="--i:${k + 1};--tint:var(${t.tint})" href="${link(t)}"${/^https?:/.test(t.href) ? ' target="_blank" rel="noopener"' : ""}>
-      <div class="panel">${t.live ? '<span class="dot"></span>' : ""}<img src="img/hub/${t.id}.webp" alt="" ${k > 7 ? 'loading="lazy"' : ""}>${t.isNew ? '<span class="badge">NEW</span>' : ""}</div>
+      <div class="panel">${t.live && t.id !== "wars" ? '<span class="dot"></span>' : ""}<img src="${still(t)}" alt="" ${k > 7 ? 'loading="lazy"' : ""}>${clipTag(t)}${btcTag(t)}${t.isNew ? '<span class="badge">NEW</span>' : ""}</div>
       <div class="meta"><b>${esc(t.name)}</b><span class="num">${pad(t.n)}</span><span class="cat">${esc(t.cat)}</span><span class="arrow">↗</span><span class="desc">${esc(t.desc)}</span></div></a>`).join("");
   $("empty").hidden = list.length > 0;
   $("tally").innerHTML = `<b>${list.length}</b> / ${N}`;
+  if (window.__clipsReady) { wireClips(); watchBtc(); }
 }
 render();
+
+// ---- preview clips ----
+// Desktop: a tile's clip plays while you point at it. Touch screens: clips play while the tile is on screen.
+// The featured tile plays whenever it's on screen. Nothing plays for visitors who ask for reduced motion.
+const calm = matchMedia("(prefers-reduced-motion: reduce)");
+const canHover = matchMedia("(hover: hover) and (pointer: fine)");
+function playClip(v) {
+  if (calm.matches || !v) return;
+  if (v.preload !== "auto") { v.preload = "auto"; }
+  const p = v.play(); if (p && p.catch) p.catch(() => {});
+}
+function stopClip(v) { if (!v) return; v.pause(); v.classList.remove("on"); }
+const seen = new IntersectionObserver((entries) => {
+  for (const e of entries) {
+    const v = e.target.querySelector("video");
+    if (e.isIntersecting) playClip(v); else stopClip(v);
+  }
+}, { threshold: 0.6 });
+function wireClips() {
+  seen.disconnect();
+  document.querySelectorAll(".tile, .feature").forEach((el) => {
+    const v = el.querySelector("video"); if (!v) return;
+    v.onplaying = () => v.classList.add("on");
+    if (el.classList.contains("feature") || !canHover.matches) seen.observe(el);
+    else { el.onpointerenter = () => playClip(v); el.onpointerleave = () => stopClip(v); }
+  });
+  btcPaint();
+}
+
+// ---- live Bitcoin price for the Chonk Wars tile (same public Binance feed the game uses) ----
+const btc = { price: 0, open: 0, last: 0, ws: null, host: 0, poll: null };
+const fmtUsd = (n) => "$" + n.toLocaleString("en-US", { maximumFractionDigits: 0 });
+function btcPaint(dir) {
+  document.querySelectorAll("[data-btc]").forEach((el) => {
+    if (!btc.price) return;
+    el.querySelector(".px").textContent = "BTC " + fmtUsd(btc.price);
+    const c = el.querySelector(".chg");
+    if (btc.open) { const pct = (btc.price / btc.open - 1) * 100; c.textContent = (pct >= 0 ? "▲" : "▼") + Math.abs(pct).toFixed(2) + "%"; c.className = "chg " + (pct >= 0 ? "up" : "down"); }
+    if (dir) { el.classList.remove("flash-up", "flash-down"); void el.offsetWidth; el.classList.add(dir > 0 ? "flash-up" : "flash-down"); clearTimeout(el._f); el._f = setTimeout(() => el.classList.remove("flash-up", "flash-down"), 600); }
+  });
+}
+function btcSet(price, open) {
+  if (!(price > 0)) return;
+  const dir = btc.price ? Math.sign(price - btc.price) : 0;
+  btc.price = price; if (open > 0) btc.open = open;
+  const now = performance.now(); if (dir && now - btc.last < 900) { btcPaint(); return; }   // flash at most about once a second
+  btc.last = now; btcPaint(dir);
+}
+async function btcPoll() {
+  for (const host of ["https://data-api.binance.vision", "https://api.binance.us"]) {
+    try { const j = await (await fetch(`${host}/api/v3/ticker/24hr?symbol=BTCUSDT`)).json(); if (j && j.lastPrice) { btcSet(+j.lastPrice, +j.openPrice); return; } } catch {}
+  }
+}
+function btcConnect() {
+  if (btc.ws) return;
+  const hosts = ["data-stream.binance.vision", "stream.binance.us:9443", "stream.binance.com:9443"];
+  let sock; try { sock = new WebSocket(`wss://${hosts[btc.host % hosts.length]}/ws/btcusdt@miniTicker`); } catch { return btcFallback(); }
+  btc.ws = sock;
+  sock.onmessage = (ev) => { try { const m = JSON.parse(ev.data); btcSet(+m.c, +m.o); } catch {} };
+  sock.onclose = sock.onerror = () => { if (btc.ws !== sock) return; btc.ws = null; btc.host++; btcFallback(); };
+}
+function btcFallback() { if (!btc.poll) { btcPoll(); btc.poll = setInterval(btcPoll, 15000); } setTimeout(() => { if (watching()) btcConnect(); }, 20000); }
+function btcStop() { const s = btc.ws; btc.ws = null; try { s && s.close(); } catch {} clearInterval(btc.poll); btc.poll = null; }
+// only stream while a Chonk Wars tile is on screen and the tab is visible
+let btcVisible = 0; const watching = () => btcVisible > 0 && !document.hidden;
+const btcSeen = new IntersectionObserver((es) => { for (const e of es) btcVisible += e.isIntersecting ? 1 : (e.target._in ? -1 : 0), e.target._in = e.isIntersecting; btcVisible = Math.max(0, btcVisible); watching() ? (btcPoll(), btcConnect()) : btcStop(); });
+function watchBtc() { btcSeen.disconnect(); btcVisible = 0; document.querySelectorAll("[data-btc]").forEach((el) => { el._in = false; btcSeen.observe(el); }); }
+document.addEventListener("visibilitychange", () => watching() ? btcConnect() : btcStop());
+
+window.__clipsReady = true; wireClips(); watchBtc();
 
 // grid / list view
 const view = (v) => { $("grid").classList.toggle("list", v === "list"); $("gridBtn").setAttribute("aria-pressed", String(v === "grid")); $("listBtn").setAttribute("aria-pressed", String(v === "list")); try { localStorage.setItem("hubView", v); } catch {} };
