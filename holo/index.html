@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Chonk Holo Cards</title>
+<meta name="description" content="Put any Chonk on a holographic trading card. Its stats, moves and type come from its traits. Save a PNG or a shiny GIF.">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Chonkit">
+<meta property="og:title" content="Chonk Holo Cards">
+<meta property="og:description" content="Any Chonk on a holo trading card, with stats from its traits.">
+<meta property="og:url" content="https://chonkit.xyz/holo/">
+<meta property="og:image" content="https://chonkit.xyz/holo/og.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<!-- Visitor counter (free, no cookies). Stats: https://jpegsonbase.goatcounter.com -->
+<script data-goatcounter="https://jpegsonbase.goatcounter.com/count" async src="https://gc.zgo.at/count.js"></script>
+<meta name="twitter:creator" content="@jpegsonbase">
+<meta name="theme-color" content="#F3F2EE" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151918" media="(prefers-color-scheme: dark)">
+<script>
+  (function () { try { var t = localStorage.getItem("chonk-theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch (e) {} })();
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<style>
+@font-face { font-family: "Sangyo"; src: url("data:font/woff2;base64,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") format("woff2"); font-weight: 400 900; font-display: swap; }
+/* Layout: the site's calm sheet. Label row, headline, then a two-column workspace:
+   the card on a dark stage (left) and the controls (right). Stacks on phones. */
+:root {
+  --bg: #F3F2EE; --bg-tint-a: #EDEBF4; --bg-tint-b: #EEF3EA;
+  --card: #FFFFFF; --ink: #1E2A2A; --muted: #7C8584; --line: #E6E4DE; --dark: #1F2B2B; --dark-ink: #F4F3EF;
+  --accent: #C2643B;
+  --display: "Sangyo", "Arial Black", sans-serif;
+  --body: "Manrope", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  --stage-a: #2a1d3d; --stage-b: #0d0b14;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #151918; --bg-tint-a: #1A1A24; --bg-tint-b: #161F18;
+  --card: #1F2524; --ink: #EDEFEC; --muted: #8E9896; --line: #2C3433; --dark: #EDEFEC; --dark-ink: #151918;
+  --accent: #E08A5F; color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #151918; --bg-tint-a: #1A1A24; --bg-tint-b: #161F18;
+  --card: #1F2524; --ink: #EDEFEC; --muted: #8E9896; --line: #2C3433; --dark: #EDEFEC; --dark-ink: #151918;
+  --accent: #E08A5F; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { min-height: 100%; }
+body { margin: 0; background: radial-gradient(1200px 700px at 0% 0%, var(--bg-tint-a), transparent 60%), radial-gradient(1000px 700px at 100% 40%, var(--bg-tint-b), transparent 60%), var(--bg); background-attachment: fixed; color: var(--ink); font: 500 15px/1.5 var(--body); -webkit-font-smoothing: antialiased; }
+[hidden] { display: none !important; }
+a { color: inherit; text-decoration: none; }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 2.5px solid var(--accent); outline-offset: 3px; border-radius: 10px; }
+.wrap { max-width: 1080px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-top: calc(env(safe-area-inset-top, 0px) + 28px); padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 60px); }
+.mono { font: 500 12px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+
+.toprow { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-inline: 8px; }
+.toprow .brand { display: flex; align-items: center; gap: 8px; }
+.toprow .brand svg { width: 26px; height: 17px; }
+.toprow .brand:hover .mono { color: var(--ink); }
+.toprow .right { margin-left: auto; display: flex; gap: 10px; }
+.pill { font: 700 11.5px var(--mono); letter-spacing: .06em; background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; cursor: pointer; }
+
+.head { padding: 40px 14px 26px; }
+.head h1 { font: 400 clamp(40px, 6.4vw, 68px)/.95 var(--display); margin: 0; letter-spacing: -.01em; }
+.head h1 em { font-style: normal; color: var(--accent); }
+.head p { margin: 14px 0 0; max-width: 560px; color: var(--muted); font-size: 16px; text-wrap: pretty; }
+
+.work { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+@media (max-width: 820px) { .work { grid-template-columns: 1fr; } }
+
+/* stage */
+.stage { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); border-radius: 22px; padding: 34px 20px 22px; background: radial-gradient(ellipse at 50% 38%, var(--stage-a), var(--stage-b) 72%); box-shadow: 0 18px 34px -24px rgba(30, 42, 42, .6); display: flex; flex-direction: column; align-items: center; gap: 16px; overflow: hidden; }
+@media (max-width: 820px) { .stage { position: relative; top: 0; } }
+.scene { perspective: 1100px; width: min(360px, 100%); }
+.card { position: relative; width: 100%; aspect-ratio: 5 / 7; transform-style: preserve-3d; transition: transform .12s ease-out; touch-action: none; cursor: grab; }
+.flip { position: absolute; inset: 0; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.3,.7,.2,1); }
+.flip.back { transform: rotateY(180deg); }
+.face { position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 5.2%/3.7%; backface-visibility: hidden; -webkit-backface-visibility: hidden; box-shadow: 0 30px 60px -20px #000; }
+.face.rear { transform: rotateY(180deg); }
+.loading .face.front { filter: saturate(.3) brightness(.7); transition: filter .2s; }
+.hint { font: 600 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: #a69cb8; text-align: center; margin: 0; }
+.stagebar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.sbtn { font: 700 12px var(--mono); letter-spacing: .04em; color: #f4effa; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; padding: 9px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; }
+.sbtn:hover { background: rgba(255,255,255,.16); }
+.sbtn:disabled { opacity: .55; cursor: progress; }
+.sbtn.main { background: #f4effa; color: #15121d; border-color: #f4effa; }
+.sbtn.main:hover { background: #fff; }
+
+/* panel */
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 22px; padding: 18px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 1px 0 rgba(0,0,0,.02), 0 18px 34px -24px rgba(30, 42, 42, .45); }
+.sec h2 { font: 700 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 0 0 10px; }
+.find { display: flex; gap: 8px; }
+.find input { flex: 1; min-width: 0; border: 1.5px solid var(--line); background: var(--bg); border-radius: 13px; padding: 11px 13px; font: 500 16px var(--body); outline: none; }
+.find input:focus { border-color: var(--ink); }
+.btn { border: 0; border-radius: 13px; padding: 11px 15px; font: 700 14px var(--body); cursor: pointer; background: var(--dark); color: var(--dark-ink); white-space: nowrap; }
+.btn.ghost { background: none; border: 1.5px solid var(--line); color: var(--ink); }
+.btn.ghost:hover { border-color: var(--ink); }
+.status { font: 500 12.5px/1.45 var(--mono); color: var(--muted); margin: 9px 2px 0; min-height: 1.45em; }
+.status.err { color: #C2453B; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-height: 120px; overflow: auto; }
+.chip { font: 700 12px var(--mono); border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 10px; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--dark); color: var(--dark-ink); border-color: var(--dark); }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg button { border: 1.5px solid var(--line); background: none; border-radius: 11px; padding: 8px 11px; font: 700 13px var(--body); cursor: pointer; }
+.seg button:hover { border-color: var(--ink); }
+.seg button[aria-pressed="true"] { background: var(--dark); color: var(--dark-ink); border-color: var(--dark); }
+.seg small { display: block; font: 500 11px var(--body); color: var(--muted); margin-top: 7px; }
+.namebox input { width: 100%; border: 1.5px solid var(--line); background: var(--bg); border-radius: 13px; padding: 10px 13px; font: 600 15px var(--body); outline: none; }
+.namebox input:focus { border-color: var(--ink); }
+
+.statgrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.stat { background: var(--bg); border-radius: 12px; padding: 9px 10px 8px; }
+.stat b { display: block; font: 400 22px/1 var(--display); margin-top: 4px; }
+.stat span { font: 700 10px var(--mono); letter-spacing: .1em; color: var(--muted); }
+.stat i { display: block; height: 3px; border-radius: 2px; background: var(--line); margin-top: 7px; overflow: hidden; }
+.stat i::after { content: ""; display: block; height: 100%; width: var(--v); background: var(--accent); }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.tag { font: 700 11px var(--mono); letter-spacing: .04em; border-radius: 7px; padding: 4px 8px; background: var(--bg); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+td { padding: 7px 4px; border-top: 1px solid var(--line); vertical-align: top; }
+td.k { font: 700 10.5px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); width: 1%; white-space: nowrap; padding-top: 9px; }
+td.v { font-weight: 600; }
+td.d { text-align: right; font: 600 11px var(--mono); color: var(--muted); white-space: nowrap; }
+td.d em { font-style: normal; color: var(--accent); }
+.note { font-size: 12.5px; color: var(--muted); margin: 8px 0 0; }
+.how { font-size: 12.5px; color: var(--muted); margin: 0; }
+
+/* save overlay */
+.ov { position: fixed; inset: 0; z-index: 50; background: rgba(8, 7, 12, .78); backdrop-filter: blur(6px); display: grid; place-items: center; padding: 20px; }
+.ovbox { background: var(--card); border-radius: 20px; padding: 16px; max-width: min(440px, 100%); width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.ovbox img { width: 100%; border-radius: 12px; background: #0d0b14; display: block; max-height: 64vh; object-fit: contain; }
+.ovbox p { margin: 0; font-size: 13px; color: var(--muted); }
+.ovrow { display: flex; gap: 8px; justify-content: flex-end; }
+@media (prefers-reduced-motion: reduce) { .card, .flip { transition: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toprow">
+    <a class="brand" href="https://chonkit.xyz/" aria-label="Back to Chonkit"><svg viewBox="0 0 11 7" shape-rendering="crispEdges" aria-hidden="true"><path fill="#FDCB58" d="M2 0h8v1h-8zM1 1h10v5h-10zM2 6h8v1h-8z"/><path fill="#F4900C" d="M0 3h1v2h-1zM5 4h3v1h-3z"/><path fill="#E6E7E8" d="M3 3h1v2h-1zM8 3h1v2h-1z"/><path fill="#31373D" d="M4 3h1v2h-1zM9 3h1v2h-1z"/></svg><span class="mono">Chonkit / Holo cards</span></a>
+    <span class="right"><button class="pill" id="themeBtn" type="button" aria-label="Switch theme">LIGHT / DARK</button></span>
+  </div>
+
+  <header class="head">
+    <h1>Holo <em>cards</em></h1>
+    <p>Put any Chonk on a foil trading card. Its type, HP, moves and stats all come from the traits it's wearing.</p>
+  </header>
+
+  <main class="work">
+    <section class="stage" aria-label="Card preview">
+      <div class="scene">
+        <div class="card" id="card" tabindex="0" role="img" aria-label="Holo trading card">
+          <div class="flip" id="flip">
+            <canvas class="face front" id="front"></canvas>
+            <canvas class="face rear" id="rear"></canvas>
+          </div>
+        </div>
+      </div>
+      <p class="hint">Move across the card to tilt the foil</p>
+      <div class="stagebar">
+        <button class="sbtn main" id="pngBtn" type="button">Save PNG</button>
+        <button class="sbtn" id="gifBtn" type="button">Save GIF</button>
+        <button class="sbtn" id="flipBtn" type="button">Flip</button>
+        <button class="sbtn" id="linkBtn" type="button">Copy link</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="sec">
+        <h2>Chonk</h2>
+        <form class="find" id="findForm" autocomplete="off">
+          <input id="q" inputmode="text" placeholder="Chonk ID, wallet or ENS" aria-label="Chonk ID, wallet address or ENS name">
+          <button class="btn" type="submit">Load</button>
+          <button class="btn ghost" type="button" id="randBtn" title="Random Chonk">Random</button>
+        </form>
+        <p class="status" id="status" aria-live="polite"></p>
+        <div class="chips" id="chips" hidden></div>
+      </div>
+
+      <div class="sec">
+        <h2>Foil</h2>
+        <div class="seg" id="foilSeg">
+          <button type="button" data-v="auto" aria-pressed="true">Auto</button>
+          <button type="button" data-v="chonk">Chonk</button>
+          <button type="button" data-v="outfit">Outfit</button>
+          <button type="button" data-v="scene">Scene</button>
+          <button type="button" data-v="reverse">Reverse</button>
+          <button type="button" data-v="full">Full</button>
+          <button type="button" data-v="off">Off</button>
+        </div>
+        <div class="seg" id="finishSeg" style="margin-top:8px">
+          <button type="button" data-v="rainbow" aria-pressed="true">Rainbow</button>
+          <button type="button" data-v="gold">Gold</button>
+          <button type="button" data-v="cosmos">Cosmos</button>
+          <button type="button" data-v="ice">Ice</button>
+        </div>
+        <p class="note" id="foilNote"></p>
+      </div>
+
+      <div class="sec namebox">
+        <h2>Card name</h2>
+        <input id="nameIn" maxlength="20" placeholder="Chonk #18" aria-label="Card name">
+      </div>
+
+      <div class="sec">
+        <h2>Stats</h2>
+        <div class="statgrid" id="statgrid"></div>
+        <div class="meta" id="metaTags"></div>
+      </div>
+
+      <div class="sec">
+        <h2>Where they come from</h2>
+        <table id="traitTable"></table>
+        <p class="note" id="traitNote"></p>
+      </div>
+
+      <div class="sec">
+        <h2>How it works</h2>
+        <p class="how">Each trait adds to Power, Guard, Speed and Swag by its slot (shoes are fast, tops are tough, accessories hit hard) and by what's in its name (a sword hits, a crown shines). Type comes from the Chonk's colours. HP grows with size and outfit. Head, Face and Accessory traits are the rare ones, so they set the rarity.</p>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="ov" id="ov" hidden>
+  <div class="ovbox" role="dialog" aria-modal="true" aria-label="Your card">
+    <img id="ovImg" alt="Your holo card">
+    <p id="ovText">If the download didn't start, long-press or right-click the image to save it.</p>
+    <div class="ovrow"><button class="btn ghost" id="ovClose" type="button">Close</button><button class="btn" id="ovSave" type="button">Download</button></div>
+  </div>
+</div>
+
+<script>
+/* =====================================================================
+   1. Chain: the same loader Chonk Run uses (getChonkZMap on Base, with
+      six built-in Chonks when Base can't be reached), plus tokenURI for traits.
+   ===================================================================== */
+const SAMPLES = {"1": {"b64": "xZJLCsIwFEVvPy95LwiCYweCGyidWhwobsNtOXMPbsZtuIRK/gq2FkQ9lHASCM1pI6qaLcgA6Lqubdvb5Xg97c9z9H2/bJr17rDabDGMeB7UTjgB1Ilpjmw/xuQWE45vJyz+QLYrHvODLhdGHvda5ZnspWe8JX1+gONSVucPLSzyqosGfFKXUlqHQ6vkCloH1xo1BSe7uSpL+8RGxMaiiMPI/xKxufYeQ4SNY+we6qJ2g3ciCj7Q9Q0Gu57JPxKhi/My87vt/+QO"}, "3": {"b64": "zZKxDcIwEEUvuZwdJxYNJRJVlqACRmAB1mAHJmAfajoqKnqgYgAjx46xk0ACAimvON2TE1n/y4JwNCZ5hMnteonmZ5gdtutis5oWO7jvk1O2UEoBgIIl/AhhCcQoOboM/H3Q+GkhSCuqQKF1Zm9vwlbBDPZy5BqszNDD4kQTf5u2R/b2JqhhjF7bB01w2wQvhadl2JTz0mz20ohZY2SbwARdEzEiIFYWRdWwSI3bvSakO5US5PNzPfo2AYKynEgPEzbLGWPO3jTxfxpNhNTfRHDQ74V4PwH4e90GxAM="}, "23": {"b64": "xZGxDsIgEIZP4QpYJp3dXFyZNOni6DMY39TdlzB9Bh2cMRyIV0OTNqbxJ718NLTclzOVsEu0m925bVvnXNM0AHC9nI5utV3Xz8f9BnvvvYcDjM4ihWHY9LHKgbwZf+lE6bik5kL/qsCq61LyIjEdQ/83MYNZxvzuwmfBXLIMaNY/50FexiAtQ91jeiJjZKXTex0+RokVSqQ+hZQgpSCezd8lx1LJ4QiWz+Xj8jWjGhWVyFrrxD1eU6TgNWxgAfkJxlDmP+UF"}, "42": {"b64": "rZIxDsIwDEUNaW2Kw8BF2ChjRxZmBiSOwAmYWDgER+EAHIOBE4CEULcix0kTJBBU4leKXt3UfpFSkOFxPgKAqqqW29l8Xa720+OuPGwmt0e9ODV1XV/OcL9C0zTwPewTibkTJh1A3tyjrX8Y3znpXNQwKHFA9tWwI2x4QcvApBHlwhULkR5qZFqhEUyqeWZyk+VdhB1ZF1FvdVpKEVOMHH+Trl4dAL06AuJAg4jk1QmRfJVQ1TNjRMeYDPwpev2wgDraV9+I/E5deNRDlMUhEQnaD+r/vA+JOnBoHS6JjRfV2vYr2EShG7b81zM8AQ=="}, "123": {"b64": "xZJBDoIwEEUHmIF26MqjsGZn3HMCT6QLN3oOV56AeAOXbDyAJzCYgUJLAjYkJr40k5emi//b6jTJN2R2p2dZlkVRvK77x2XbNA0A1HV9qw7F8d227b06wyq0xZnWYYVR/oiXBi16VtFXdArOIO2BlRr3fItpZBmRATDuJj2djc44p8stiIgkmbIhFSjRTFSpcVch2V1CgCSOZdlCYAtF0TACD+B/numHGaNrzDNEGSBKRKKu0qTFTwm2CMLM3A1mTrN+AHTT6nDgh7GX+AA="}, "404": {"b64": "tZIxTgQxDEUN6zDOn7HQ1pyAYinhFlyCmoYTQA8VVNRbI9FSsAUlHIALII4xKHayyexCgQRfI42f4mTyNJZupnPWeHkW7y72H6+fro7vz48O3pYnnyt9vl3cvB6+P4zjSESnHy9ERICqkgcgAMi1AIUgECkkZcWg1LA9FdZNE7CjJb//Pjs17pDkNPt4dCKnRY6ZOcux1S7HBRS8DmluMkAFOyx47DNUF4iIuy49Dp3HYc/jMPNYvVsycTO7n+TQyqGVQ5FLEKW5NiI3IN/CllzTlTxdLhGHLBcMslzgX8htjGWdne2x3Pxzdh+RfmDmfkgQuR9CCA6tHLVyJP80lNOx/AI="}};
+const CONTRACT = "0x07152bfde079b5319e5308c43fb1dbc9c76cb4f9";
+const SEL = { zmap: "0x32875aa0", supply: "0x18160ddd", wallet: "0x438b6300" };
+const RPCS = ["https://base-rpc.publicnode.com", "https://mainnet.base.org", "https://1rpc.io/base"];
+const pad64 = (n) => BigInt(n).toString(16).padStart(64, "0");
+async function rpc(url, body, ms = 9000) {
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), ms);
+  try {
+    const r = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctl.signal });
+    if (!r.ok) throw new Error("http " + r.status);
+    return await r.json();
+  } finally { clearTimeout(t); }
+}
+async function ethCall(data) {
+  for (const url of RPCS) {
+    try {
+      const j = await rpc(url, { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to: CONTRACT, data }, "latest"] });
+      if (j && j.result && j.result !== "0x") return j.result;
+      if (j && j.error) throw Object.assign(new Error(j.error.message || "reverted"), { revert: true });
+    } catch (e) { if (e.revert) throw e; }
+  }
+  throw new Error("offline");
+}
+function decodeString(hex) {
+  const h = hex.slice(2), len = parseInt(h.slice(64, 128), 16), s = h.slice(128, 128 + len * 2);
+  let out = ""; for (let i = 0; i < s.length; i += 2) out += String.fromCharCode(parseInt(s.substr(i, 2), 16));
+  return out;
+}
+function decodeUintArray(hex) {
+  const h = hex.slice(2), n = parseInt(h.slice(64, 128), 16), out = [];
+  for (let i = 0; i < n; i++) out.push(Number(BigInt("0x" + h.slice(128 + i * 64, 192 + i * 64))));
+  return out;
+}
+/* ---------- ENS / Basename lookup (keccak-256 inlined, no libraries) ---------- */
+const keccak256 = (() => {
+  const RC = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649, 0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0, 2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771, 2147483648, 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648, 2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648];
+  function f(s) {
+    let h, l, n, c0, c1, c2, c3, c4, c5, c6, c7, c8, c9, b0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12, b13, b14, b15, b16, b17, b18, b19, b20, b21, b22, b23, b24, b25, b26, b27, b28, b29, b30, b31, b32, b33, b34, b35, b36, b37, b38, b39, b40, b41, b42, b43, b44, b45, b46, b47, b48, b49;
+    for (n = 0; n < 48; n += 2) {
+      c0 = s[0] ^ s[10] ^ s[20] ^ s[30] ^ s[40]; c1 = s[1] ^ s[11] ^ s[21] ^ s[31] ^ s[41]; c2 = s[2] ^ s[12] ^ s[22] ^ s[32] ^ s[42]; c3 = s[3] ^ s[13] ^ s[23] ^ s[33] ^ s[43];
+      c4 = s[4] ^ s[14] ^ s[24] ^ s[34] ^ s[44]; c5 = s[5] ^ s[15] ^ s[25] ^ s[35] ^ s[45]; c6 = s[6] ^ s[16] ^ s[26] ^ s[36] ^ s[46]; c7 = s[7] ^ s[17] ^ s[27] ^ s[37] ^ s[47];
+      c8 = s[8] ^ s[18] ^ s[28] ^ s[38] ^ s[48]; c9 = s[9] ^ s[19] ^ s[29] ^ s[39] ^ s[49];
+      h = c8 ^ ((c2 << 1) | (c3 >>> 31)); l = c9 ^ ((c3 << 1) | (c2 >>> 31)); s[0] ^= h; s[1] ^= l; s[10] ^= h; s[11] ^= l; s[20] ^= h; s[21] ^= l; s[30] ^= h; s[31] ^= l; s[40] ^= h; s[41] ^= l;
+      h = c0 ^ ((c4 << 1) | (c5 >>> 31)); l = c1 ^ ((c5 << 1) | (c4 >>> 31)); s[2] ^= h; s[3] ^= l; s[12] ^= h; s[13] ^= l; s[22] ^= h; s[23] ^= l; s[32] ^= h; s[33] ^= l; s[42] ^= h; s[43] ^= l;
+      h = c2 ^ ((c6 << 1) | (c7 >>> 31)); l = c3 ^ ((c7 << 1) | (c6 >>> 31)); s[4] ^= h; s[5] ^= l; s[14] ^= h; s[15] ^= l; s[24] ^= h; s[25] ^= l; s[34] ^= h; s[35] ^= l; s[44] ^= h; s[45] ^= l;
+      h = c4 ^ ((c8 << 1) | (c9 >>> 31)); l = c5 ^ ((c9 << 1) | (c8 >>> 31)); s[6] ^= h; s[7] ^= l; s[16] ^= h; s[17] ^= l; s[26] ^= h; s[27] ^= l; s[36] ^= h; s[37] ^= l; s[46] ^= h; s[47] ^= l;
+      h = c6 ^ ((c0 << 1) | (c1 >>> 31)); l = c7 ^ ((c1 << 1) | (c0 >>> 31)); s[8] ^= h; s[9] ^= l; s[18] ^= h; s[19] ^= l; s[28] ^= h; s[29] ^= l; s[38] ^= h; s[39] ^= l; s[48] ^= h; s[49] ^= l;
+      b0 = s[0]; b1 = s[1]; b32 = (s[11] << 4) | (s[10] >>> 28); b33 = (s[10] << 4) | (s[11] >>> 28); b14 = (s[20] << 3) | (s[21] >>> 29); b15 = (s[21] << 3) | (s[20] >>> 29);
+      b46 = (s[31] << 9) | (s[30] >>> 23); b47 = (s[30] << 9) | (s[31] >>> 23); b28 = (s[40] << 18) | (s[41] >>> 14); b29 = (s[41] << 18) | (s[40] >>> 14);
+      b20 = (s[2] << 1) | (s[3] >>> 31); b21 = (s[3] << 1) | (s[2] >>> 31); b2 = (s[13] << 12) | (s[12] >>> 20); b3 = (s[12] << 12) | (s[13] >>> 20);
+      b34 = (s[22] << 10) | (s[23] >>> 22); b35 = (s[23] << 10) | (s[22] >>> 22); b16 = (s[33] << 13) | (s[32] >>> 19); b17 = (s[32] << 13) | (s[33] >>> 19);
+      b48 = (s[42] << 2) | (s[43] >>> 30); b49 = (s[43] << 2) | (s[42] >>> 30); b40 = (s[5] << 30) | (s[4] >>> 2); b41 = (s[4] << 30) | (s[5] >>> 2);
+      b22 = (s[14] << 6) | (s[15] >>> 26); b23 = (s[15] << 6) | (s[14] >>> 26); b4 = (s[25] << 11) | (s[24] >>> 21); b5 = (s[24] << 11) | (s[25] >>> 21);
+      b36 = (s[34] << 15) | (s[35] >>> 17); b37 = (s[35] << 15) | (s[34] >>> 17); b18 = (s[45] << 29) | (s[44] >>> 3); b19 = (s[44] << 29) | (s[45] >>> 3);
+      b10 = (s[6] << 28) | (s[7] >>> 4); b11 = (s[7] << 28) | (s[6] >>> 4); b42 = (s[17] << 23) | (s[16] >>> 9); b43 = (s[16] << 23) | (s[17] >>> 9);
+      b24 = (s[26] << 25) | (s[27] >>> 7); b25 = (s[27] << 25) | (s[26] >>> 7); b6 = (s[36] << 21) | (s[37] >>> 11); b7 = (s[37] << 21) | (s[36] >>> 11);
+      b38 = (s[47] << 24) | (s[46] >>> 8); b39 = (s[46] << 24) | (s[47] >>> 8); b30 = (s[8] << 27) | (s[9] >>> 5); b31 = (s[9] << 27) | (s[8] >>> 5);
+      b12 = (s[18] << 20) | (s[19] >>> 12); b13 = (s[19] << 20) | (s[18] >>> 12); b44 = (s[29] << 7) | (s[28] >>> 25); b45 = (s[28] << 7) | (s[29] >>> 25);
+      b26 = (s[38] << 8) | (s[39] >>> 24); b27 = (s[39] << 8) | (s[38] >>> 24); b8 = (s[48] << 14) | (s[49] >>> 18); b9 = (s[49] << 14) | (s[48] >>> 18);
+      s[0] = b0 ^ (~b2 & b4); s[1] = b1 ^ (~b3 & b5); s[10] = b10 ^ (~b12 & b14); s[11] = b11 ^ (~b13 & b15); s[20] = b20 ^ (~b22 & b24); s[21] = b21 ^ (~b23 & b25);
+      s[30] = b30 ^ (~b32 & b34); s[31] = b31 ^ (~b33 & b35); s[40] = b40 ^ (~b42 & b44); s[41] = b41 ^ (~b43 & b45); s[2] = b2 ^ (~b4 & b6); s[3] = b3 ^ (~b5 & b7);
+      s[12] = b12 ^ (~b14 & b16); s[13] = b13 ^ (~b15 & b17); s[22] = b22 ^ (~b24 & b26); s[23] = b23 ^ (~b25 & b27); s[32] = b32 ^ (~b34 & b36); s[33] = b33 ^ (~b35 & b37);
+      s[42] = b42 ^ (~b44 & b46); s[43] = b43 ^ (~b45 & b47); s[4] = b4 ^ (~b6 & b8); s[5] = b5 ^ (~b7 & b9); s[14] = b14 ^ (~b16 & b18); s[15] = b15 ^ (~b17 & b19);
+      s[24] = b24 ^ (~b26 & b28); s[25] = b25 ^ (~b27 & b29); s[34] = b34 ^ (~b36 & b38); s[35] = b35 ^ (~b37 & b39); s[44] = b44 ^ (~b46 & b48); s[45] = b45 ^ (~b47 & b49);
+      s[6] = b6 ^ (~b8 & b0); s[7] = b7 ^ (~b9 & b1); s[16] = b16 ^ (~b18 & b10); s[17] = b17 ^ (~b19 & b11); s[26] = b26 ^ (~b28 & b20); s[27] = b27 ^ (~b29 & b21);
+      s[36] = b36 ^ (~b38 & b30); s[37] = b37 ^ (~b39 & b31); s[46] = b46 ^ (~b48 & b40); s[47] = b47 ^ (~b49 & b41); s[8] = b8 ^ (~b0 & b2); s[9] = b9 ^ (~b1 & b3);
+      s[18] = b18 ^ (~b10 & b12); s[19] = b19 ^ (~b11 & b13); s[28] = b28 ^ (~b20 & b22); s[29] = b29 ^ (~b21 & b23); s[38] = b38 ^ (~b30 & b32); s[39] = b39 ^ (~b31 & b33);
+      s[48] = b48 ^ (~b40 & b42); s[49] = b49 ^ (~b41 & b43);
+      s[0] ^= RC[n]; s[1] ^= RC[n + 1];
+    }
+  }
+  return (bytes) => { // Uint8Array -> Uint8Array(32)
+    const rate = 136, padded = new Uint8Array(Math.ceil((bytes.length + 1) / rate) * rate);
+    padded.set(bytes); padded[bytes.length] ^= 0x01; padded[padded.length - 1] ^= 0x80;
+    const s = new Int32Array(50), dv = new DataView(padded.buffer);
+    for (let o = 0; o < padded.length; o += rate) { for (let i = 0; i < rate / 4; i++) s[i] ^= dv.getInt32(o + i * 4, true); f(s); }
+    const out = new Uint8Array(32), od = new DataView(out.buffer); for (let i = 0; i < 8; i++) od.setInt32(i * 4, s[i], true); return out;
+  };
+})();
+const toHex = (b) => Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+function namehash(name) {
+  let node = new Uint8Array(32);
+  if (name) for (const label of name.split(".").reverse()) { const both = new Uint8Array(64); both.set(node); both.set(keccak256(new TextEncoder().encode(label)), 32); node = keccak256(both); }
+  return toHex(node);
+}
+const ETH_RPCS = ["https://ethereum-rpc.publicnode.com", "https://eth.llamarpc.com", "https://1rpc.io/eth", "https://cloudflare-eth.com"];
+const ENS_REG = { eth: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e", base: "0xb94704422c2a1e396835a571837aa5ae53285a95" };
+async function callOn(rpcs, to, data) {
+  for (const url of rpcs) {
+    try { const j = await rpc(url, { jsonrpc: "2.0", id: 1, method: "eth_call", params: [{ to, data }, "latest"] }); if (j && typeof j.result === "string") return j.result; if (j && j.error) return "0x"; } catch {}
+  }
+  throw new Error("offline");
+}
+const word2addr = (hex) => (hex && hex.length >= 66 ? "0x" + hex.slice(26, 66) : "0x" + "0".repeat(40));
+const ZERO = "0x" + "0".repeat(40);
+// Basenames (*.base.eth) are read straight from Base; everything else from the ENS registry on Ethereum
+async function resolveName(raw) {
+  const name = raw.trim().toLowerCase().normalize("NFC"); const node = namehash(name);
+  const tries = name.endsWith(".base.eth") ? [[RPCS, ENS_REG.base]] : [[ETH_RPCS, ENS_REG.eth]];
+  for (const [rpcs, reg] of tries) {
+    const resolver = word2addr(await callOn(rpcs, reg, "0x0178b8bf" + node)); if (resolver === ZERO) continue;
+    const a = word2addr(await callOn(rpcs, resolver, "0x3b3b57de" + node)); if (a !== ZERO) return a;
+  }
+  return null;
+}
+const chain = { online: null, supply: 0 };
+async function probeChain() {
+  try { chain.supply = Number(BigInt(await ethCall(SEL.supply))); chain.online = chain.supply > 0; }
+  catch { chain.online = false; }
+}
+async function unpackSample(id) {
+  const bin = Uint8Array.from(atob(SAMPLES[id].b64), (c) => c.charCodeAt(0));
+  const ds = new Blob([bin]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+  const b = new Uint8Array(await new Response(ds).arrayBuffer());
+  const mn = [b[0], b[1], b[2]], d = [b[3], b[4], b[5]], np = b[6], pal = [];
+  for (let i = 0; i < np; i++) pal.push((b[7 + i * 3] << 16) | (b[8 + i * 3] << 8) | b[9 + i * 3]);
+  const g = b.subarray(7 + np * 3); let z = "";
+  const h2 = (n) => n.toString(16).padStart(2, "0");
+  for (let i = 0; i < g.length; i++) if (g[i])
+    z += h2((i % d[0]) + mn[0]) + h2((Math.floor(i / d[0]) % d[1]) + mn[1]) + h2(Math.floor(i / (d[0] * d[1])) + mn[2]) + pal[g[i] - 1].toString(16).padStart(6, "0");
+  return z;
+}
+const zCache = new Map();
+async function getZMap(id) {
+  id = String(id);
+  if (zCache.has(id)) return zCache.get(id);
+  let res;
+  if (chain.online !== false) {
+    try {
+      const r = await ethCall(SEL.zmap + pad64(id));
+      if (r.length <= 194) throw Object.assign(new Error(`Chonk #${id} has no voxel data`), { revert: true });
+      res = { z: decodeString(r), src: "live from Base" };
+      chain.online = true;
+    } catch (e) {
+      if (e.revert) throw new Error(`Chonk #${id} doesn't exist`);
+      chain.online = false;
+    }
+  }
+  if (!res) {
+    if (!SAMPLES[id]) throw new Error(`Base can't be reached from this page, so only the built-in Chonks load here`);
+    res = { z: await unpackSample(id), src: "built-in" };
+  }
+  zCache.set(id, res);
+  return res;
+}
+async function walletChonks(addr) {
+  const r = await ethCall(SEL.wallet + pad64(BigInt(addr)));
+  return decodeUintArray(r);
+}
+
+
+const SITE_URL = "https://chonkit.xyz/holo/";
+const SEL_URI = "0xc87b56dd"; // tokenURI(uint256)
+
+function bytesOf(str) { return Uint8Array.from(str, (c) => c.charCodeAt(0) & 255); }
+async function getTraits(id) {
+  if (chain.online === false) return null;
+  let s;
+  try { s = decodeString(await ethCall(SEL_URI + pad64(id))); } catch { return null; }
+  let txt = s;
+  try {
+    if (s.startsWith("data:")) {
+      const comma = s.indexOf(","), head = s.slice(0, comma), body = s.slice(comma + 1);
+      txt = head.includes("base64") ? new TextDecoder().decode(bytesOf(atob(body))) : (() => { try { return decodeURIComponent(body); } catch { return new TextDecoder().decode(bytesOf(body)); } })();
+    } else txt = new TextDecoder().decode(bytesOf(s));
+    const j = JSON.parse(txt);
+    const raw = j.attributes || j.traits || [];
+    const list = [];
+    for (const a of raw) {
+      const type = String(a.trait_type ?? a.type ?? a.key ?? "").trim();
+      let value = a.value ?? a.name ?? "";
+      if (typeof value === "object") continue;
+      value = String(value).trim();
+      if (!value || /^(none|null|0|false|-|n\/a)$/i.test(value)) continue;
+      list.push({ type, value });
+    }
+    return { name: typeof j.name === "string" ? j.name : "", list };
+  } catch { return null; }
+}
+
+/* =====================================================================
+   2. Sprite: the Chonk seen face-on. For every (x, y) the front-most voxel
+      wins, which gives the familiar 30×30 pixel Chonk.
+   ===================================================================== */
+function buildSprite(z) {
+  const hex = z.startsWith("0x") ? z.slice(2) : z, front = new Map();
+  for (let i = 0; i + 12 <= hex.length; i += 12) {
+    const x = parseInt(hex.slice(i, i + 2), 16), y = parseInt(hex.slice(i + 2, i + 4), 16), zz = parseInt(hex.slice(i + 4, i + 6), 16), col = parseInt(hex.slice(i + 6, i + 12), 16);
+    const k = y * 64 + x, c = front.get(k);
+    if (!c || zz > c.z) front.set(k, { x, y, z: zz, col });
+  }
+  let x0 = 99, y0 = 99, x1 = -1, y1 = -1;
+  for (const p of front.values()) { x0 = Math.min(x0, p.x); y0 = Math.min(y0, p.y); x1 = Math.max(x1, p.x); y1 = Math.max(y1, p.y); }
+  const w = x1 - x0 + 1, h = y1 - y0 + 1;
+  const mk = () => { const c = document.createElement("canvas"); c.width = w; c.height = h; return c; };
+  const art = mk(), all = mk(), outfit = mk();
+  const ia = new ImageData(w, h), im = new ImageData(w, h), io = new ImageData(w, h);
+  const px = [];
+  for (const p of front.values()) {
+    const i = ((p.y - y0) * w + (p.x - x0)) * 4;
+    ia.data[i] = p.col >> 16 & 255; ia.data[i + 1] = p.col >> 8 & 255; ia.data[i + 2] = p.col & 255; ia.data[i + 3] = 255;
+    im.data[i] = im.data[i + 1] = im.data[i + 2] = 255; im.data[i + 3] = 255;
+    if (p.y >= 17) { io.data[i] = io.data[i + 1] = io.data[i + 2] = 255; io.data[i + 3] = 255; }
+    px.push({ x: p.x, y: p.y, col: p.col });
+  }
+  art.getContext("2d").putImageData(ia, 0, 0); all.getContext("2d").putImageData(im, 0, 0); outfit.getContext("2d").putImageData(io, 0, 0);
+  return { w, h, px, art, all, outfit, count: px.length };
+}
+
+/* =====================================================================
+   3. The card: type, HP, rarity, stats and moves, all from the traits.
+   ===================================================================== */
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const r10 = (n) => Math.max(10, Math.round(n / 10) * 10);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+const ELEMENTS = {
+  fire:      { name: "Fire",   face: "#F4CDB0", accent: "#E2552B", sky: ["#FF9A5A", "#FFD9A6"], ground: "#B5452A", ground2: "#8A2F1C", deco: "fire",   icon: ["..#..", ".##..", ".###.", "#####", ".###."] },
+  sun:       { name: "Sun",    face: "#F3E4A6", accent: "#D9A20F", sky: ["#7FCBFF", "#FFF2B8"], ground: "#E3C064", ground2: "#C9A247", deco: "sun",    icon: ["#.#.#", ".###.", "##.##", ".###.", "#.#.#"] },
+  leaf:      { name: "Leaf",   face: "#D0E6C0", accent: "#3E9B4F", sky: ["#9ED8F0", "#E6F7DA"], ground: "#5FAE4E", ground2: "#468F3A", deco: "leaf",   icon: ["..###", ".####", "####.", "###..", "#...."] },
+  wave:      { name: "Wave",   face: "#C2DEF0", accent: "#2A7FC4", sky: ["#5FC8FF", "#C9F1FF"], ground: "#F7D79A", ground2: "#E8BF78", deco: "wave",   icon: ["..#..", ".###.", "#####", "#####", ".###."] },
+  cosmic:    { name: "Cosmic", face: "#D6CCF0", accent: "#7A55D6", sky: ["#1B1440", "#4B2E83"], ground: "#3A2D6B", ground2: "#2A1F55", deco: "cosmic", icon: ["..#..", ".###.", "#####", ".#.#.", "#...#"] },
+  bubblegum: { name: "Bubblegum", face: "#F3CBE0", accent: "#D9468F", sky: ["#FFB3D9", "#FFE8F3"], ground: "#F79AC6", ground2: "#E57FAF", deco: "bubble", icon: [".#.#.", "#####", "#####", ".###.", "..#.."] },
+  shadow:    { name: "Shadow", face: "#CFCDD6", accent: "#4A4560", sky: ["#232033", "#4E4963"], ground: "#1E1C27", ground2: "#15131C", deco: "shadow", icon: [".###.", "##...", "#....", "##...", ".###."] },
+  cloud:     { name: "Cloud",  face: "#E5E8EE", accent: "#7D88A0", sky: ["#AFC0DA", "#F2F5FA"], ground: "#D2DAE6", ground2: "#BAC5D6", deco: "cloud",  icon: [".....", ".##..", "####.", "#####", "....."] },
+};
+const WHEEL = { fire: ["wave", "leaf"], wave: ["leaf", "fire"], leaf: ["fire", "wave"], sun: ["shadow", "cloud"], shadow: ["sun", "cosmic"], cosmic: ["bubblegum", "shadow"], bubblegum: ["cosmic", "sun"], cloud: ["sun", "bubblegum"] };
+const RARITY = [
+  { name: "Common", sym: "circle" }, { name: "Rare", sym: "diamond" }, { name: "Epic", sym: "star" }, { name: "Legendary", sym: "star2" },
+];
+
+function hsv(c) {
+  const r = (c >> 16 & 255) / 255, g = (c >> 8 & 255) / 255, b = (c & 255) / 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+  let h = 0; if (d) h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, mx ? d / mx : 0, mx];
+}
+function pickElement(sprite) {
+  const bins = { fire: 0, sun: 0, leaf: 0, wave: 0, cosmic: 0, bubblegum: 0 };
+  let tot = 0, n = 0, lum = 0;
+  for (const p of sprite.px) {
+    const [h, s, v] = hsv(p.col), w = p.y >= 17 ? 2 : 1; n += w; lum += v * w;
+    if (s < 0.22 || v < 0.2) continue;
+    let ww = w * s * v;
+    if (h >= 15 && h <= 42 && s < 0.72) ww *= 0.2; // skin tones barely count
+    const k = h < 15 || h >= 345 ? "fire" : h < 42 ? "fire" : h < 70 ? "sun" : h < 165 ? "leaf" : h < 250 ? "wave" : h < 300 ? "cosmic" : "bubblegum";
+    bins[k] += ww; tot += ww;
+  }
+  if (tot < n * 0.12) return lum / n < 0.5 ? "shadow" : "cloud";
+  return Object.entries(bins).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+// slot → [POW, GRD, SPD, SWAG]
+const SLOT_W = { head: [4, 10, 0, 8], hair: [0, 0, 4, 12], face: [6, 0, 2, 10], accessory: [14, 2, 2, 6], top: [4, 10, 2, 4], bottom: [2, 6, 8, 2], shoes: [2, 2, 14, 2], body: [6, 6, 6, 6], other: [3, 3, 3, 3] };
+const SLOT_LABEL = { head: "Head", hair: "Hair", face: "Face", accessory: "Accessory", top: "Top", bottom: "Bottom", shoes: "Shoes", body: "Body", other: "Trait" };
+function slotOf(type, value) {
+  const t = type.toLowerCase();
+  if (/shoe|feet|foot|boot/.test(t)) return "shoes";
+  if (/bottom|pant|skirt|leg/.test(t)) return "bottom";
+  if (/top|shirt|torso|jacket|outfit/.test(t)) return "top";
+  if (/hair/.test(t)) return "hair";
+  if (/head|hat/.test(t)) return "head";
+  if (/face|eye|mouth|glass/.test(t)) return "face";
+  if (/access|hand|held|item/.test(t)) return "accessory";
+  if (/body|skin/.test(t)) return "body";
+  return "other";
+}
+const KEYWORDS = [
+  [/sword|blade|scythe|axe|hammer|\bbat\b|torch|fire|flame|laser|gun|boxing|glove|spike|knife|bow\b|club|bomb|trident|katana|nunchuck|chainsaw/i, [12, 0, 0, 0]],
+  [/armou?r|helmet|shield|knight|hood|jacket|coat|puffer|vest|cap\b|mask|plate|tank|parka|beanie/i, [0, 10, 0, 0]],
+  [/sneaker|runner|skate|roller|wing|jet|shorts|track|sport|cleat|ninja|dash|trainer|flip.?flop|speed|bike/i, [0, 0, 10, 0]],
+  [/gold|diamond|crown|chain|bling|shade|sunglass|glasses|tux|suit|dress|gown|rainbow|holo|glitter|pink|fancy|tiara|pearl|fur|silk|velvet|cowboy/i, [0, 0, 0, 10]],
+  [/staff|wizard|witch|magic|crystal|halo|angel|devil|alien|ghost|zombie|robot|cosmic|star|moon|cyber|neon|lightning/i, [6, 0, 0, 6]],
+  [/balloon|duck|burrito|baguette|pizza|donut|ice cream|snack|coffee|boba|cat|dog|frog/i, [0, 4, 0, 6]],
+];
+const STATKEYS = ["pow", "grd", "spd", "swg"];
+const STATNAMES = { pow: "Power", grd: "Guard", spd: "Speed", swg: "Swag" };
+
+function computeCard(id, sprite, traits) {
+  const seed = hashStr("chonk" + id), R = rng(seed);
+  const el = pickElement(sprite);
+  const rows = [];
+  const sum = [0, 0, 0, 0];
+  const list = traits ? traits.list : [];
+  for (const t of list) {
+    const slot = slotOf(t.type, t.value), add = SLOT_W[slot].slice();
+    for (const [re, d] of KEYWORDS) if (re.test(t.value)) for (let i = 0; i < 4; i++) add[i] += d[i];
+    const j = rng(hashStr(t.value));
+    for (let i = 0; i < 4; i++) add[i] += Math.floor(j() * 6);
+    for (let i = 0; i < 4; i++) sum[i] += add[i];
+    rows.push({ slot, type: t.type, value: t.value, add });
+  }
+  if (!rows.length) for (let i = 0; i < 4; i++) sum[i] = 14 + Math.floor(R() * 40); // no traits: rolled from the Chonk's number
+  const stats = {}; STATKEYS.forEach((k, i) => stats[k] = clamp(Math.round(16 + sum[i]), 5, 99));
+
+  const has = (s) => rows.some((r) => r.slot === s);
+  let rar;
+  if (rows.length) rar = Math.min(3, (has("head") ? 1 : 0) + (has("face") ? 1 : 0) + (has("accessory") ? 2 : 0));
+  else { const x = R(); rar = x < .6 ? 0 : x < .85 ? 1 : x < .96 ? 2 : 3; }
+  const hp = clamp(r10(40 + sprite.count * 0.3 + rows.length * 8 + rar * 10), 50, 250);
+
+  // move 1: the most striking trait
+  const order = ["accessory", "head", "face", "hair", "top", "shoes", "bottom", "body", "other"];
+  const lead = rows.slice().sort((a, b) => order.indexOf(a.slot) - order.indexOf(b.slot))[0];
+  const MOVE = {
+    accessory: ["Swing", "pow", (n) => `Swings the ${n} with full Chonk weight.`],
+    head: ["Bonk", "grd", (n) => `Leads with the ${n}. Very hard to stop.`],
+    face: ["Stare", "swg", (n) => `One look at the ${n} and the foe freezes.`],
+    hair: ["Flip", "swg", (n) => `A dramatic ${n} flip. The crowd goes wild.`],
+    top: ["Flex", "grd", (n) => `Flexes in the ${n}. Takes 10 less damage next turn.`],
+    shoes: ["Dash", "spd", (n) => `Zooms in on ${n} before anyone can blink.`],
+    bottom: ["Stomp", "spd", (n) => `Stomps in the ${n}. The ground shakes a bit.`],
+    body: ["Slam", "pow", () => `Just a big, honest body slam.`],
+    other: ["Strike", "pow", (n) => `Powered by ${n}.`],
+  };
+  const m1 = lead ? (() => { const [verb, st, desc] = MOVE[lead.slot]; const d = r10(10 + stats[st] * 0.9); return { name: `${lead.value} ${verb}`, short: `${lead.value.split(/\s+/)[0]} ${verb}`, dmg: String(d), cost: d <= 40 ? 1 : d <= 80 ? 2 : 3, desc: desc(lead.value) }; })()
+    : (() => { const d = r10(10 + stats.pow * 0.9); return { name: "Chonk Slam", dmg: String(d), cost: d <= 40 ? 1 : 2, desc: "All of the Chonk, all at once." }; })();
+  const SIG = [
+    { name: "Big Chonk Energy", desc: `Does 10 more damage for each trait it wears.`, f: () => `${r10(hp * 0.3)}+` },
+    { name: "Belly Bounce", desc: "Flip a coin. If heads, this does 30 more damage.", f: () => `${r10(hp * 0.4)}+` },
+    { name: "Snack Break", desc: "Heal 30 damage from this Chonk. Worth it.", f: () => `${r10(hp * 0.3)}` },
+    { name: "Pixel Pile-On", desc: "Every Chonk you own jumps in. Probably fine.", f: () => `${r10(hp * 0.45)}` },
+    { name: "Onchain Forever", desc: "This attack can't be undone. Neither can this Chonk.", f: () => `${r10(hp * 0.5)}` },
+    { name: "Backpack Raid", desc: "Pulls something out of the backpack. Surprise!", f: () => `${r10(hp * 0.35)}+` },
+  ];
+  const s = SIG[seed % SIG.length];
+  const m2 = { name: s.name, desc: s.desc, dmg: s.f(), cost: 3 };
+
+  const wear = rows.filter((r) => ["top", "bottom", "shoes", "accessory", "head", "hair", "face"].includes(r.slot)).map((r) => r.value);
+  const flavor = wear.length ? `Wearing ${wear.slice(0, -1).join(", ")}${wear.length > 1 ? " and " : ""}${wear[wear.length - 1]}.` : "A Chonk of few words and many pixels. Lives fully onchain, on Base.";
+  return { id, el, hp, rar, stats, moves: [m1, m2], weak: WHEEL[el][0], resist: WHEEL[el][1], flavor, rows, traitsKnown: !!traits, defaultName: `Chonk #${id}` };
+}
+
+/* =====================================================================
+   4. Drawing. The card is 250 × 350 units. Everything is drawn into a
+      static base canvas plus two foil masks; each frame only re-runs the foil.
+   ===================================================================== */
+const W = 250, H = 350, AX = 15, AY = 35, AW = 220, AH = 140;
+const INK = "#1D1A26";
+const FONT_PX = "Silkscreen", FONT_MONO = "JetBrains Mono";
+
+function rr(c, x, y, w, h, r) { c.beginPath(); c.roundRect ? c.roundRect(x, y, w, h, r) : c.rect(x, y, w, h); }
+function fitFont(c, text, weight, size, family, maxW, min = 5) {
+  let s = size; c.font = `${weight} ${s}px "${family}"`;
+  while (s > min && c.measureText(text).width > maxW) { s -= 0.25; c.font = `${weight} ${s}px "${family}"`; }
+  return s;
+}
+function wrap(c, text, maxW, maxLines) {
+  const words = text.split(/\s+/), lines = []; let cur = "";
+  for (const w of words) {
+    const t = cur ? cur + " " + w : w;
+    if (c.measureText(t).width <= maxW || !cur) cur = t; else { lines.push(cur); cur = w; }
+  }
+  if (cur) lines.push(cur);
+  if (lines.length > maxLines) { lines.length = maxLines; let l = lines[maxLines - 1]; while (l.length && c.measureText(l + "…").width > maxW) l = l.slice(0, -1); lines[maxLines - 1] = l.replace(/[\s,]+$/, "") + "…"; }
+  return lines;
+}
+function icon(c, el, cx, cy, r) {
+  const E = ELEMENTS[el];
+  c.fillStyle = E.accent; c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = "rgba(0,0,0,.25)"; c.lineWidth = 0.6; c.stroke();
+  const u = r * 0.26; c.fillStyle = "#fff";
+  E.icon.forEach((row, y) => [...row].forEach((ch, x) => { if (ch === "#") c.fillRect(cx + (x - 2.5) * u, cy + (y - 2.5) * u, u + 0.05, u + 0.05); }));
+}
+function raritySym(c, kind, x, y, s, fill) {
+  c.fillStyle = fill; c.beginPath();
+  if (kind === "circle") c.arc(x, y, s * 0.42, 0, Math.PI * 2);
+  else if (kind === "diamond") { c.moveTo(x, y - s * 0.55); c.lineTo(x + s * 0.45, y); c.lineTo(x, y + s * 0.55); c.lineTo(x - s * 0.45, y); c.closePath(); }
+  else {
+    const star = (sx) => { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rad = i % 2 ? s * 0.24 : s * 0.58; c.lineTo(sx + Math.cos(a) * rad, y + Math.sin(a) * rad); } c.closePath(); };
+    if (kind === "star2") { star(x - s * 0.5); c.moveTo(x + s * 0.5, y); star(x + s * 0.5); } else star(x);
+  }
+  c.fill();
+}
+
+function drawScene(c, card, R) {
+  const E = ELEMENTS[card.el], u = 5, gy = AY + AH - 34;
+  const g = c.createLinearGradient(0, AY, 0, gy); g.addColorStop(0, E.sky[0]); g.addColorStop(1, E.sky[1]);
+  c.fillStyle = g; c.fillRect(AX, AY, AW, AH);
+  const px = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x / u) * u, Math.round(y / u) * u, w * u, h * u); };
+  const cloud = (x, y, col = "rgba(255,255,255,.9)") => { px(x, y, 8, 2, col); px(x + u * 2, y - u * 2, 4, 2, col); };
+  const deco = E.deco;
+  if (deco === "sun" || deco === "wave" || deco === "leaf") { const sx = AX + AW - 46, sy = AY + 12; px(sx + u, sy, 4, 6, "#FFE66B"); px(sx, sy + u, 6, 4, "#FFE66B"); }
+  if (deco === "sun") { for (let i = 0; i < 3; i++) cloud(AX + 14 + R() * 110, AY + 14 + R() * 30); px(AX + AW - 60, AY + 12, 1, 1, "#FFF6B0"); }
+  if (deco === "wave" || deco === "leaf" || deco === "cloud" || deco === "bubble") for (let i = 0; i < (deco === "cloud" ? 5 : 2); i++) cloud(AX + 10 + R() * (AW - 60), AY + 12 + R() * 40);
+  if (deco === "cosmic" || deco === "shadow") {
+    for (let i = 0; i < 34; i++) { const s = R() < .2 ? 2 : 1; c.fillStyle = `rgba(255,255,255,${.5 + R() * .5})`; c.fillRect(AX + R() * AW, AY + R() * (gy - AY - 6), s * 1.6, s * 1.6); }
+  }
+  if (deco === "cosmic") { const cx = AX + AW - 42, cy = AY + 30; c.fillStyle = "#F29BD2"; c.beginPath(); c.arc(cx, cy, 15, 0, Math.PI * 2); c.fill(); c.fillStyle = "#C468B0"; c.fillRect(cx - 15, cy + 2, 30, 4); c.strokeStyle = "#FFE08A"; c.lineWidth = 2.4; c.beginPath(); c.ellipse(cx, cy, 25, 6, -0.3, 0, Math.PI * 2); c.stroke(); }
+  if (deco === "shadow") { const cx = AX + AW - 40, cy = AY + 28; c.fillStyle = "#F4F0DC"; c.beginPath(); c.arc(cx, cy, 14, 0, Math.PI * 2); c.fill(); c.fillStyle = E.sky[0]; c.beginPath(); c.arc(cx + 7, cy - 4, 12, 0, Math.PI * 2); c.fill(); }
+  if (deco === "fire") { for (let i = 0; i < 22; i++) { const col = R() < .5 ? "#FFD25E" : "#FF7A3D"; px(AX + R() * AW, AY + 6 + R() * (gy - AY - 10), 1, 1, col); } const vx = AX + 18; c.fillStyle = "#7A2A1C"; c.beginPath(); c.moveTo(vx, gy); c.lineTo(vx + 30, gy - 44); c.lineTo(vx + 44, gy - 44); c.lineTo(vx + 76, gy); c.fill(); c.fillStyle = "#FF6A2B"; c.fillRect(vx + 31, gy - 46, 12, 5); }
+  if (deco === "bubble") { for (let i = 0; i < 6; i++) { const hx = AX + 10 + R() * (AW - 30), hy = AY + 10 + R() * 60, col = R() < .5 ? "#FF6FB2" : "#FFFFFF"; px(hx, hy, 1, 1, col); px(hx + 2 * u, hy, 1, 1, col); px(hx - u, hy + u, 5, 1, col); px(hx, hy + 2 * u, 3, 1, col); px(hx + u, hy + 3 * u, 1, 1, col); } }
+  // ground
+  if (deco === "wave") {
+    c.fillStyle = "#2AA7D6"; c.fillRect(AX, gy - 22, AW, 22); c.fillStyle = "#7FD9F2"; c.fillRect(AX, gy - 22, AW, 4);
+    c.fillStyle = "#BFEEFB"; for (let i = 0; i < 5; i++) c.fillRect(AX + R() * (AW - 20), gy - 16 + R() * 12, 12 + R() * 10, 2);
+    c.fillStyle = "#E9F8FF"; c.fillRect(AX, gy, AW, 4);
+  }
+  if (deco === "shadow") { c.fillStyle = "#15131C"; let x = AX; while (x < AX + AW) { const bw = 14 + R() * 18, bh = 14 + R() * 34; c.fillRect(x, gy - bh, bw, bh); c.fillStyle = "#F7D96A"; for (let k = 0; k < 3; k++) if (R() < .5) c.fillRect(x + 3 + R() * (bw - 6), gy - bh + 4 + R() * (bh - 8), 2.4, 2.4); c.fillStyle = "#15131C"; x += bw + 2; } }
+  if (deco === "leaf") { for (let i = 0; i < 2; i++) { const tx = i ? AX + AW - 34 : AX + 14, th = 34 + R() * 10; c.fillStyle = "#8A5A33"; c.fillRect(tx + 8, gy - th + 14, 6, th - 14); c.fillStyle = "#2F8A45"; c.fillRect(tx, gy - th - 4, 22, 20); c.fillRect(tx + 4, gy - th - 10, 14, 30); } }
+  if (deco === "cloud" || deco === "sun") { c.fillStyle = E.ground2; c.beginPath(); c.ellipse(AX + 40, gy + 6, 70, 22, 0, Math.PI, 0); c.fill(); c.beginPath(); c.ellipse(AX + AW - 30, gy + 6, 80, 18, 0, Math.PI, 0); c.fill(); }
+  c.fillStyle = E.ground; c.fillRect(AX, gy, AW, AY + AH - gy);
+  c.fillStyle = E.ground2; for (let i = 0; i < 9; i++) c.fillRect(AX + R() * (AW - 8), gy + 6 + R() * (AY + AH - gy - 10), 6, 2.4);
+  if (deco === "fire") { c.fillStyle = "#FF8A3D"; c.fillRect(AX, gy, AW, 2.4); }
+  return gy;
+}
+
+function spriteRect(sprite, gy) {
+  const p = Math.min((AH - 16) / sprite.h, (AW - 50) / sprite.w);
+  const w = sprite.w * p, h = sprite.h * p;
+  const bottom = Math.min(AY + AH - 8, gy + 22);
+  return { x: AX + AW / 2 - w / 2, y: bottom - h, w, h };
+}
+
+// Paint the static card into ctx (already scaled to card units). Returns layout for the masks.
+function paintBase(c, card, sprite, name) {
+  const E = ELEMENTS[card.el], R = rng(hashStr("scene" + card.id));
+  c.save(); rr(c, 0, 0, W, H, 13); c.clip();
+  c.fillStyle = "#17141F"; c.fillRect(0, 0, W, H);
+  // face
+  rr(c, 7, 7, W - 14, H - 14, 8); c.fillStyle = E.face; c.fill();
+  const fg = c.createLinearGradient(0, 7, 0, H); fg.addColorStop(0, "rgba(255,255,255,.35)"); fg.addColorStop(.5, "rgba(255,255,255,0)"); fg.addColorStop(1, "rgba(0,0,0,.06)");
+  c.fillStyle = fg; c.fill();
+  // header
+  c.fillStyle = INK; c.textBaseline = "alphabetic";
+  icon(c, card.el, 229, 21, 7.5); c.fillStyle = INK;
+  c.font = `700 15px "${FONT_PX}"`; c.textAlign = "right"; c.fillText(String(card.hp), 218, 27);
+  const hpW = c.measureText(String(card.hp)).width;
+  c.font = `700 6.5px "${FONT_MONO}"`; c.fillText("HP", 216 - hpW, 26);
+  c.textAlign = "left"; fitFont(c, name, 700, 13, FONT_PX, 196 - hpW - 18 - 16); c.fillText(name, 16, 27);
+  // art
+  c.save(); c.beginPath(); c.rect(AX, AY, AW, AH); c.clip();
+  const gy = drawScene(c, card, R);
+  const sr = spriteRect(sprite, gy);
+  c.fillStyle = "rgba(0,0,0,.22)"; c.beginPath(); c.ellipse(sr.x + sr.w / 2, sr.y + sr.h - 1, sr.w * 0.36, 4, 0, 0, Math.PI * 2); c.fill();
+  c.imageSmoothingEnabled = false; c.drawImage(sprite.art, sr.x, sr.y, sr.w, sr.h);
+  c.restore();
+  const bg = c.createLinearGradient(AX, AY, AX + AW, AY + AH); bg.addColorStop(0, "#FFF0A8"); bg.addColorStop(.35, "#C9932E"); bg.addColorStop(.6, "#FFE9A0"); bg.addColorStop(1, "#A8761F");
+  c.strokeStyle = bg; c.lineWidth = 3; c.strokeRect(AX - 1.5, AY - 1.5, AW + 3, AH + 3);
+  // info band
+  const rar = RARITY[card.rar];
+  rr(c, AX + 14, AY + AH + 4, AW - 28, 11, 5.5); c.fillStyle = "rgba(29,26,38,.1)"; c.fill();
+  c.fillStyle = INK; c.font = `700 6px "${FONT_MONO}"`; c.textAlign = "center";
+  c.fillText(`${rar.name.toUpperCase()} · ${E.name.toUpperCase()} TYPE · ${card.traitsKnown ? card.rows.length + " TRAITS" : "TRAITS OFFLINE"} · NO.${card.id}`, W / 2, AY + AH + 11.6);
+  // moves
+  let y0 = 197;
+  card.moves.forEach((m, i) => {
+    for (let k = 0; k < m.cost; k++) icon(c, card.el, 21 + k * 11, y0 + 8, 4.6);
+    const nx = 21 + m.cost * 11 - 1;
+    c.textAlign = "right"; c.fillStyle = INK; c.font = `700 14px "${FONT_PX}"`; c.fillText(m.dmg, 233, y0 + 13);
+    const dW = c.measureText(m.dmg).width;
+    c.textAlign = "left";
+    const label = (() => { c.font = `700 10px "${FONT_PX}"`; return c.measureText(m.name).width * 10 / 7.5 <= (233 - dW - 8 - nx) * 10 / 7.5 * (10 / 7.5) || !m.short ? m.name : m.short; })();
+    fitFont(c, label, 700, 10, FONT_PX, 233 - dW - 8 - nx, 6.5); c.fillText(label, nx, y0 + 12);
+    c.font = `500 6.2px "${FONT_MONO}"`; c.fillStyle = "rgba(29,26,38,.78)";
+    wrap(c, m.desc, 214, 2).forEach((l, j) => c.fillText(l, 17, y0 + 23 + j * 7.6));
+    if (i === 0) { c.fillStyle = "rgba(29,26,38,.18)"; c.fillRect(17, y0 + 33, 216, 0.8); }
+    y0 += 36;
+  });
+  // stats
+  const sx = 15, sw = (AW - 15) / 4;
+  STATKEYS.forEach((k, i) => {
+    const x = sx + i * (sw + 5), y = 271, v = card.stats[k];
+    rr(c, x, y, sw, 27, 4.5); c.fillStyle = "rgba(29,26,38,.09)"; c.fill();
+    c.fillStyle = "rgba(29,26,38,.65)"; c.font = `700 5.4px "${FONT_MONO}"`; c.textAlign = "left"; c.fillText(STATNAMES[k].toUpperCase(), x + 5, y + 8.5);
+    c.fillStyle = INK; c.font = `700 12px "${FONT_PX}"`; c.fillText(String(v), x + 5, y + 20.5);
+    c.fillStyle = "rgba(29,26,38,.14)"; c.fillRect(x + 5, y + 23, sw - 10, 1.8);
+    c.fillStyle = E.accent; c.fillRect(x + 5, y + 23, (sw - 10) * v / 99, 1.8);
+  });
+  // weakness / resistance
+  c.font = `700 5.6px "${FONT_MONO}"`; c.fillStyle = "rgba(29,26,38,.7)"; c.textAlign = "left";
+  c.fillText("WEAK", 17, 309); icon(c, card.weak, 41, 307, 4); c.fillStyle = INK; c.font = `700 7px "${FONT_PX}"`; c.fillText("×2", 47, 309.5);
+  c.font = `700 5.6px "${FONT_MONO}"`; c.fillStyle = "rgba(29,26,38,.7)"; c.fillText("RESIST", 72, 309); icon(c, card.resist, 102, 307, 4); c.fillStyle = INK; c.font = `700 7px "${FONT_PX}"`; c.fillText("−20", 108, 309.5);
+  c.font = `700 5.6px "${FONT_MONO}"`; c.fillStyle = "rgba(29,26,38,.7)"; c.fillText("NAP", 140, 309);
+  const naps = clamp(Math.round(card.hp / 70), 1, 4); for (let k = 0; k < naps; k++) { c.fillStyle = "#8A8596"; c.beginPath(); c.arc(158 + k * 9, 307, 3.6, 0, Math.PI * 2); c.fill(); }
+  // flavour
+  c.fillStyle = "rgba(29,26,38,.72)"; c.font = `italic 500 5.8px "${FONT_MONO}"`;
+  wrap(c, card.flavor, 214, 2).forEach((l, j) => c.fillText(l, 17, 320 + j * 7));
+  // footer
+  c.font = `700 5.4px "${FONT_MONO}"`; c.fillStyle = "rgba(29,26,38,.55)";
+  c.fillText("CHONKIT.XYZ", 17, 338);
+  c.textAlign = "right"; c.fillText(`CC0 · ${card.id}`, 224, 338);
+  raritySym(c, rar.sym, 230 + (rar.sym === "star2" ? -4 : 0), 336, 6, card.rar === 3 ? "#C9932E" : INK);
+  c.restore();
+  return { sr };
+}
+
+// Foil masks: "hard" (sprite + frame, hard-light) and "soft" (scene + face, soft-light). Alpha = strength.
+function paintMasks(hard, soft, card, sprite, layout, mode) {
+  const m = mode === "auto" ? ["frame", "scene", "chonk", "full"][card.rar] : mode;
+  const { sr } = layout;
+  if (m === "off") return false;
+  // frame: the black border + the gold art border
+  hard.save(); hard.beginPath(); hard.roundRect(0, 0, W, H, 13); hard.roundRect(7, 7, W - 14, H - 14, 8); hard.fillStyle = "rgba(255,255,255,.9)"; hard.fill("evenodd"); hard.restore();
+  hard.strokeStyle = "#fff"; hard.lineWidth = 3; hard.strokeRect(AX - 1.5, AY - 1.5, AW + 3, AH + 3);
+  hard.imageSmoothingEnabled = false; soft.imageSmoothingEnabled = false;
+  if (m === "chonk" || m === "full") { hard.globalAlpha = 0.85; hard.drawImage(sprite.all, sr.x, sr.y, sr.w, sr.h); hard.globalAlpha = 1; }
+  if (m === "outfit") { hard.globalAlpha = 0.9; hard.drawImage(sprite.outfit, sr.x, sr.y, sr.w, sr.h); hard.globalAlpha = 1; }
+  if (m === "scene" || m === "full") {
+    soft.fillStyle = "rgba(255,255,255,1)"; soft.fillRect(AX, AY, AW, AH);
+    if (m === "scene") { soft.globalCompositeOperation = "destination-out"; soft.drawImage(sprite.all, sr.x, sr.y, sr.w, sr.h); soft.globalCompositeOperation = "source-over"; }
+  }
+  if (m === "reverse" || m === "full") {
+    soft.save(); rr(soft, 7, 7, W - 14, H - 14, 8); soft.clip(); soft.fillStyle = "rgba(255,255,255,.8)"; soft.fillRect(0, 0, W, H);
+    soft.globalCompositeOperation = "destination-out"; soft.fillRect(AX - 3, AY - 3, AW + 6, AH + 6); soft.restore();
+  }
+  return true;
+}
+
+const FINISH = {
+  rainbow: { per: 170, cols: ["#ff6ad5", "#ffb86b", "#fff36b", "#7dffb2", "#6bf0ff", "#8a8bff", "#d07bff"] },
+  gold:    { per: 120, cols: ["#fff4c2", "#e8b94a", "#fffbe6", "#b8862b", "#ffe28a", "#9c6b1c"] },
+  cosmos:  { per: 210, cols: ["#3b2bff", "#b04bff", "#ff5fd2", "#5fd8ff", "#7b5cff", "#ff9be8"], stars: true },
+  ice:     { per: 140, cols: ["#e6fbff", "#8fe3ff", "#ffffff", "#9bb8ff", "#d8f4ff", "#7fd0e8"] },
+};
+const STARS = (() => { const R = rng(7), a = []; for (let i = 0; i < 70; i++) a.push([R() * W, R() * H, R() * 6.28, 0.8 + R() * 1.6]); return a; })();
+
+function paintFoil(c, px, py, finish) {
+  const F = FINISH[finish], per = F.per, ang = (38 + (px - 0.5) * 60) * Math.PI / 180, dx = Math.cos(ang), dy = Math.sin(ang);
+  const shift = ((px * 1.3 + py * 0.9) * per * 1.8) % per, span = per * 6;
+  const x0 = W / 2 - dx * span / 2 + dx * shift, y0 = H / 2 - dy * span / 2 + dy * shift;
+  const g = c.createLinearGradient(x0, y0, x0 + dx * span, y0 + dy * span), n = F.cols.length * 6;
+  for (let i = 0; i <= n; i++) g.addColorStop(i / n, F.cols[i % F.cols.length]);
+  c.fillStyle = g; c.fillRect(0, 0, W, H);
+  if (F.stars) for (const [x, y, ph, s] of STARS) { const a = Math.max(0, Math.sin(ph + px * 9 + py * 7)); if (a < .2) continue; c.fillStyle = `rgba(255,255,255,${a})`; c.fillRect(x - s * 1.5, y - s * .3, s * 3, s * .6); c.fillRect(x - s * .3, y - s * 1.5, s * .6, s * 3); }
+  // sheen: a bright diagonal band that sweeps with the pointer
+  const bx = -60 + px * (W + 120), sg = c.createLinearGradient(bx - 40, 0, bx + 40, 26);
+  sg.addColorStop(0, "rgba(255,255,255,0)"); sg.addColorStop(.5, "rgba(255,255,255,.75)"); sg.addColorStop(1, "rgba(255,255,255,0)");
+  c.fillStyle = sg; c.fillRect(0, 0, W, H);
+}
+
+/* A Renderer owns one output size: base, masks and a scratch canvas. */
+class Renderer {
+  constructor() { this.base = document.createElement("canvas"); this.hard = document.createElement("canvas"); this.soft = document.createElement("canvas"); this.fx = document.createElement("canvas"); this.S = 0; }
+  build(S, card, sprite, name, mode) {
+    this.S = S; const w = Math.round(W * S), h = Math.round(H * S);
+    for (const cv of [this.base, this.hard, this.soft, this.fx]) { cv.width = w; cv.height = h; }
+    const b = this.base.getContext("2d"); b.setTransform(S, 0, 0, S, 0, 0);
+    const layout = paintBase(b, card, sprite, name);
+    const hc = this.hard.getContext("2d"), sc = this.soft.getContext("2d");
+    hc.setTransform(S, 0, 0, S, 0, 0); sc.setTransform(S, 0, 0, S, 0, 0);
+    this.on = paintMasks(hc, sc, card, sprite, layout, mode);
+  }
+  frame(out, px, py, finish) {
+    const S = this.S, w = this.base.width, h = this.base.height;
+    if (out.width !== w || out.height !== h) { out.width = w; out.height = h; }
+    const o = out.getContext("2d"); o.setTransform(1, 0, 0, 1, 0, 0); o.globalCompositeOperation = "source-over"; o.globalAlpha = 1;
+    o.clearRect(0, 0, w, h); o.drawImage(this.base, 0, 0);
+    if (this.on) {
+      const f = this.fx.getContext("2d");
+      for (const [mask, op, a] of [[this.hard, "hard-light", 0.78], [this.soft, "soft-light", 0.9]]) {
+        f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = "source-over"; f.clearRect(0, 0, w, h);
+        f.setTransform(S, 0, 0, S, 0, 0); paintFoil(f, px, py, finish);
+        f.setTransform(1, 0, 0, 1, 0, 0); f.globalCompositeOperation = "destination-in"; f.drawImage(mask, 0, 0);
+        o.globalCompositeOperation = op; o.globalAlpha = a; o.drawImage(this.fx, 0, 0);
+      }
+    }
+    // glare
+    o.setTransform(S, 0, 0, S, 0, 0); o.globalCompositeOperation = "soft-light"; o.globalAlpha = 0.5;
+    const gl = o.createRadialGradient(px * W, py * H, 0, px * W, py * H, W * 0.7); gl.addColorStop(0, "rgba(255,255,255,.6)"); gl.addColorStop(1, "rgba(255,255,255,0)");
+    o.save(); rr(o, 0, 0, W, H, 13); o.clip(); o.fillStyle = gl; o.fillRect(0, 0, W, H); o.restore();
+    o.globalCompositeOperation = "source-over"; o.globalAlpha = 1; o.setTransform(1, 0, 0, 1, 0, 0);
+  }
+}
+
+function paintBack(cv, S) {
+  cv.width = Math.round(W * S); cv.height = Math.round(H * S);
+  const c = cv.getContext("2d"); c.setTransform(S, 0, 0, S, 0, 0);
+  rr(c, 0, 0, W, H, 13); c.save(); c.clip();
+  c.fillStyle = "#17141F"; c.fillRect(0, 0, W, H);
+  const g = c.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, 210); g.addColorStop(0, "#3a2a5a"); g.addColorStop(1, "#1a1426");
+  rr(c, 9, 9, W - 18, H - 18, 8); c.fillStyle = g; c.fill();
+  const logo = (x, y, u, a) => { c.globalAlpha = a; const P = [["#FDCB58", [[2, 0, 8, 1], [1, 1, 10, 5], [2, 6, 8, 1]]], ["#F4900C", [[0, 3, 1, 2], [5, 4, 3, 1]]], ["#E6E7E8", [[3, 3, 1, 2], [8, 3, 1, 2]]], ["#31373D", [[4, 3, 1, 2], [9, 3, 1, 2]]]]; for (const [col, rs] of P) { c.fillStyle = col; for (const [rx, ry, rw, rh] of rs) c.fillRect(x + rx * u, y + ry * u, rw * u, rh * u); } c.globalAlpha = 1; };
+  for (let y = 18, row = 0; y < H - 10; y += 22, row++) for (let x = (row % 2 ? 22 : 8); x < W - 10; x += 30) logo(x, y, 1.4, .13);
+  logo(W / 2 - 44, H / 2 - 40, 8, 1);
+  c.fillStyle = "#F4EFFA"; c.font = `700 22px "${FONT_PX}"`; c.textAlign = "center"; c.fillText("CHONKIT", W / 2, H / 2 + 44);
+  c.font = `700 6.5px "${FONT_MONO}"`; c.fillStyle = "#A69CB8"; c.fillText("HOLO CARDS · CHONKS ON BASE", W / 2, H / 2 + 58);
+  c.restore();
+  const hg = c.createLinearGradient(0, 0, W, H); FINISH.rainbow.cols.forEach((col, i, a) => hg.addColorStop(i / (a.length - 1), col));
+  c.strokeStyle = hg; c.lineWidth = 2.5; rr(c, 9, 9, W - 18, H - 18, 8); c.stroke();
+}
+
+/* =====================================================================
+   5. App
+   ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const S = { id: null, sprite: null, card: null, traits: null, name: "", foil: "auto", finish: "rainbow", px: 0.5, py: 0.4, active: false, dirty: true, flipped: false };
+const view = new Renderer();
+const front = $("front"), rear = $("rear"), cardEl = $("card");
+const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function status(msg, err) { const s = $("status"); s.textContent = msg; s.classList.toggle("err", !!err); }
+function cardName() { return (S.name || "").trim() || (S.card ? S.card.defaultName : "Chonk"); }
+function displayScale() { return Math.max(1, (front.clientWidth || 340) / W * Math.min(3, window.devicePixelRatio || 1)); }
+function rebuild() {
+  if (!S.card) return;
+  view.build(displayScale(), S.card, S.sprite, cardName(), S.foil);
+  S.dirty = true;
+}
+function rebuildBack() { paintBack(rear, displayScale()); }
+
+function renderPanel() {
+  const c = S.card; if (!c) return;
+  $("statgrid").innerHTML = STATKEYS.map((k) => `<div class="stat"><span>${STATNAMES[k].toUpperCase()}</span><b>${c.stats[k]}</b><i style="--v:${c.stats[k]}%"></i></div>`).join("");
+  const E = ELEMENTS[c.el];
+  $("metaTags").innerHTML = [`HP ${c.hp}`, `${E.name} type`, RARITY[c.rar].name, `Weak to ${ELEMENTS[c.weak].name}`].map((t) => `<span class="tag">${t}</span>`).join("");
+  const esc = (s) => String(s).replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+  if (c.rows.length) {
+    $("traitTable").innerHTML = c.rows.map((r) => {
+      const best = r.add.indexOf(Math.max(...r.add));
+      const d = r.add.map((v, i) => i === best ? `<em>+${v} ${STATKEYS[i].toUpperCase()}</em>` : `+${v} ${STATKEYS[i].toUpperCase()}`).join(" ");
+      return `<tr><td class="k">${esc(r.type || SLOT_LABEL[r.slot])}</td><td class="v">${esc(r.value)}</td><td class="d">${d}</td></tr>`;
+    }).join("");
+    $("traitNote").textContent = "Every stat starts at 16. The highlighted number is where that trait helps most.";
+  } else {
+    $("traitTable").innerHTML = "";
+    $("traitNote").textContent = c.traitsKnown ? "This Chonk isn't wearing any traits, so its stats are rolled from its number." : "Traits couldn't be read from Base here, so these stats are rolled from the Chonk's number. On chonkit.xyz they come from its traits.";
+  }
+  const auto = ["Frame only", "Scene foil", "Chonk foil", "Full foil"][c.rar];
+  $("foilNote").textContent = S.foil === "auto" ? `Auto picks by rarity. ${RARITY[c.rar].name} gets ${auto.toLowerCase()}.` : "";
+  $("nameIn").placeholder = c.defaultName;
+  cardEl.setAttribute("aria-label", `${cardName()}: ${RARITY[c.rar].name} ${E.name} type holo card, HP ${c.hp}. Moves: ${c.moves.map((m) => `${m.name} ${m.dmg}`).join(", ")}.`);
+}
+
+let loadTok = 0;
+async function loadChonk(id, quiet) {
+  id = String(id).replace(/^#/, "").trim();
+  if (!/^\d+$/.test(id)) { status("That isn't a Chonk number.", true); return; }
+  const tok = ++loadTok;
+  cardEl.classList.add("loading"); if (!quiet) status(`Loading Chonk #${id}…`);
+  try {
+    const [{ z, src }, traits] = await Promise.all([getZMap(id), getTraits(id)]);
+    if (tok !== loadTok) return;
+    S.id = id; S.sprite = buildSprite(z); S.traits = traits;
+    S.card = computeCard(id, S.sprite, traits);
+    if (traits && traits.name && /\S/.test(traits.name) && traits.name.length <= 20) S.card.defaultName = traits.name;
+    S.name = ""; $("nameIn").value = "";
+    rebuild(); renderPanel();
+    const t = traits ? `${traits.list.length} traits` : "no trait data";
+    status(`Chonk #${id} · ${src} · ${t}`);
+    try { history.replaceState(null, "", location.protocol.startsWith("http") && !/claude|anthropic|usercontent/.test(location.hostname) ? `?id=${id}` : `#${id}`); } catch {}
+  } catch (e) {
+    if (tok !== loadTok) return;
+    status(e.message || "Couldn't load that Chonk.", true);
+    if (!S.card) { const first = Object.keys(SAMPLES)[0]; await loadChonk(first, true); status(`${e.message}. Showing built-in Chonk #${first} instead.`, true); }
+  } finally { if (tok === loadTok) cardEl.classList.remove("loading"); }
+}
+
+async function onQuery(raw) {
+  const q = raw.trim(); if (!q) return;
+  if (/^#?\d+$/.test(q)) { $("chips").hidden = true; return loadChonk(q); }
+  status("Looking up wallet…");
+  try {
+    let addr = q;
+    if (!/^0x[0-9a-fA-F]{40}$/.test(q)) { if (!q.includes(".")) throw new Error("Type a Chonk number, a 0x address or an ENS / Basename"); addr = await resolveName(q); if (!addr) throw new Error(`${q} doesn't point to a wallet`); }
+    const ids = await walletChonks(addr);
+    if (!ids.length) throw new Error("No Chonks in that wallet");
+    const box = $("chips"); box.hidden = false;
+    box.innerHTML = ids.slice(0, 200).map((i) => `<button class="chip" type="button" data-id="${i}">#${i}</button>`).join("");
+    await loadChonk(ids[0]);
+    status(`${ids.length} Chonk${ids.length > 1 ? "s" : ""} in that wallet. Showing #${ids[0]}.`);
+    markChip();
+  } catch (e) { status(e.message === "offline" ? "Base can't be reached from this page, so wallet lookups only work on chonkit.xyz." : e.message, true); }
+}
+function markChip() { for (const b of $("chips").querySelectorAll(".chip")) b.setAttribute("aria-pressed", b.dataset.id === S.id ? "true" : "false"); }
+
+/* tilt + animation */
+function setTilt(px, py) {
+  S.px = px; S.py = py; S.dirty = true;
+  const rx = (0.5 - py) * 18, ry = (px - 0.5) * 22;
+  cardEl.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+}
+function pmove(e) { const b = cardEl.getBoundingClientRect(); S.active = true; setTilt(clamp((e.clientX - b.left) / b.width, 0, 1), clamp((e.clientY - b.top) / b.height, 0, 1)); }
+cardEl.addEventListener("pointermove", pmove);
+cardEl.addEventListener("pointerdown", (e) => { try { cardEl.setPointerCapture(e.pointerId); } catch {} pmove(e); });
+cardEl.addEventListener("pointerleave", () => { S.active = false; });
+cardEl.addEventListener("pointerup", () => { S.active = false; });
+cardEl.addEventListener("keydown", (e) => { const d = { ArrowLeft: [-.05, 0], ArrowRight: [.05, 0], ArrowUp: [0, -.05], ArrowDown: [0, .05] }[e.key]; if (d) { e.preventDefault(); S.active = true; setTilt(clamp(S.px + d[0], 0, 1), clamp(S.py + d[1], 0, 1)); } });
+let t = 0;
+function loop() {
+  if (!S.active && !reduce) { t += 0.008; setTilt(0.5 + Math.sin(t) * 0.32, 0.5 + Math.cos(t * 0.8) * 0.26); }
+  if (S.dirty && S.card) { view.frame(front, S.px, S.py, S.finish); S.dirty = false; }
+  requestAnimationFrame(loop);
+}
+
+/* controls */
+function seg(id, key) {
+  const box = $(id);
+  box.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; for (const x of box.querySelectorAll("button")) x.setAttribute("aria-pressed", x === b ? "true" : "false"); S[key] = b.dataset.v; if (key === "foil") { rebuild(); renderPanel(); } else S.dirty = true; });
+}
+seg("foilSeg", "foil"); seg("finishSeg", "finish");
+let nameT; $("nameIn").addEventListener("input", (e) => { S.name = e.target.value; clearTimeout(nameT); nameT = setTimeout(() => { rebuild(); renderPanel(); }, 120); });
+$("findForm").addEventListener("submit", (e) => { e.preventDefault(); onQuery($("q").value); });
+$("chips").addEventListener("click", (e) => { const b = e.target.closest(".chip"); if (b) loadChonk(b.dataset.id).then(markChip); });
+$("randBtn").addEventListener("click", () => {
+  const id = chain.online && chain.supply ? 1 + Math.floor(Math.random() * chain.supply) : (() => { const k = Object.keys(SAMPLES).filter((x) => x !== S.id); return k[Math.floor(Math.random() * k.length)]; })();
+  $("q").value = id; $("chips").hidden = true; loadChonk(id);
+});
+$("flipBtn").addEventListener("click", () => { S.flipped = !S.flipped; $("flip").classList.toggle("back", S.flipped); });
+$("themeBtn").onclick = () => { const r = document.documentElement, dark = r.dataset.theme ? r.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; r.dataset.theme = dark ? "light" : "dark"; try { localStorage.setItem("chonk-theme", r.dataset.theme); } catch {} };
+$("linkBtn").addEventListener("click", async () => {
+  const url = `${SITE_URL}?id=${S.id}`;
+  try { await navigator.clipboard.writeText(url); $("linkBtn").textContent = "Copied"; } catch { status(url); $("linkBtn").textContent = "Link below"; }
+  setTimeout(() => ($("linkBtn").textContent = "Copy link"), 1600);
+});
+
+/* saving */
+let ovURL = null, ovName = "";
+// Inside the Claude viewer, files go through its downloads capability; on chonkit.xyz a plain link does it.
+let dlCap = null, ovBlob = null;
+try { if (window.claude && typeof window.claude.use === "function") window.claude.use("downloads").then((d) => { dlCap = d; }).catch(() => {}); } catch {}
+function download(url, name) {
+  if (dlCap && ovBlob) { dlCap.save({ filename: name, data: ovBlob }).catch((e) => { if (e && e.code !== "declined") $("ovText").textContent = "Saving isn't available here. Long-press or right-click the image to save it."; }); return; }
+  const a = document.createElement("a"); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+}
+function showSaved(blob, name) {
+  if (ovURL) URL.revokeObjectURL(ovURL);
+  ovURL = URL.createObjectURL(blob); ovName = name; ovBlob = blob;
+  $("ovImg").src = ovURL; $("ov").hidden = false;
+  download(ovURL, name);
+  $("ovClose").focus();
+}
+$("ovSave").onclick = () => download(ovURL, ovName);
+$("ovClose").onclick = () => { $("ov").hidden = true; };
+$("ov").addEventListener("click", (e) => { if (e.target.id === "ov") $("ov").hidden = true; });
+addEventListener("keydown", (e) => { if (e.key === "Escape") $("ov").hidden = true; });
+const slug = () => `chonk-${S.id}-holo`;
+
+$("pngBtn").addEventListener("click", () => {
+  if (!S.card) return;
+  const r = new Renderer(); r.build(4, S.card, S.sprite, cardName(), S.foil);
+  const out = document.createElement("canvas"); r.frame(out, S.px, S.py, S.finish);
+  out.toBlob((b) => showSaved(b, slug() + ".png"), "image/png");
+});
+
+let gifenc = null;
+$("gifBtn").addEventListener("click", async () => {
+  if (!S.card) return;
+  const btn = $("gifBtn"); btn.disabled = true; btn.textContent = "Loading…";
+  try {
+    gifenc = gifenc || await import("https://cdn.jsdelivr.net/npm/gifenc@1.0.3/+esm");
+    const { GIFEncoder, quantize, applyPalette } = gifenc;
+    const scale = 2, pad = 34, r = new Renderer(); r.build(scale, S.card, S.sprite, cardName(), S.foil);
+    const cw = r.base.width, ch = r.base.height, gw = cw + pad * 2, gh = ch + pad * 2;
+    const stage = document.createElement("canvas"); stage.width = gw; stage.height = gh;
+    const sc = stage.getContext("2d", { willReadFrequently: true }), cardCv = document.createElement("canvas");
+    const bg = sc.createRadialGradient(gw / 2, gh * .4, 20, gw / 2, gh * .4, gh * .75); bg.addColorStop(0, "#2a1d3d"); bg.addColorStop(1, "#0d0b14");
+    const gif = GIFEncoder(), N = 40;
+    for (let i = 0; i < N; i++) {
+      const a = i / N * Math.PI * 2;
+      r.frame(cardCv, 0.5 + Math.sin(a) * 0.36, 0.5 + Math.cos(a) * 0.28, S.finish);
+      sc.fillStyle = bg; sc.fillRect(0, 0, gw, gh); sc.drawImage(cardCv, pad, pad);
+      const { data } = sc.getImageData(0, 0, gw, gh);
+      const palette = quantize(data, 256), index = applyPalette(data, palette);
+      gif.writeFrame(index, gw, gh, { palette, delay: 60 });
+      btn.textContent = `${Math.round((i + 1) / N * 100)}%`;
+      await new Promise(requestAnimationFrame);
+    }
+    gif.finish();
+    showSaved(new Blob([gif.bytes()], { type: "image/gif" }), slug() + ".gif");
+  } catch (e) { status("Couldn't make the GIF here: " + (e.message || e), true); }
+  finally { btn.disabled = false; btn.textContent = "Save GIF"; }
+});
+
+/* boot */
+new ResizeObserver(() => { if (S.card) { rebuild(); rebuildBack(); } }).observe(front);
+(async () => {
+  try { await Promise.all([document.fonts.load(`700 12px "${FONT_PX}"`), document.fonts.load(`500 10px "${FONT_MONO}"`), document.fonts.load(`700 10px "${FONT_MONO}"`), document.fonts.load(`italic 500 10px "${FONT_MONO}"`)]); } catch {}
+  const p = new URLSearchParams(location.search).get("id") || (location.hash.match(/^#(\d+)$/) || [])[1];
+  await probeChain();
+  const start = p || (chain.online ? "18" : "42");
+  if (!chain.online && !p) status("Base can't be reached from this page, so only the six built-in Chonks load here.");
+  $("q").value = start;
+  await loadChonk(start, !chain.online && !p);
+  if (!chain.online && !p) status("Base can't be reached from this page, so only the built-in Chonks load (1, 3, 23, 42, 123, 404). Traits load live on chonkit.xyz.");
+  rebuildBack();
+  addEventListener("hashchange", () => { const m = location.hash.match(/^#(\d+)$/); if (m && m[1] !== S.id) loadChonk(m[1]); });
+  loop();
+})();
+</script>
+</body>
+</html>
