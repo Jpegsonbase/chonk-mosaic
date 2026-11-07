@@ -73,6 +73,8 @@ button, input { font: inherit; color: inherit; }
 .bar { height: 3px; border-radius: 2px; background: var(--line); margin-top: 8px; overflow: hidden; }
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
 .banner { margin-top: 10px; font-size: 13px; border-radius: 12px; padding: 10px 12px; background: var(--accent-soft); color: var(--ink); }
+.ownerbtn { margin-top: 10px; font-size: 13px; padding: 9px 13px; }
+@media (max-width: 560px) { .find { flex-wrap: wrap; } .find input { flex-basis: 100%; } .find .btn { flex: 1; } }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; max-height: 108px; overflow: auto; }
 .chip { font: 700 12px var(--mono); border: 1px solid var(--line); background: var(--bg); border-radius: 999px; padding: 5px 10px; cursor: pointer; }
 .chip small { font-weight: 500; color: var(--muted); margin-left: 4px; }
@@ -183,11 +185,13 @@ button, input { font: inherit; color: inherit; }
     <form class="find" id="findForm">
       <input id="q" type="text" autocomplete="off" spellcheck="false" placeholder="Wallet, ENS, Basename, or Chonk IDs like 18, 404" aria-label="Wallet address, ENS name, Basename or Chonk IDs">
       <button class="btn" id="loadBtn" type="submit">Open closet</button>
+      <button class="btn ghost" id="walletBtn" type="button">Connect wallet</button>
     </form>
     <div class="bar" id="bar" hidden><i id="barFill"></i></div>
     <p class="status" id="status" role="status" aria-live="polite"></p>
     <div class="banner" id="demoBanner" hidden>Base can't be reached from this page, so this is a <b>demo closet</b> with stand-in traits drawn for the preview. On chonkit.xyz it opens your real backpacks.</div>
     <div class="chips" id="chips" aria-label="Backpacks"></div>
+    <button class="btn ghost ownerbtn" id="ownerBtn" type="button" hidden></button>
   </section>
 
   <main class="work">
@@ -289,6 +293,7 @@ const SEL = {
   uri: "0xc87b56dd",         // tokenURI(uint256)
   body: "0x916c546b",        // getBodyImageSvg(uint256)
   supply: "0x18160ddd",      // totalSupply()
+  owner: "0x6352211e",       // ownerOf(uint256)
   agg: "0x82ad56cb",         // aggregate3((address,bool,bytes)[])
 };
 const RPCS = ["https://mainnet.base.org", "https://base-rpc.publicnode.com", "https://1rpc.io/base"];
@@ -541,12 +546,14 @@ const SEASONS = {
     name: "Summer", tag: "shorts, skirts and swimwear in bright, sunny colours",
     boost: [
       [/short|bikini|skirt|swim|trunk|board|sarong|bermuda/i, 6, ["bottom", "top"]],
+      [/dress|blouse|floral|flower|sash|linen/i, 4, ["top"]],
       [/tank|crop|bikini|tee\b|t-?shirt|hawaii|tropical|sundress|bandeau|halter|sleeveless|polo/i, 4, ["top"]],
       [/flip|sandal|slide|croc|barefoot|espadrille/i, 4.5, ["shoes"]],
       [/sunglass|shades|visor|straw|bucket|sun ?hat|cap\b|bandana|flower/i, 3, ["head", "face", "hair"]],
       [/ice ?cream|popsicle|surf|beach|palm|lei|float|coconut|juice|lemonade|watermelon|sun\b|summer|tropical/i, 3.5, null],
     ],
     avoid: [
+      [/christmas|xmas|santa|snowman|snow|frosty|grinch|rudolf|rudolph|reindeer|holly|wreath|brrr|icy|\bice\b|winter|chonksukkah|hanukkah|gingerbread|\belf\b|candy ?cane|penguin|mitten|earmuff|ski\b/i, -6, null],
       [/jean|pant|trouser|cord|jogger|cargo|legging/i, -2.5, ["bottom"]],
       [/puffer|parka|coat|jacket|hood|sweater|jumper|cardigan|fleece|turtleneck|knit|flannel/i, -4.5, ["top"]],
       [/boot|ugg/i, -3.5, ["shoes"]],
@@ -557,7 +564,7 @@ const SEASONS = {
   winter: {
     name: "Winter", tag: "coats, knits, long trousers and boots in icy and festive colours",
     boost: [
-      [/puffer|parka|coat|jacket|hood|sweater|jumper|fleece|knit|turtleneck|cardigan|onesie/i, 5.5, ["top"]],
+      [/puffer|parka|coat|jacket|hood|sweater|jumper|fleece|knit|turtleneck|cardigan|onesie|christmas|xmas|santa|snowman|snow|frosty|grinch|rudolf|rudolph|reindeer|holly|wreath|brrr|icy|\bice\b|winter|chonksukkah|hanukkah|gingerbread|\belf\b|candy ?cane|penguin|mitten|earmuff|ski\b/i, 5.5, ["top"]],
       [/jean|pant|trouser|cord|jogger|cargo|legging|ski/i, 3, ["bottom"]],
       [/boot|ugg|slipper/i, 4.5, ["shoes"]],
       [/beanie|earmuff|ushanka|santa|elf|reindeer|bobble|hood|fur|ski/i, 4.5, ["head", "hair"]],
@@ -575,13 +582,14 @@ const SEASONS = {
   autumn: {
     name: "Autumn", tag: "layers, denim, cords and boots in rust, mustard and brown",
     boost: [
-      [/flannel|plaid|cardigan|sweater|jumper|hood|leather|denim|trench|vest|knit|corduroy|tweed|blazer/i, 4.5, ["top"]],
-      [/jean|cord|pant|trouser|cargo|denim|plaid|kilt/i, 3.5, ["bottom"]],
-      [/boot|loafer|brogue|clog/i, 4, ["shoes"]],
-      [/beanie|beret|witch|pumpkin|flat cap|newsboy|bucket/i, 3, ["head"]],
+      [/flannel|plaid|cardigan|sweater|jumper|hood|leather|denim|trench|vest|knit|corduroy|tweed|blazer|varsity|suspender|check/i, 4.5, ["top"]],
+      [/jean|cord|pant|trouser|cargo|denim|plaid|kilt|check/i, 3.5, ["bottom"]],
+      [/boot|loafer|brogue|clog|brown/i, 4, ["shoes"]],
+      [/beanie|beret|witch|pumpkin|flat cap|newsboy|bucket|cowboy|scout|cap\b/i, 3, ["head"]],
       [/pumpkin|halloween|ghost|witch|bat\b|skull|leaf|maple|acorn|coffee|latte|book|umbrella|candle|scarf|autumn|fall\b/i, 3.5, null],
     ],
     avoid: [
+      [/christmas|xmas|santa|snowman|snow|frosty|grinch|rudolf|rudolph|reindeer|holly|wreath|brrr|icy|\bice\b|winter|chonksukkah|hanukkah|gingerbread|\belf\b|candy ?cane|penguin|mitten|earmuff|ski\b/i, -5, null],
       [/bikini|swim|trunk|board|sarong/i, -5, ["bottom", "top"]],
       [/short/i, -2.5, ["bottom"]],
       [/flip|sandal|slide/i, -4, ["shoes"]],
@@ -616,6 +624,23 @@ function dominant(cells) {
   return bc;
 }
 const hueDist = (a, b) => { const d = Math.abs(a - b) % 360; return d > 180 ? 360 - d : d; };
+// A trait's colours: its top five colours and the share of pixels each covers.
+function profile(cells) {
+  const n = new Map(); for (const p of cells) n.set(p.col, (n.get(p.col) || 0) + 1);
+  const tot = cells.length || 1;
+  return [...n].sort((a, b) => b[1] - a[1]).slice(0, 5).map(([col, c]) => ({ col, w: c / tot }));
+}
+// Perceptual-ish RGB distance ("redmean"), 0 … ~765
+function colDist(a, b) {
+  const [r1, g1, b1] = rgb(a), [r2, g2, b2] = rgb(b), rm = (r1 + r2) / 2;
+  return Math.sqrt((2 + rm / 256) * (r1 - r2) ** 2 + 4 * (g1 - g2) ** 2 + (2 + (255 - rm) / 256) * (b1 - b2) ** 2);
+}
+// 0..1: how much of the trait is in the palette's colours
+function paletteFit(t, pal) {
+  const ints = pal.map(hexToInt); let s = 0, ws = 0;
+  for (const { col, w } of t.prof) { let best = 0; for (const c of ints) best = Math.max(best, 1 - colDist(col, c) / 260); s += w * best; ws += w; }
+  return ws ? s / ws : 0;
+}
 function colourMatch(c, swatches) {
   const [h, s, l] = hsl(c); let best = 0;
   for (const sw of swatches) {
@@ -690,6 +715,7 @@ async function openCloset(raw) {
     const n = S.traits.size, pieces = chonks.reduce((a, c) => a + c.traitIds.length, 0);
     status(`${chonks.length} backpack${chonks.length > 1 ? "s" : ""}, ${pieces} traits, ${n} different pieces${who ? ` · ${who}` : ""}`);
     try { history.replaceState(null, "", "#" + encodeURIComponent(raw.trim())); } catch {}
+    offerOwnerWallet(who ? null : chonks.map((c) => c.id));
     startCensus();
   } catch (e) {
     if (e.offline) { status(""); loadDemo(); }
@@ -697,13 +723,27 @@ async function openCloset(raw) {
   } finally { $("loadBtn").disabled = false; setTimeout(() => progress(null), 600); }
 }
 
+// Loaded by Chonk ID? Offer the whole wallet that owns it.
+async function offerOwnerWallet(ids) {
+  const b = $("ownerBtn"); b.hidden = true;
+  if (!ids || !ids.length) return;
+  try {
+    const owner = word2addr(await call(CONTRACT, SEL.owner + pad64(ids[0])));
+    if (owner === ZERO) return;
+    const n = decodeUintArray(await call(CONTRACT, SEL.wallet + pad64(BigInt(owner)))).length;
+    if (n <= ids.length) return;
+    b.textContent = `Open all ${n} Chonks in #${ids[0]}'s wallet (${owner.slice(0, 6)}…${owner.slice(-4)})`;
+    b.onclick = () => { $("q").value = owner; b.hidden = true; openCloset(owner); };
+    b.hidden = false;
+  } catch {}
+}
 function build(chonks, traitOf) {
   S.chonks = chonks; S.traits = new Map(); S.tokenToKey = new Map();
   for (const c of chonks) for (const tid of c.traitIds) {
     const t = traitOf(tid); if (!t || !t.slot) continue;
     const key = t.slot + "|" + t.name;
     let e = S.traits.get(key);
-    if (!e) { e = { key, slot: t.slot, name: t.name, release: t.release || "", cells: t.cells, dom: dominant(t.cells), tokens: [] }; S.traits.set(key, e); }
+    if (!e) { e = { key, slot: t.slot, name: t.name, release: t.release || "", cells: t.cells, dom: dominant(t.cells), prof: profile(t.cells), tokens: [] }; S.traits.set(key, e); }
     e.tokens.push({ tid, chonk: c.id });
     S.tokenToKey.set(tid, key);
   }
@@ -785,8 +825,8 @@ function wearEquipped(c) {
   renderSkins();
 }
 function weightedPick(p) {
-  if (S.season === "none") return rnd(p);
-  const w = p.map((t) => Math.exp(seasonScore(t).score * .55)), tot = w.reduce((a, b) => a + b, 0);
+  const pal = palette();
+  const w = p.map((t) => Math.exp(seasonScore(t).score * .55 + paletteFit(t, pal) * 4)), tot = w.reduce((a, b) => a + b, 0);
   let r = Math.random() * tot; for (let i = 0; i < p.length; i++) { r -= w[i]; if (r <= 0) return p[i]; }
   return p[p.length - 1];
 }
@@ -801,7 +841,7 @@ function shuffle() {
     o[s] = fits || Math.random() > (OPTIONAL[s] || 0) * (p.length > 3 ? 1 : .6) ? pick.key : null;
   }
   if (!o.top && pool("top").length) o.top = weightedPick(pool("top")).key;
-  setOutfit(o, S.season !== "none" ? [`Shuffled with a ${SEASONS[S.season].name.toLowerCase()} lean.`] : []);
+  setOutfit(o, [`Shuffled with a lean towards the ${THEMES[S.theme].name} colours${S.season !== "none" ? ` and ${SEASONS[S.season].name.toLowerCase()} clothes` : ""}.`]);
 }
 function palette() { return [...THEMES[S.theme].sw, S.bg]; }
 // Stylist: the season decides the clothes (by name, then colour), the colour theme and background decide the colours,
@@ -814,8 +854,8 @@ function stylist() {
     const scored = [];
     for (const t of p) {
       const [h, sa] = hsl(t.dom), ss = seasonScore(t), why = ss.why.slice();
-      let sc = Math.random() * .5 + ss.score;
-      const cm = colourMatch(t.dom, pal); sc += cm * (S.season === "none" ? 3 : 1.8); if (cm > .85) why.push("matches the colours");
+      let sc = Math.random() * .3 + ss.score;
+      const fit = paletteFit(t, pal); sc += fit * (S.season === "none" ? 8 : 5.5); if (fit > .6) why.push(`${theme.name} colours`);
       for (const q of picked) {
         const [h2, s2] = hsl(q.dom);
         if (sa < 15 || s2 < 15) sc += .5;
@@ -824,7 +864,7 @@ function stylist() {
       scored.push({ t, sc, why, ss: ss.score });
     }
     // anything within a point and a half of the top pick is fair game, so pressing again gives a new look
-    const top = Math.max(...scored.map((x) => x.sc)), close = scored.filter((x) => x.sc >= top - 1.5);
+    const top = Math.max(...scored.map((x) => x.sc)), close = scored.filter((x) => x.sc >= top - 1);
     const ch = rnd(close), best = ch.t, bestWhy = ch.why, bestSeason = ch.ss;
     const opt = OPTIONAL[s] || 0;
     const keep = !opt || bestSeason > 2 || Math.random() > opt * (S.season === "summer" && s === "head" ? 1 : .6);
@@ -1099,6 +1139,15 @@ function loadDemo() {
    ===================================================================== */
 $("findForm").onsubmit = (e) => { e.preventDefault(); const v = $("q").value.trim(); if (v) openCloset(v); };
 $("randBtn").onclick = shuffle;
+$("walletBtn").onclick = async () => {
+  const eth = window.ethereum;
+  if (!eth) { status("No browser wallet found here. Paste your wallet address or ENS name instead.", true); return; }
+  try {
+    const [addr] = await eth.request({ method: "eth_requestAccounts" });
+    if (!addr) return;
+    $("q").value = addr; openCloset(addr);
+  } catch (e) { status(e && e.code === 4001 ? "Wallet connection cancelled." : "Couldn't connect the wallet.", true); }
+};
 $("styleBtn").onclick = stylist;
 $("rareBtn").onclick = rarest;
 $("resetBtn").onclick = () => wearEquipped(S.chonks.find((c) => c.id === S.filter) || S.chonks[0]);
@@ -1134,13 +1183,12 @@ $("copyBtn").onclick = async () => {
   S.bodies = DEMO.bodies();
   paint();
   let h = ""; try { h = decodeURIComponent((location.hash || "").slice(1)); } catch {} if (/^slot-/.test(h)) h = "";
-  const start = h || store.get("closet-last");
+  const start = h || "1"; // Chonk #1 opens by default
   if (start) { $("q").value = start; openCloset(start); }
   else {
     // Probe Base once: if it's reachable, wait for an address; if not, show the demo closet.
     call(CONTRACT, SEL.supply, 6000).then(() => status("Enter a wallet or some Chonk IDs to open the closet.")).catch((e) => { if (e.offline) loadDemo(); });
   }
-  $("findForm").addEventListener("submit", () => store.set("closet-last", $("q").value.trim()));
 })();
 </script>
 </body>
