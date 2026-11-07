@@ -219,7 +219,7 @@ button, input { font: inherit; color: inherit; }
         <div id="stage3d" hidden aria-label="3D outfit preview, drag to turn"></div>
         <span class="tag" id="stageTag">Live from Base</span>
         <div class="dims" role="group" aria-label="Render mode"><button type="button" id="mode2d" aria-pressed="true">2D</button><button type="button" id="mode3d" aria-pressed="false">3D</button></div>
-        <span class="hint3" id="hint3" hidden>Drag to turn</span>
+        <span class="hint3" id="hint3" hidden>Drag to turn · scroll to zoom</span>
       </div>
       <div class="actions">
         <button class="act" id="randBtn" type="button">Shuffle<small>Random fit</small></button>
@@ -1017,18 +1017,39 @@ async function three() {
   const fill = new THREE.DirectionalLight(0xffffff, .5); fill.position.set(-30, 10, -20); scene.add(fill);
   const group = new THREE.Group(); scene.add(group);
   const geo = new THREE.BoxGeometry(1, 1, 1), mat = new THREE.MeshLambertMaterial();
-  const view = { yaw: -.45, pitch: .12, auto: true, drag: null, last: 0 };
+  const view = { yaw: -.45, pitch: .12, r: 78, auto: true, drag: null, last: 0, vy: 0, vp: 0, pts: new Map(), pinch: null };
   const size = () => { const w = host.clientWidth || 400; renderer.setSize(w, w, false); camera.aspect = 1; camera.updateProjectionMatrix(); };
   new ResizeObserver(size).observe(host); size();
-  host.addEventListener("pointerdown", (e) => { view.drag = { x: e.clientX, y: e.clientY, yaw: view.yaw, pitch: view.pitch }; view.auto = false; host.setPointerCapture(e.pointerId); $("hint3").hidden = true; });
-  host.addEventListener("pointermove", (e) => { if (!view.drag) return; view.yaw = view.drag.yaw + (e.clientX - view.drag.x) * .012; view.pitch = clamp(view.drag.pitch + (e.clientY - view.drag.y) * .008, -.6, .9); });
-  const up = () => { view.drag = null; view.last = performance.now(); };
+  // Drag: the Chonk turns the way the pointer moves (and keeps spinning a little when let go).
+  // Wheel or pinch: zoom. Double-click: back to the slow turntable.
+  host.addEventListener("pointerdown", (e) => {
+    view.pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); host.setPointerCapture(e.pointerId);
+    view.auto = false; view.vy = view.vp = 0; $("hint3").hidden = true;
+    if (view.pts.size === 2) { const [a, b] = [...view.pts.values()]; view.pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), r: view.r }; view.drag = null; }
+    else view.drag = { x: e.clientX, y: e.clientY, t: performance.now() };
+  });
+  host.addEventListener("pointermove", (e) => {
+    if (!view.pts.has(e.pointerId)) return;
+    view.pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (view.pinch && view.pts.size === 2) { const [a, b] = [...view.pts.values()]; view.r = clamp(view.pinch.r * view.pinch.d / Math.max(20, Math.hypot(a.x - b.x, a.y - b.y)), 28, 170); return; }
+    if (!view.drag) return;
+    const now = performance.now(), dx = e.clientX - view.drag.x, dy = e.clientY - view.drag.y, dt = Math.max(8, now - view.drag.t);
+    const dyaw = -dx * .012, dpitch = dy * .008;
+    view.yaw += dyaw; view.pitch = clamp(view.pitch + dpitch, -.6, 1.2);
+    view.vy = dyaw / dt * 16; view.vp = dpitch / dt * 16;
+    view.drag = { x: e.clientX, y: e.clientY, t: now };
+  });
+  const up = (e) => { view.pts.delete(e.pointerId); if (view.pts.size < 2) view.pinch = null; if (!view.pts.size) { view.drag = null; view.last = performance.now(); } };
   host.addEventListener("pointerup", up); host.addEventListener("pointercancel", up);
-  host.addEventListener("dblclick", () => { view.auto = true; });
+  host.addEventListener("wheel", (e) => { e.preventDefault(); view.r = clamp(view.r * Math.exp(e.deltaY * .0012), 28, 170); }, { passive: false });
+  host.addEventListener("dblclick", () => { view.auto = true; view.r = 78; view.pitch = .12; });
   function frame(t) {
     if (S.mode === "3d") {
-      if (!view.drag && !reduced && (view.auto || t - view.last > 4000)) { view.auto = true; view.yaw += .006; }
-      const r = 78; camera.position.set(Math.sin(view.yaw) * Math.cos(view.pitch) * r, Math.sin(view.pitch) * r + 2, Math.cos(view.yaw) * Math.cos(view.pitch) * r);
+      if (!view.drag && !view.pinch) {
+        if (Math.abs(view.vy) + Math.abs(view.vp) > .0004) { view.yaw += view.vy; view.pitch = clamp(view.pitch + view.vp, -.6, 1.2); view.vy *= .93; view.vp *= .93; }
+        else if (!reduced && (view.auto || t - view.last > 6000)) { view.auto = true; view.yaw -= .006; }
+      }
+      const r = view.r; camera.position.set(Math.sin(view.yaw) * Math.cos(view.pitch) * r, Math.sin(view.pitch) * r + 2, Math.cos(view.yaw) * Math.cos(view.pitch) * r);
       camera.lookAt(0, 1, 0);
       renderer.render(scene, camera);
     }
