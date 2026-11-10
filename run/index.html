@@ -1152,11 +1152,36 @@ scene.fog = new THREE.Fog(0xffffff, 30, 140);
 const camera = new THREE.PerspectiveCamera(64, 1, 0.1, 900);
 
 const skyMat = new THREE.ShaderMaterial({
-  uniforms: { top: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, sunCol: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3(0, 1, 0) } },
+  // fx = (stars, nebula, light shafts, horizon haze); each world sets its own mix in SKY_FX
+  uniforms: { top: { value: new THREE.Color() }, bot: { value: new THREE.Color() }, sunCol: { value: new THREE.Color() }, sunDir: { value: new THREE.Vector3(0, 1, 0) },
+    fogCol: { value: new THREE.Color() }, fx: { value: new THREE.Vector4() }, moon: { value: 0 }, time: { value: 0 } },
   vertexShader: `varying vec3 vP; void main(){ vP = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
-  fragmentShader: `uniform vec3 top; uniform vec3 bot; uniform vec3 sunCol; uniform vec3 sunDir; varying vec3 vP;
-    void main(){ float h = clamp(vP.y * 1.6 + 0.12, 0.0, 1.0); vec3 c = mix(bot, top, pow(h, 0.75));
-      float d = max(dot(normalize(vP), normalize(sunDir)), 0.0); c += sunCol * (pow(d, 600.0) * 2.2 + pow(d, 12.0) * 0.22);
+  fragmentShader: `uniform vec3 top; uniform vec3 bot; uniform vec3 sunCol; uniform vec3 sunDir; uniform vec3 fogCol; uniform vec4 fx; uniform float moon; uniform float time; varying vec3 vP;
+    float h31(vec3 p){ p = fract(p * 0.3183099 + vec3(0.71, 0.113, 0.419)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+    float vn(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(mix(h31(i), h31(i + vec3(1,0,0)), f.x), mix(h31(i + vec3(0,1,0)), h31(i + vec3(1,1,0)), f.x), f.y),
+                 mix(mix(h31(i + vec3(0,0,1)), h31(i + vec3(1,0,1)), f.x), mix(h31(i + vec3(0,1,1)), h31(i + vec3(1,1,1)), f.x), f.y), f.z); }
+    float fbm(vec3 p){ return vn(p) * 0.55 + vn(p * 2.1 + 7.3) * 0.3 + vn(p * 4.3 + 2.1) * 0.15; }
+    void main(){ vec3 d3 = normalize(vP); float h = clamp(d3.y * 1.6 + 0.12, 0.0, 1.0); vec3 c = mix(bot, top, pow(h, 0.75));
+      float d = max(dot(d3, normalize(sunDir)), 0.0); c += sunCol * (pow(d, 600.0) * 2.2 + pow(d, 12.0) * 0.22);
+      if (fx.y > 0.001) { // nebula, banded so it matches the low-poly look
+        float n = fbm(d3 * 2.6 + vec3(3.1, 0.0, 1.7)), n2 = fbm(d3 * 5.2 - vec3(1.3, 4.0, 0.2));
+        float band = exp(-pow(dot(d3, normalize(vec3(0.35, 0.8, -0.45))), 2.0) * 9.0);
+        float m = smoothstep(0.5, 0.82, n) * (0.25 + 0.75 * band); m = floor(m * 6.0 + 0.5) / 6.0;
+        vec3 neb = mix(vec3(0.16, 0.10, 0.42), vec3(0.50, 0.12, 0.40), n2); neb = mix(neb, vec3(0.10, 0.34, 0.52), smoothstep(0.55, 0.8, n2));
+        c += neb * m * fx.y * 0.55 + vec3(0.55, 0.6, 0.9) * band * 0.05 * fx.y; }
+      if (fx.x > 0.001) { // square little stars that twinkle
+        vec3 g = d3 * 170.0, id = floor(g), f = fract(g) - 0.5; float r = h31(id);
+        float st = step(0.9965 - fx.x * 0.0035, r) * step(max(abs(f.x), max(abs(f.y), abs(f.z))), 0.2 + 0.2 * fract(r * 91.7));
+        c += vec3(0.95, 0.95, 1.0) * st * (0.55 + 0.45 * sin(time * (1.0 + 3.0 * fract(r * 37.0)) + r * 90.0)) * smoothstep(0.02, 0.3, d3.y) * fx.x; }
+      if (moon > 0.001) { vec3 md = normalize(vec3(-0.42, 0.52, -0.74)); float m = dot(d3, md);
+        float disc = smoothstep(0.9968, 0.9972, m), bite = smoothstep(0.9972, 0.9976, dot(d3, normalize(md + vec3(0.035, 0.012, 0.0))));
+        c += vec3(1.0, 0.96, 0.84) * (disc * (1.0 - bite * 0.92) * 1.1 + pow(max(m, 0.0), 220.0) * 0.16 + pow(max(m, 0.0), 24.0) * 0.07) * moon; }
+      if (fx.z > 0.001) { // shafts of light coming down through water
+        float a = atan(d3.z, d3.x); float ray = vn(vec3(a * 5.0, time * 0.12, 1.0)) * vn(vec3(a * 13.0 + 4.0, time * 0.2, 5.0));
+        ray = smoothstep(0.16, 0.5, ray) * smoothstep(-0.05, 0.75, d3.y);
+        c += vec3(0.55, 0.95, 1.0) * ray * 0.34 * fx.z + vec3(0.6, 0.95, 1.0) * pow(max(d3.y, 0.0), 2.5) * 0.3 * fx.z; }
+      float hz = exp(-max(d3.y, 0.0) * 6.5) * fx.w; c = mix(c, fogCol, d3.y < 0.0 ? fx.w : hz);
       gl_FragColor = vec4(c, 1.0);
       #include <colorspace_fragment>
     }`,
@@ -1177,6 +1202,8 @@ ground.rotation.x = -Math.PI / 2; ground.position.y = -3; scene.add(ground);
 /* Horizon: a ring of distant hills, peaks or skyline that travels with the camera, one per world */
 function mixHex(a, b, t) { return new THREE.Color(a).lerp(new THREE.Color(b), t).getHex(); }
 const HORIZONS = {};
+// sky effects per world: [stars, nebula, light shafts, horizon haze, moon]
+const SKY_FX = { jungle: [0, 0, 0, 0.55, 0], desert: [0, 0, 0, 0.6, 0], mountain: [0, 0, 0, 0.45, 0], city: [1, 0, 0, 0.3, 1], volcano: [0.35, 0, 0, 0.5, 0], candy: [0, 0, 0, 0.4, 0], reef: [0, 0, 1, 0.5, 0], sky: [0, 0, 0, 0.3, 0], space: [0, 1, 0, 0, 0] };
 function buildHorizon(key) {
   const T = THEMES[key], fog = T.env.fog, b = new Builder();
   const at = (a, r) => [Math.cos(a) * r, Math.sin(a) * r];
@@ -1185,6 +1212,9 @@ function buildHorizon(key) {
     for (let i = 0; i < 110; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(250, 330)); b.geo("ico", x, -3, -z, rand(60, 100), rand(40, 90), rand(60, 100), mixHex(jit(0x2a6a28, 0.05), fog, rand(0.3, 0.45))); }
     for (let i = 0; i < 160; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(190, 230)), h = rand(25, 45), c = mixHex(0x2a6326, fog, 0.25);
       b.box(x, -3, -z, 2.5, h, 2.5, mixHex(0x4a3420, fog, 0.25)); b.geo("ico", x, -3 + h, -z, rand(16, 26), rand(10, 16), rand(16, 26), c); }
+    for (let i = 0; i < 7; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(270, 340)), w = rand(50, 80), n = randi(4, 6), st = rand(12, 17), c = mixHex(0xa39a78, fog, 0.5);
+      for (let k = 0; k < n; k++) b.add(false, GEO.box, x, -3 + st * (k + 0.5) + 20, -z, w * (1 - k / (n + 0.6)), st, w * (1 - k / (n + 0.6)), k % 2 ? c : mixHex(0x8f8766, fog, 0.5), { ry: a });
+      b.add(false, GEO.box, x, -3 + st * n + 26, -z, w * 0.16, 12, w * 0.16, mixHex(0xb8ad8b, fog, 0.5), { ry: a }); }
   } else if (key === "mountain") {
     for (let i = 0; i < 60; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(420, 500)), r = rand(70, 120), h = rand(190, 320), c = mixHex(0x8792a4, fog, rand(0.45, 0.6));
       b.geo("cone", x, -3 + h / 2, -z, r * 2, h, r * 2, c, { ry: rand(0, 3) }); b.geo("cone", x, -3 + h - h * 0.38 / 2, -z, r * 0.78, h * 0.38, r * 0.78, mixHex(0xffffff, fog, 0.25), { ry: rand(0, 3) }); }
@@ -1195,11 +1225,15 @@ function buildHorizon(key) {
   } else if (key === "desert") {
     for (let i = 0; i < 120; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(170, 260)); b.geo("ico", x, -3, -z, rand(50, 90), rand(14, 30), rand(40, 70), mixHex(jit(0xe0bc7c, 0.04), fog, 0.25)); }
     for (let i = 0; i < 14; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(330, 460)), r = rand(40, 80); b.geo("cone4", x, -3 + r * 0.7, -z, r * 2, r * 1.4, r * 2, mixHex(0xd8b070, fog, 0.4), { ry: Math.PI / 4 }); }
-    for (let i = 0; i < 40; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(300, 440)), w = rand(30, 70), h = rand(25, 60); b.add(false, GEO.box, x, -3 + h / 2, -z, w, h, w * 0.7, mixHex(0xc08048, fog, 0.4), { ry: a }); }
+    for (let i = 0; i < 40; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(300, 440)), w = rand(30, 70), h = rand(25, 60); const c = mixHex(jit(0xc08048, 0.03), fog, 0.42);
+      b.add(false, GEO.box, x, -3 + h * 0.3, -z, w * 1.25, h * 0.6, w * 0.9, mixHex(0xb07040, fog, 0.42), { ry: a }); b.add(false, GEO.box, x, -3 + h * 0.5, -z, w, h, w * 0.7, c, { ry: a });
+      b.add(false, GEO.box, x + rand(-w, w) * 0.15, -3 + h * 1.08, -z, w * 0.55, h * 0.18, w * 0.4, mixHex(0xd09058, fog, 0.42), { ry: a }); }
+    for (let i = 0; i < 26; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(270, 330)); b.geo("ico", x, -3, -z, rand(120, 200), rand(16, 34), rand(30, 50), mixHex(0xe8c888, fog, 0.5), { ry: -a + Math.PI / 2 }); }
   } else if (key === "volcano") {
     for (let i = 0; i < 110; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(170, 250)), h = rand(15, 40); b.geo("cone4", x, -3 + h / 2, -z, rand(14, 30), h, rand(14, 30), mixHex(0x1c1622, fog, 0.2), { ry: rand(0, 3) }); }
     for (let i = 0; i < 26; i++) { const a = rand(0, Math.PI * 2), [x, z] = at(a, rand(320, 470)), r = rand(50, 100), h = rand(110, 220);
       b.geo("cone", x, -3 + h / 2, -z, r * 2, h, r * 2, mixHex(0x241a1c, fog, 0.3)); b.add(true, GEO.cyl, x, -3 + h - 2, -z, r * 0.55, 4, r * 0.55, 0xff6a1a, {});
+      for (let k = 0, lean = rand(-1, 1); k < 5; k++) b.geo("ico", x + lean * k * 14, -3 + h + 14 + k * 24, -z + lean * k * 6, r * (0.5 + k * 0.22), r * (0.3 + k * 0.1), r * (0.5 + k * 0.22), mixHex(k < 2 ? 0x6a3024 : 0x3a2426, fog, 0.35 + k * 0.08), { ry: rand(0, 3) });
       b.add(true, GEO.box, x, -3 + h * 0.5, -z, 3, h * 0.9, 3, 0xff5a1a, { ry: -a, rz: rand(-0.4, 0.4) }); }
   } else if (key === "candy") {
     const pastel = [0xff9ad0, 0xbfe6ff, 0xfff0a0, 0xc8f2c0, 0xe0c8ff];
@@ -1216,7 +1250,6 @@ function buildHorizon(key) {
   } else if (key === "space") {
     const dir = () => { const u = rand(-1, 1), t = rand(0, Math.PI * 2), q = Math.sqrt(1 - u * u); return [q * Math.cos(t), u, q * Math.sin(t)]; };
     for (let i = 0; i < 1800; i++) { const [dx, dy, dz] = dir(), r = rand(600, 680), sz = rand(0.8, 2.8) * (R() < 0.05 ? 2 : 1); b.add(true, GEO.box, dx * r, dy * r, dz * r, sz, sz, sz, pick([0xffffff, 0xdfe8ff, 0xfff0d0, 0xbfd4ff, 0xffd0d0]), {}); }
-    for (let i = 0; i < 60; i++) { const a = rand(0, 1.2) + 2.2, e2 = rand(-0.3, 0.6), r = rand(560, 620); b.add(true, GEO.ico, Math.cos(a) * Math.cos(e2) * r, Math.sin(e2) * r, Math.sin(a) * Math.cos(e2) * r, rand(60, 140), rand(30, 80), rand(60, 140), pick([0x2a1440, 0x14244a, 0x3a1430, 0x1a1a4a]), {}); } // a faint nebula
     const planet = (a, el, dist, rad, col, ring, ringCol) => { const x = Math.cos(a) * Math.cos(el) * dist, y = Math.sin(el) * dist, z = Math.sin(a) * Math.cos(el) * dist;
       b.add(false, GEO.sphere, x, y, z, rad * 2, rad * 2, rad * 2, col, {}); b.add(false, GEO.sphere, x + rad * 0.1, y + rad * 0.2, z, rad * 2.02, rad * 0.5, rad * 2.02, mixHex(col, 0xffffff, 0.25), {});
       if (ring) b.add(false, GEO.torus, x, y, z, rad * 3.6, rad * 3.6, rad * 3.6, ringCol, { rx: 1.25, rz: 0.35 }); };
@@ -1551,7 +1584,7 @@ const THEMES = {
       for (const sx of [-1, 1]) { b.geo("dode", sx * (HALF + 0.9), 0.3, sc, 1.8, 2.2, 1.6, jit(0x737a89)); b.geo("dode", sx * (HALF + 0.9), 1.3, sc, 1.3, 0.5, 1.2, 0xf6f9fc); }
       b.geo("cyl6", 0, BEAM_Y0 + 0.42, sc, 0.84, W + 3.4, 0.84, 0x6e4a2e, { rz: Math.PI / 2 + 0.03 });
       b.box(0, BEAM_Y0 + 0.78, sc, W + 3, 0.16, 0.6, 0xf6f9fc);
-      for (let i = 0; i < 5; i++) { const x = rand(-HALF, HALF); b.geo("cone", x, BEAM_Y0 + 1.25, sc + rand(-0.3, 0.3), 0.7, 1.1, 0.7, 0x2f5a3c, { rz: rand(-0.6, 0.6) }); b.geo("cone", x, BEAM_Y0 + 1.6, sc, 0.35, 0.35, 0.35, 0xf6f9fc); }
+      for (let i = 0; i < 5; i++) { const x = rand(-HALF, HALF); b.geo("cone", x, BEAM_Y0 + 1.08, sc + rand(-0.3, 0.3), 0.7, 0.8, 0.7, 0x2f5a3c, { rz: rand(-0.6, 0.6) }); b.geo("cone", x, BEAM_Y0 + 1.36, sc, 0.3, 0.26, 0.3, 0xf6f9fc); } // kept under 2.8 m so the camera clears it on phones
       b.geo("cone", -HALF - 2.4, BEAM_Y0 + 0.4, sc, 1.6, 2.4, 1.6, 0x2c5a3f, { rz: -Math.PI / 2 });
     },
     gantry(b, sc) { // a high fallen trunk the hanging snow clumps cling to
@@ -1759,8 +1792,8 @@ const THEMES = {
         }
         for (let s = 18; s < nend; s += 18) { // lamps on the parapet
           const x = side * (HALF + 0.3);
-          b.box(x, 0.66, s, 0.14, 3.2, 0.14, 0x2c2a33); b.box(x - side * 0.5, 3.8, s, 1.1, 0.12, 0.14, 0x2c2a33);
-          b.box(x - side * 0.95, 3.6, s, 0.45, 0.16, 0.3, 0xffe2a0, { glow: true });
+          b.box(x, 0.66, s, 0.14, 4.2, 0.14, 0x2c2a33); b.box(x - side * 0.4, 4.8, s, 0.9, 0.12, 0.14, 0x2c2a33); // above the camera's line of travel
+          b.box(x - side * 0.75, 4.6, s, 0.45, 0.16, 0.3, 0xffe2a0, { glow: true });
         }
         for (let s = rand(25, 40); s < end; s += rand(14, 22)) { // far skyline
           const x = side * rand(62, 98), w = rand(12, 24), h = rand(50, 130);
@@ -2162,8 +2195,8 @@ Object.assign(THEMES, {
     },
     endWall(b, run, sides) { // a big asteroid drifting across the end of the walkway
       const L = run.L;
-      for (let i = 0; i < 9; i++) b.geo("dode", rand(-HALF - 12, HALF + 12), rand(-6, 10), L + rand(5, 9), rand(6, 12), rand(6, 12), rand(5, 9), jit(0x5a5450, 0.06), { ry: rand(0, 3), rx: rand(0, 3) });
-      for (let i = 0; i < 10; i++) b.geo("cone4", rand(-HALF - 8, HALF + 8), rand(-2, 8), L + 3.6, 0.5, rand(1, 2.4), 0.5, pick([0xb46bff, 0x6fd8ff]), { glow: true, rz: rand(-0.8, 0.8) });
+      for (let i = 0; i < 9; i++) { const sz = rand(6, 12); b.geo("dode", rand(-HALF - 12, HALF + 12), rand(-6, 10), L + HALF + 2.2 + sz * 0.62 + rand(0, 3), sz, rand(6, 12), sz, jit(0x5a5450, 0.06), { ry: rand(0, 3), rx: rand(0, 3) }); }
+      for (let i = 0; i < 10; i++) b.geo("cone4", rand(-HALF - 8, HALF + 8), rand(-2, 8), L + HALF + 1.6, 0.5, rand(1, 2.4), 0.5, pick([0xb46bff, 0x6fd8ff]), { glow: true, rz: rand(-0.8, 0.8) });
       for (const side of sides) b.geo("dode", side * (HALF + 7), 2, L - W / 2 - 8, 9, 9, 14, 0x4a4440);
     },
     gate(b, s) { b.add(true, GEO.torus, 0, 3.5, -s, 15, 15, 15, 0x3fe0ff, {}); b.add(false, GEO.torus, 0, 3.5, -s, 15.6, 15.6, 15.6, 0x6a7080, { rz: 0.4 }); },
@@ -2721,12 +2754,12 @@ function resetWorld() {
 /* =====================================================================
    9. Environment (sky, fog, light) blends between worlds
    ===================================================================== */
-const envNow = { top: new THREE.Color(), bot: new THREE.Color(), fog: new THREE.Color(), hs: new THREE.Color(), hg: new THREE.Color(), sun: new THREE.Color(), ground: new THREE.Color(), hi: 1, si: 2, near: 30, far: 140, exp: 1, sunDir: new THREE.Vector3(0.5, 0.5, -0.7) };
+const envNow = { top: new THREE.Color(), bot: new THREE.Color(), fog: new THREE.Color(), hs: new THREE.Color(), hg: new THREE.Color(), sun: new THREE.Color(), ground: new THREE.Color(), hi: 1, si: 2, near: 30, far: 140, exp: 1, sunDir: new THREE.Vector3(0.5, 0.5, -0.7), fx: new THREE.Vector4(), moon: 0 };
 let envTarget = null, envKey = null;
 function applyEnv(key, instant) {
   envKey = key; HORIZONS[key] ??= buildHorizon(key); // the rest are built in the background as you approach them
   if (instant) for (const k in HORIZONS) { HORIZONS[k].userData.op = k === key ? 1 : 0; } const e = THEMES[key].env;
-  envTarget = { gy: e.gy ?? -3, top: new THREE.Color(e.top), bot: new THREE.Color(e.bot), fog: new THREE.Color(e.fog), hs: new THREE.Color(e.hs), hg: new THREE.Color(e.hg), sun: new THREE.Color(e.sun), ground: new THREE.Color(e.ground), hi: e.hi, si: e.si, near: e.near, far: e.far, exp: e.exp, sunDir: new THREE.Vector3(...e.sunDir).normalize() };
+  envTarget = { gy: e.gy ?? -3, top: new THREE.Color(e.top), bot: new THREE.Color(e.bot), fog: new THREE.Color(e.fog), hs: new THREE.Color(e.hs), hg: new THREE.Color(e.hg), sun: new THREE.Color(e.sun), ground: new THREE.Color(e.ground), hi: e.hi, si: e.si, near: e.near, far: e.far, exp: e.exp, sunDir: new THREE.Vector3(...e.sunDir).normalize(), fx: new THREE.Vector4(...(SKY_FX[key] || [0, 0, 0, 0.4]).slice(0, 4)), moon: (SKY_FX[key] || [])[4] || 0 };
   if (instant) stepEnv(1);
 }
 function stepEnv(t) {
@@ -2734,7 +2767,8 @@ function stepEnv(t) {
   for (const k of ["top", "bot", "fog", "hs", "hg", "sun", "ground"]) a[k].lerp(b[k], t);
   for (const k of ["hi", "si", "near", "far", "exp", "gy"]) a[k] = lerp(a[k] ?? b[k], b[k], t);
   ground.position.y = a.gy;
-  a.sunDir.lerp(b.sunDir, t).normalize();
+  a.sunDir.lerp(b.sunDir, t).normalize(); a.fx.lerp(b.fx, t); a.moon = lerp(a.moon, b.moon, t);
+  skyMat.uniforms.fogCol.value.copy(a.fog); skyMat.uniforms.fx.value.copy(a.fx); skyMat.uniforms.moon.value = a.moon;
   skyMat.uniforms.top.value.copy(a.top); skyMat.uniforms.bot.value.copy(a.bot); skyMat.uniforms.sunCol.value.copy(a.sun); skyMat.uniforms.sunDir.value.copy(a.sunDir);
   scene.fog.color.copy(a.fog); scene.fog.near = a.near; scene.fog.far = a.far;
   hemi.color.copy(a.hs); hemi.groundColor.copy(a.hg); hemi.intensity = a.hi;
@@ -3969,9 +4003,10 @@ renderer.setAnimationLoop((now) => {
   else { const want = [...live].map((r) => r.theme).find((k) => !HORIZONS[k]); if (want) HORIZONS[want] = buildHorizon(want); }
   place(dt); trailTick(dt);
   if (G.state === "run" || G.state === "count") hudTick();
+  skyMat.uniforms.time.value = G.time;
   renderer.render(scene, camera);
 });
-if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, resolveName, namehash, applyHeadStart, refreshMenuStore, renderStore,
+if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, camera, playerRoot, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, resolveName, namehash, applyHeadStart, refreshMenuStore, renderStore,
   sim(sec, bot) { for (let t = 0; t < sec && G.state === "run"; t += 1 / 30) { if (bot) bot(this); update(1 / 30); while (buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); } place(1 / 30); } stepEnv(1); } };
 
 (async () => {
