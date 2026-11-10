@@ -1278,12 +1278,11 @@ function buildHorizon(key) {
     for (let k = 0; k < randi(3, 6); k++) b.add(true, GEO.ico, x + rand(-w / 2, w / 2), y + rand(-4, 6), -(z + rand(-w / 4, w / 4)), rand(w * 0.4, w * 0.8), rand(8, 16), rand(w * 0.3, w * 0.6), col, { ry: -a });
   }
   const grp = new THREE.Group(), mats = [];
-  for (const [list, glow] of [[b.solid, false], [b.glow, true]]) {
-    if (!list.length) continue;
-    const g = mergeGeometries(list); list.forEach((x) => x.dispose());
+  for (const glow of [false, true]) {
+    const gs = b.geos(glow); if (!gs.length) continue;
     const mat = glow ? new THREE.MeshBasicMaterial({ vertexColors: true, fog: false, transparent: true, opacity: 0 })
                      : new THREE.MeshLambertMaterial({ vertexColors: true, fog: false, flatShading: true, transparent: true, opacity: 0 });
-    const m = new THREE.Mesh(g, mat); m.frustumCulled = false; grp.add(m); mats.push(mat);
+    for (const g of gs) { const m = new THREE.Mesh(g, mat); m.frustumCulled = false; grp.add(m); } mats.push(mat);
   }
   grp.visible = false; grp.userData.mats = mats; grp.userData.op = 0; scene.add(grp);
   return grp;
@@ -1413,8 +1412,8 @@ function lollyMat(hex) {
 }
 const LOLLY_UNIT = (() => { // radius 1, facing along the track; cloned and scaled for each lollipop
   const N = 3, t = 1 / (2 * N + 1.2), k = 2 * t / (Math.PI * 2), r0 = t * 0.7, pts = [];
-  for (let th = 0; th <= Math.PI * 2 * N; th += 0.18) { const r = r0 + k * th; pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0)); }
-  const curve = new THREE.CatmullRomCurve3(pts), len = curve.getLength(), g = new THREE.TubeGeometry(curve, pts.length, t * 1.04, 7, false), uv = g.attributes.uv, tile = Math.PI * 2 * t * 1.15;
+  for (let th = 0; th <= Math.PI * 2 * N; th += 0.3) { const r = r0 + k * th; pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0)); }
+  const curve = new THREE.CatmullRomCurve3(pts), len = curve.getLength(), g = new THREE.TubeGeometry(curve, pts.length, t * 1.04, 5, false), uv = g.attributes.uv, tile = Math.PI * 2 * t * 1.15;
   for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * len / tile, uv.getY(i) * 2);
   const back = new THREE.CylinderGeometry(r0 + k * Math.PI * 2 * N, r0 + k * Math.PI * 2 * N, t * 1.3, 28).rotateX(Math.PI / 2), bu = back.attributes.uv; // fills any chink between coils
   for (let i = 0; i < bu.count; i++) bu.setXY(i, 0.75, 0.5);
@@ -1454,13 +1453,15 @@ function cakeSlab(b, x, y0, s, w, h, d, edge) {
 const creamMat = new THREE.MeshStandardMaterial({ color: 0xfffaf2, roughness: 0.7, metalness: 0 });
 // Corner cakes remember where they stand so the next stretch's scenery doesn't grow through them.
 const CAKES = [], _cv = new THREE.Vector3(), _cw = new THREE.Vector3();
-function inCake(run, x, s) {
+// The keep-out circles are resolved into the stretch's own space once per build: this test runs for every scenery piece.
+function cakeZones(run) {
   for (let i = CAKES.length - 1; i >= 0; i--) if (CAKES[i].run.dead) CAKES.splice(i, 1);
-  if (!CAKES.length) return false;
-  run.group.updateMatrixWorld(); run.group.localToWorld(_cv.set(x, 0, -s));
-  for (const c of CAKES) { if (c.run === run) continue; c.run.group.updateMatrixWorld(); c.run.group.localToWorld(_cw.set(c.x, 0, -c.s)); if ((_cv.x - _cw.x) ** 2 + (_cv.z - _cw.z) ** 2 < c.r * c.r) return true; }
-  return false;
+  const out = []; if (!CAKES.length) return out;
+  run.group.updateMatrixWorld();
+  for (const c of CAKES) { if (c.run === run) continue; c.run.group.updateMatrixWorld(); run.group.worldToLocal(c.run.group.localToWorld(_cw.set(c.x, 0, -c.s))); out.push(_cw.x, -_cw.z, c.r * c.r); }
+  return out;
 }
+
 // Three quarters of a round layer cake, the missing quarter being where the two roads meet.
 function cakeWedge(b, run, side, L) {
   const cx = side * (HALF + 1), cs = L + 1, R = 21, H = 12, y0 = -3, layers = 4, cream = 0.7, sp = (H - cream * layers) / layers, d = 3, t0 = side > 0 ? 0 : Math.PI / 2, tl = Math.PI * 1.5, k = 0.45;
@@ -1577,10 +1578,10 @@ function frostedPeak(b, x, s, r, h, col) {
   for (let i = 0; i < n; i++) { const t = i / n, rr = r * (1 - t * 0.86); b.geo("cyl", x, -3 + h * (t + 0.5 / n), s, rr * 2, h / n + 0.03, rr * 2, i % 2 ? pale : col); }
   const capY = -3 + h * 0.7, capR = r * 0.44, icing = pick([0xffffff, 0xfff0f6, 0xffc8e6, 0xd8f2ff]);
   b.geo("sphere", x, capY + h * 0.16, s, capR * 2.1, h * 0.42, capR * 2.1, icing);
-  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283, d = capR * rand(0.9, 1.05); b.geo("sphere", x + Math.cos(a) * d, capY + h * 0.02 - rand(0, h * 0.07), s + Math.sin(a) * d, capR * 0.5, h * rand(0.08, 0.16), capR * 0.5, icing); } // drips
+  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283, d = capR * rand(0.9, 1.05); b.geo("ball", x + Math.cos(a) * d, capY + h * 0.02 - rand(0, h * 0.07), s + Math.sin(a) * d, capR * 0.5, h * rand(0.08, 0.16), capR * 0.5, icing); } // drips
   for (let k = 0; k < 14; k++) { const a = rand(0, 6.283), d = capR * rand(0.2, 0.85); b.box(x + Math.cos(a) * d, capY + h * (0.33 - d / capR * 0.14), s + Math.sin(a) * d, r * 0.05, r * 0.02, r * 0.14, pick(SPRINKLE), { ry: rand(0, 3) }); }
   if (R() < 0.45) { const sw = pick([0xff8fc8, 0xc89aff, 0xffb86a]); for (let k = 0; k < 4; k++) b.geo("sphere", x + (k % 2 ? 0.08 : -0.08) * r, capY + h * (0.36 + k * 0.075), s, capR * (1.15 - k * 0.27), h * 0.11, capR * (1.15 - k * 0.27), k % 2 ? 0xffffff : sw); b.geo("cone", x, capY + h * 0.7, s, capR * 0.3, h * 0.1, capR * 0.3, sw); }
-  else b.geo("sphere", x, capY + h * 0.4, s, capR * 0.5, capR * 0.5, capR * 0.5, 0xe2203a); // or a cherry
+  else b.geo("ball", x, capY + h * 0.4, s, capR * 0.5, capR * 0.5, capR * 0.5, 0xe2203a); // or a cherry
 }
 // A biscuit tower with battlements, under a soft-serve swirl or a striped candy cone.
 function candyTower(b, x, s, h, r = 2.3) {
@@ -1589,11 +1590,11 @@ function candyTower(b, x, s, h, r = 2.3) {
   for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; b.box(x + Math.cos(a) * r * 1.02, h, s + Math.sin(a) * r * 1.02, r * 0.42, r * 0.42, r * 0.42, B, { ry: -a }); }
   for (let k = 0; k < 4; k++) { const a = k / 4 * 6.283 + 0.4; b.box(x + Math.cos(a) * r * 0.98, h * 0.62, s + Math.sin(a) * r * 0.98, r * 0.34, r * 0.6, r * 0.2, 0x7a3a1c, { ry: -a + Math.PI / 2 }); }
   if (R() < 0.5) { const sw = pick([0xff8fc8, 0xc89aff]); b.geo("sphere", x, h + r * 0.5, s, r * 2.1, r * 0.9, r * 2.1, sw); // soft-serve roof with drips
-    for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283; b.geo("sphere", x + Math.cos(a) * r * 0.95, h + r * 0.15, s + Math.sin(a) * r * 0.95, r * 0.4, r * rand(0.5, 0.9), r * 0.4, sw); }
+    for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283; b.geo("ball", x + Math.cos(a) * r * 0.95, h + r * 0.15, s + Math.sin(a) * r * 0.95, r * 0.4, r * rand(0.5, 0.9), r * 0.4, sw); }
     for (let k = 1; k < 4; k++) b.geo("sphere", x + (k % 2 ? 0.1 : -0.1), h + r * (0.5 + k * 0.62), s, r * (1.7 - k * 0.42), r * 0.8, r * (1.7 - k * 0.42), k % 2 ? 0xffffff : sw);
     b.geo("cone", x, h + r * 3.1, s, r * 0.5, r * 0.9, r * 0.5, sw);
   } else { const g = new THREE.ConeGeometry(r * 1.25, r * 3, 28, 1, true), uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 5, uv.getY(i) * 2.2); // striped cone roof
-    b.withMat(caneMat, g.translate(x, h + 0.3 + r * 1.5, -s)); b.geo("sphere", x, h + 0.3 + r * 3, s, r * 0.3, r * 0.3, r * 0.3, 0xffd23a); }
+    b.withMat(caneMat, g.translate(x, h + 0.3 + r * 1.5, -s)); b.geo("ball", x, h + 0.3 + r * 3, s, r * 0.3, r * 0.3, r * 0.3, 0xffd23a); }
 }
 function chocTree(b, x, y, s, h) { b.box(x, y, s, h * 0.12, h * 0.3, h * 0.12, 0x3a2012); b.geo("cone", x, y + h * 0.62, s, h * 0.5, h * 0.78, h * 0.5, pick([0x5a3420, 0x6a3e24, 0x4a2a18])); }
 function waferStack(b, x, y, s, w) { for (let k = 0; k < 5; k++) b.box(x, y + k * w * 0.16, s, w, w * 0.16, w * 0.7, k % 2 ? 0x4a2a18 : 0xf2dcae); }
@@ -1646,35 +1647,63 @@ const GEO = {
   cone4: prep(new THREE.ConeGeometry(0.5, 1, 4)),
   ico: prep(new THREE.IcosahedronGeometry(0.5, 0)),
   dode: prep(new THREE.DodecahedronGeometry(0.5, 0)),
-  sphere: prep(new THREE.SphereGeometry(0.5, 32, 20)),
+  sphere: prep(new THREE.SphereGeometry(0.5, 14, 9)), // faceted on purpose: it's drawn flat-shaded, and hundreds are used per stretch
+  ball: prep(new THREE.SphereGeometry(0.5, 8, 5)), // small round bits (drips, cherries, berries)
   torus: prep(new THREE.TorusGeometry(0.5, 0.06, 4, 64)),
   donut: prep(new THREE.TorusGeometry(0.36, 0.16, 10, 28).rotateX(Math.PI / 2)),
   cane: prep(new THREE.CylinderGeometry(0.5, 0.5, 1, 24)),
 };
+const _flat = new WeakMap(), KEEP_GEO = new URLSearchParams(location.search).has("debug");
+function freeArray() { this.array = null; }
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3();
 class Builder {
   constructor() { this.solid = []; this.glow = []; this.custom = new Map(); }
   withMat(mat, geo) { if (!this.custom.has(mat)) this.custom.set(mat, []); this.custom.get(mat).push(geo); } // textured pieces (lollipops), merged per material at build
+  // Pieces are written straight into shared buffers (no per-piece geometry, no merge pass): building a stretch is the main cost of a turn.
   add(glow, geo, x, y, z, sx, sy, sz, color, o) {
     if (this.skip && this.skip(x, -z)) return;
-    const g = geo.clone();
+    if (geo.index || !geo.attributes.normal) { let f = _flat.get(geo); if (!f) { f = geo.index ? geo.toNonIndexed() : geo.clone(); if (!f.attributes.normal) f.computeVertexNormals(); _flat.set(geo, f); } geo = f; }
+    const tp = geo.attributes.position.array, tn = geo.attributes.normal.array, n = tp.length, list = glow ? this.glow : this.solid;
+    let c = list[list.length - 1];
+    if (!c || c.pieces >= 1500) { c = { pos: new Float32Array(24000), nor: new Float32Array(24000), col: new Float32Array(24000), n: 0, pieces: 0 }; list.push(c); }
+    if (c.n + n > c.pos.length) {
+      const size = Math.max(c.pos.length * 2, c.n + n);
+      for (const k of ["pos", "nor", "col"]) { const big = new Float32Array(size); big.set(c[k].subarray(0, c.n)); c[k] = big; }
+    }
     _e.set(o.rx || 0, o.ry || 0, o.rz || 0); _q.setFromEuler(_e);
-    _m.compose(_p.set(x, y, z), _q, _s.set(sx, sy, sz)); g.applyMatrix4(_m);
-    _c.setHex(color); const n = g.attributes.position.count, arr = new Float32Array(n * 3);
-    for (let i = 0; i < n; i++) { arr[i * 3] = _c.r; arr[i * 3 + 1] = _c.g; arr[i * 3 + 2] = _c.b; }
-    g.setAttribute("color", new THREE.BufferAttribute(arr, 3));
-    (glow ? this.glow : this.solid).push(g);
+    _m.compose(_p.set(x, y, z), _q, _s.set(sx, sy, sz));
+    const e = _m.elements, m0 = e[0], m1 = e[1], m2 = e[2], m4 = e[4], m5 = e[5], m6 = e[6], m8 = e[8], m9 = e[9], m10 = e[10], tx = e[12], ty = e[13], tz = e[14];
+    const ix = 1 / (sx * sx || 1), iy = 1 / (sy * sy || 1), iz = 1 / (sz * sz || 1);
+    _c.setHex(color); const r = _c.r, g = _c.g, bl = _c.b, pos = c.pos, nor = c.nor, col = c.col;
+    for (let i = 0, j = c.n; i < n; i += 3, j += 3) {
+      const px = tp[i], py = tp[i + 1], pz = tp[i + 2];
+      pos[j] = m0 * px + m4 * py + m8 * pz + tx; pos[j + 1] = m1 * px + m5 * py + m9 * pz + ty; pos[j + 2] = m2 * px + m6 * py + m10 * pz + tz;
+      const ax = tn[i] * ix, ay = tn[i + 1] * iy, az = tn[i + 2] * iz;
+      const nx = m0 * ax + m4 * ay + m8 * az, ny = m1 * ax + m5 * ay + m9 * az, nz = m2 * ax + m6 * ay + m10 * az, l = 1 / (Math.sqrt(nx * nx + ny * ny + nz * nz) || 1);
+      nor[j] = nx * l; nor[j + 1] = ny * l; nor[j + 2] = nz * l;
+      col[j] = r; col[j + 1] = g; col[j + 2] = bl;
+    }
+    c.n += n; c.pieces++;
   }
   // Run space: x is lateral, y0 is the bottom, s is distance along the run (s grows forward = -z).
   box(x, y0, s, w, h, d, col, o = {}) { this.add(o.glow, GEO.box, x, y0 + h / 2, -s, w, h, d, col, o); }
   geo(name, x, y, s, sx, sy, sz, col, o = {}) { this.add(o.glow, GEO[name], x, y, -s, sx, sy, sz, col, o); }
+  // the buffers of one list (solid or glow) as finished geometries, one per chunk
+  geos(glow) {
+    return (glow ? this.glow : this.solid).filter((c) => c.n).map((c) => {
+      const g = new THREE.BufferGeometry();
+      for (const [name, k] of [["position", "pos"], ["normal", "nor"], ["color", "col"]]) {
+        const at = new THREE.BufferAttribute(c[k].subarray(0, c.n), 3); g.setAttribute(name, at);
+        if (!KEEP_GEO) at.onUpload(freeArray); // once it's on the graphics card the copy in memory is dead weight
+      }
+      g.computeBoundingSphere();
+      return g;
+    });
+  }
   build(parent, shadow = true) {
     const out = [];
-    for (const [list, mat, glow] of [[this.solid, solidMat, false], [this.glow, glowMat, true]]) {
-      if (!list.length) continue;
-      // merge in chunks to keep single buffers a sensible size
-      for (let i = 0; i < list.length; i += 1500) {
-        const part = list.slice(i, i + 1500), g = mergeGeometries(part); part.forEach((p) => p.dispose());
+    for (const [mat, glow] of [[solidMat, false], [glowMat, true]]) {
+      for (const g of this.geos(glow)) {
         const mesh = new THREE.Mesh(g, mat); mesh.castShadow = shadow && !glow; mesh.receiveShadow = !glow;
         parent.add(mesh); out.push(mesh);
       }
@@ -2333,7 +2362,6 @@ Object.assign(THEMES, {
     moverMesh(b) { b.geo("ico", 0, 0, 0, 2.3, 2.3, 2.3, 0xff5d73); for (let i = 0; i < 4; i++) b.box(0, 0, 0, 2.36, 0.25, 2.36, pick([0xffffff, 0xffe14f, 0x7fd0ff]), { rx: i * Math.PI / 4 }); },
     scenery(b, run, lim, near) {
       const pastel = [0xff9ad0, 0xbfe6ff, 0xfff0a0, 0xc8f2c0, 0xe0c8ff], canes = [], lollies = new Map(); let li = randi(0, LOLLY_COLS.length - 1);
-      const sk = b.skip; b.skip = (x, s) => (sk && sk(x, s)) || inCake(run, x, s);
       sideLoop(lim, near, (side, end, nend) => {
         // a blue syrup river down one side, with sugar banks and ring sweets floating on it
         const river = side === (run.idx % 2 ? -1 : 1), inRiver = (x) => river && Math.abs(x) > HALF + 10 && Math.abs(x) < HALF + 20;
@@ -2452,7 +2480,7 @@ Object.assign(THEMES, {
             b.geo("ico", px + Math.cos(a) * (0.3 + l * 0.45 * tilt), py + 0.85 + l * 0.8, pz + Math.sin(a) * (0.3 + l * 0.45 * tilt), 0.4, 0.4, 0.4, col); }
         } else if (kind < 0.48) { const sz = rand(1.8, 3); b.geo("sphere", px, py + sz * 0.45, pz, sz, sz * 0.85, 0.2, col, { ry: nx ? Math.PI / 2 : 0 }); b.geo("cyl", px, py + 0.2, pz, 0.1, 0.5, 0.1, col); } // sea fan
         else if (kind < 0.64) { const sz = rand(0.8, 1.5); b.geo("sphere", px, py + sz * 0.25, pz, sz, sz * 0.7, sz, pick([0xd8a85a, 0x9acd5a, 0xe8b07a, 0xc06aa0])); // brain coral with its grooves
-          for (let j = 0; j < 3; j++) b.geo("torus", px, py + sz * 0.25 + 0.05, pz, sz * (0.95 - j * 0.25), sz * 0.6, sz * (0.95 - j * 0.25), 0x6a4a3a, { rx: Math.PI / 2 }); }
+          b.geo("cyl", px, py + sz * 0.3, pz, sz * 0.5, sz * 0.62, sz * 0.5, 0x6a4a3a); }
         else if (kind < 0.78) for (let j = 0; j < randi(3, 5); j++) { const h = rand(0.6, 1.6), ox = rand(-0.4, 0.4), oz = rand(-0.4, 0.4); b.geo("cyl", px + ox, py + h / 2, pz + oz, 0.32, h, 0.32, col); b.geo("cyl", px + ox, py + h + 0.01, pz + oz, 0.22, 0.04, 0.22, 0x2a1830); } // tube sponges
         else if (kind < 0.92) { b.geo("cyl", px, py + 0.2, pz, 0.45, 0.4, 0.45, 0xff7a9a); for (let j = 0; j < 9; j++) { const a = j / 9 * 6.28; b.geo("cone", px + Math.cos(a) * 0.18, py + 0.6, pz + Math.sin(a) * 0.18, 0.1, 0.55, 0.1, 0x5fe0c8, { glow: true, rz: Math.cos(a) * 0.6, rx: -Math.sin(a) * 0.6 }); } } // anemone
         else { b.geo("ico", px, py + 0.3, pz, 0.6, 0.6, 0.6, 0x2a1a3a); for (let j = 0; j < 8; j++) { const a = j / 8 * 6.28; b.geo("cone", px + Math.cos(a) * 0.32, py + 0.3, pz + Math.sin(a) * 0.32, 0.06, 0.6, 0.06, 0x3a2a4a, { rz: -Math.cos(a) * 1.3, rx: Math.sin(a) * 1.3 }); } } // sea urchin
@@ -3033,7 +3061,17 @@ function tunnelObstacles(run, b, T, a0, a1) {
 }
 function coinLineAt(run, lane, s0, s1, y, step = 2.1) { for (let s = s0; s <= s1; s += step) run.coins.push({ s, x: LANES[lane], y, top: true }); }
 
-function buildRun(run) { return withSeed(run.seed != null ? hashSeed(run.seed, "build") : null, () => buildRunInner(run)); }
+const BUILD_MS = [];
+let detailQueue = [];
+function buildDetail(all) {
+  while (detailQueue.length) {
+    const j = detailQueue.shift(); if (j.run.dead || !j.run.built) continue;
+    const t0 = performance.now(); j.fn(); BUILD_MS.push([j.run.theme + "+", performance.now() - t0]); if (BUILD_MS.length > 120) BUILD_MS.shift();
+    if (!all) return true;
+  }
+  return false;
+}
+function buildRun(run) { const t0 = performance.now(), out = withSeed(run.seed != null ? hashSeed(run.seed, "build") : null, () => buildRunInner(run)); BUILD_MS.push([run.theme, performance.now() - t0]); if (BUILD_MS.length > 60) BUILD_MS.shift(); return out; }
 function buildRunInner(run) {
   if (run.built) return;
   run.built = true;
@@ -3088,11 +3126,14 @@ function buildRunInner(run) {
   const open = (sd) => run.opts.includes(sd < 0 ? "L" : "R");
   const lim = { [-1]: open(-1) ? run.L - 62 : run.L - 20, [1]: open(1) ? run.L - 62 : run.L - 20 };
   const near = { [-1]: open(-1) ? run.L - 14 : run.L - 20, [1]: open(1) ? run.L - 14 : run.L - 20 };
-  { const z = run.zone, wide = run.style === "tunnel" ? 46 : run.style === "hop" ? 64 : 15; b.skip = (x, s) => (z && s > z.s0 - 6 && s < z.s1 + 6 && Math.abs(x) < wide) || inCake(run, x, s); }
-  T.scenery(b, run, lim, near);
-  b.skip = null;
-  T.endWall(b, run, [-1, 1].filter((sd) => !run.opts.includes(sd < 0 ? "L" : "R")));
+  { const z = run.zone, wide = run.style === "tunnel" ? 46 : run.style === "hop" ? 64 : 15; let cz = null; b.skip = (x, s) => { if (z && s > z.s0 - 6 && s < z.s1 + 6 && Math.abs(x) < wide) return true; if (!cz) cz = cakeZones(run); for (let i = 0; i < cz.length; i += 3) if ((x - cz[i]) ** 2 + (s - cz[i + 1]) ** 2 < cz[i + 2]) return true; return false; }; }
+  const skip = b.skip; b.skip = null;
   b.build(run.group);
+  // Scenery and the corner piece are the heavy part and nothing in play depends on them, so they are built on later frames
+  // (one job a frame, in order) instead of in the same frame as the track: that is what used to hitch around a turn.
+  const seed = run.seed != null ? hashSeed(run.seed, "scenery") : null;
+  detailQueue.push({ run, fn: () => withSeed(seed, () => { const d = new Builder(); d.skip = skip; T.scenery(d, run, lim, near); d.build(run.group); }) });
+  detailQueue.push({ run, fn: () => withSeed(seed != null ? seed + 1 : null, () => { const d = new Builder(); T.endWall(d, run, [-1, 1].filter((sd) => !run.opts.includes(sd < 0 ? "L" : "R"))); d.build(run.group); }) });
 
   // coins: drop any that ended up inside something
   run.coins = run.coins.filter((c) => {
@@ -3196,10 +3237,11 @@ const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), P = new THREE
 function resetWorld() {
   for (const r of [...live]) { r.dead = true; disposeRun(r); }
   for (const r of buildQueue) if (r) r.dead = true;
-  live.clear(); buildQueue = []; pendingDispose = null;
+  live.clear(); buildQueue = []; detailQueue = []; pendingDispose = null;
   cur = new Run(0, new THREE.Vector3(0, 0, 0), 0, 0, null);
   buildRun(cur); ensureAhead(cur, 2);
   while (buildQueue.length) { const r = buildQueue.shift(); if (r) buildRun(r); }
+  buildDetail(true);
   resetPlayer();
   camYaw = 0; playerYaw = Math.PI;
   applyEnv(cur.theme, true);
@@ -4459,15 +4501,15 @@ renderer.setAnimationLoop((now) => {
   if (G.state === "count") countTick(dt);
   if (envTarget) stepEnv(damp(dt, 1.4));
   ambTick(dt);
-  if (buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); }
+  if (!buildDetail(false) && buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); }
   else { const want = [...live].map((r) => r.theme).find((k) => !HORIZONS[k]); if (want) HORIZONS[want] = buildHorizon(want); }
   place(dt); trailTick(dt);
   if (G.state === "run" || G.state === "count") hudTick();
   skyMat.uniforms.time.value = G.time; lavaMat.map.offset.set(Math.sin(G.time * 0.11) * 0.03, -G.time * 0.012); lavaFallMat.map.offset.y = G.time * 0.22; lavaGround.material.map.offset.set(lavaGround.position.x / 40 + Math.sin(G.time * 0.11) * 0.02, -lavaGround.position.z / 40 - G.time * 0.008); // pinned to the world, so it doesn't jump when the ground sheet follows the camera
   renderer.render(scene, camera);
 });
-if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, camera, playerRoot, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, resolveName, namehash, applyHeadStart, refreshMenuStore, renderStore,
-  sim(sec, bot) { for (let t = 0; t < sec && G.state === "run"; t += 1 / 30) { if (bot) bot(this); update(1 / 30); while (buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); } place(1 / 30); } stepEnv(1); } };
+if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, camera, playerRoot, BUILD_MS, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, resolveName, namehash, applyHeadStart, refreshMenuStore, renderStore,
+  sim(sec, bot) { for (let t = 0; t < sec && G.state === "run"; t += 1 / 30) { if (bot) bot(this); update(1 / 30); while (buildQueue.length) { const r = buildQueue.shift(); if (r && !r.built && !r.dead) buildRun(r); } buildDetail(true); place(1 / 30); } stepEnv(1); } };
 
 (async () => {
   const params = new URLSearchParams(location.search);
