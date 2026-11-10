@@ -1529,6 +1529,108 @@ function massif(b, x, s, sc, fx, fs) {
 const lavaGround = (() => { const t = lavaMat.map.clone(); t.needsUpdate = true; t.repeat.set(40, 40);
   const m = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, depthWrite: false }));
   m.rotation.x = -Math.PI / 2; m.position.y = -2.94; m.visible = false; m.renderOrder = -0.5; scene.add(m); return m; })();
+// ---- shared pieces for the detailed worlds ----
+// Layered rock: a stack of slabs, each a little different in size and colour, some thin ledges jutting out. `tight` keeps every slab inside the footprint.
+function strata(b, x, y0, s, w, d, h, cols, tight) {
+  let y = y0, i = 0;
+  while (y < y0 + h) { const ledge = i % 3 === 2, t = ledge ? rand(0.35, 0.6) : rand(1.3, 2.6), k = tight ? rand(0.86, 1) : rand(0.82, 1.12) * (ledge ? 1.08 : 1), taper = 1 - (y - y0) / h * 0.22;
+    b.box(x + (tight ? 0 : rand(-0.5, 0.5)), y, s + (tight ? 0 : rand(-0.5, 0.5)), w * k * taper, t + 0.02, d * k * taper, jit(cols[ledge ? cols.length - 1 : i % (cols.length - 1)], 0.03), tight ? {} : { ry: rand(-0.07, 0.07) }); y += t; i++; }
+  return y;
+}
+// A round arch on two pillars, standing in the plane across the track (ax = 1) or along it (ax = 0).
+function archway(b, x, y0, s, w, h, col, ax = 1, th = 0.8) {
+  const P = (o, y, sx, sy) => ax ? b.box(x + o, y, s, sx, sy, th, col) : b.box(x, y, s + o, th, sy, sx, col);
+  P(-w / 2, y0, th, h); P(w / 2, y0, th, h);
+  for (let k = 0; k <= 8; k++) { const a = k / 8 * Math.PI; P(Math.cos(a) * w / 2, y0 + h + Math.sin(a) * w / 2 - 0.3, th * 1.05, 0.62); }
+  P(-w / 2, y0 + h - 0.1, th * 1.3, 0.3); P(w / 2, y0 + h - 0.1, th * 1.3, 0.3);
+}
+function palm(b, x, y0, s, h) {
+  const lean = rand(-0.18, 0.18);
+  for (let k = 0; k < 7; k++) b.box(x + k * lean, y0 + k * h / 7, s, 0.5 - k * 0.02, h / 7 + 0.05, 0.5 - k * 0.02, k % 2 ? 0x8a6a3a : 0x74522c);
+  const tx = x + 7 * lean, ty = y0 + h;
+  for (let k = 0; k < 8; k++) { const a = k / 8 * 6.28 + rand(-0.2, 0.2); for (let j = 0; j < 3; j++) b.box(tx + Math.cos(a) * (0.7 + j * 0.85), ty - j * j * 0.16, s + Math.sin(a) * (0.7 + j * 0.85), 1.1, 0.1, 0.62 - j * 0.14, j % 2 ? 0x3f9a3a : 0x55b04a, { ry: -a }); }
+  for (let k = 0; k < 3; k++) b.geo("sphere", tx + rand(-0.3, 0.3), ty - 0.35, s + rand(-0.3, 0.3), 0.4, 0.4, 0.4, 0x6a4a22);
+}
+const JSTONE = [0xa39a82, 0x8f8770, 0xb0a78e, 0x9a917a, 0xbdb49c]; // weathered temple stone
+function fireBowl(b, x, y, s) { b.geo("cyl", x, y + 0.12, s, 1.0, 0.24, 1.0, 0x3a2e28); b.geo("cyl", x, y + 0.28, s, 0.75, 0.12, 0.75, 0x2a1e18); b.geo("cone", x, y + 0.75, s, 0.55, 0.9, 0.55, 0xff8a1a, { glow: true }); b.geo("cone", x + 0.12, y + 0.62, s + 0.1, 0.32, 0.6, 0.32, 0xffd23a, { glow: true }); }
+// A stepped stone temple: terraces with corner pillars, a staircase on the side facing `face`, fire bowls and an obelisk on top.
+function temple(b, x, y0, s, face, tiers = 3, w0 = 13, d0 = 11) {
+  let y = y0;
+  for (let i = 0; i < tiers; i++) { const w = w0 - i * 3.4, d = d0 - i * 2.8, h = 1.7;
+    b.box(x, y, s, w, h, d, JSTONE[i % 2]); b.box(x, y + h - 0.22, s, w + 0.3, 0.22, d + 0.3, JSTONE[4]); b.box(x, y + h * 0.48, s, w + 0.04, 0.06, d + 0.04, 0x7a735e);
+    for (let j = 0; j < 4; j++) b.box(x + face * (w / 2 + 0.25 + (3 - j) * 0.48), y, s, 0.5, (j + 1) * h / 4, 3.2, JSTONE[2]); // stairs
+    for (const os of [-1, 1]) { const px = x + face * (w / 2 - 0.5), ps = s + os * 2.3; b.box(px, y + h, ps, 0.9, 1.5, 0.9, JSTONE[3]); b.box(px, y + h + 1.5, ps, 1.15, 0.25, 1.15, JSTONE[4]); if (i === 0) fireBowl(b, px, y + h + 1.75, ps); }
+    for (const os of [-1, 1]) { const px = x - face * (w / 2 - 0.6), ps = s + os * (d / 2 - 0.6), ph = rand(1.2, 3.4); b.box(px, y + h, ps, 0.9, ph, 0.9, JSTONE[3]); if (R() < 0.6) b.box(px, y + h + ph, ps, 1.15, 0.25, 1.15, JSTONE[4]); }
+    y += h; }
+  b.box(x, y, s, 1.5, 0.5, 1.5, JSTONE[4]); b.box(x, y + 0.5, s, 1.1, 3.2, 1.1, JSTONE[2]); b.geo("cone4", x, y + 4.1, s, 1.1, 0.8, 1.1, JSTONE[2], { ry: Math.PI / 4 });
+  b.box(x + face * 0.56, y + 2.6, s, 0.04, 0.3, 0.7, 0x6a6450); b.geo("ico", x, y + 5.3, s, 0.7, 1.3, 0.7, 0x7fc8ff, { glow: true });
+  for (let k = 0; k < 6; k++) b.box(x + rand(-w0, w0) * 0.5, y0 + rand(0.5, 4), s + rand(-d0, d0) * 0.52, rand(0.6, 1.6), 0.12, rand(0.6, 1.6), 0x5a8f3a); // moss
+}
+// A broad-leafed jungle plant: a fan of leaves from one root.
+function leafFan(b, x, y, s, sz, col) { for (let k = 0; k < 7; k++) { const a = k / 7 * 6.28 + rand(-0.3, 0.3); for (let j = 0; j < 3; j++) b.box(x + Math.cos(a) * sz * (0.3 + j * 0.32), y + sz * (0.3 + j * 0.22 - j * j * 0.08), s + Math.sin(a) * sz * (0.3 + j * 0.32), sz * 0.36, 0.07, sz * (0.26 - j * 0.06), j % 2 ? col : mixHex(col, 0xffffff, 0.12), { ry: -a, rz: 0.5 - j * 0.45 }); } }
+const DROCK = [0xc4553a, 0xd0623f, 0xb44a34, 0xd97a52, 0xe8a070]; // canyon reds, last is the pale ledge band
+// ---- candy kingdom ----
+const SPRINKLE = [0xff5d73, 0x7be08f, 0xffd23a, 0x5fd7ff, 0xb46bff, 0xffffff];
+// A frosted peak: a mountain in stepped pastel bands under a cap of icing with drips and sprinkles; some wear a soft-serve swirl.
+function frostedPeak(b, x, s, r, h, col) {
+  const n = Math.max(5, Math.round(h / 3.2)), pale = mixHex(col, 0xffffff, 0.6);
+  for (let i = 0; i < n; i++) { const t = i / n, rr = r * (1 - t * 0.86); b.geo("cyl", x, -3 + h * (t + 0.5 / n), s, rr * 2, h / n + 0.03, rr * 2, i % 2 ? pale : col); }
+  const capY = -3 + h * 0.7, capR = r * 0.44, icing = pick([0xffffff, 0xfff0f6, 0xffc8e6, 0xd8f2ff]);
+  b.geo("sphere", x, capY + h * 0.16, s, capR * 2.1, h * 0.42, capR * 2.1, icing);
+  for (let k = 0; k < 9; k++) { const a = k / 9 * 6.283, d = capR * rand(0.9, 1.05); b.geo("sphere", x + Math.cos(a) * d, capY + h * 0.02 - rand(0, h * 0.07), s + Math.sin(a) * d, capR * 0.5, h * rand(0.08, 0.16), capR * 0.5, icing); } // drips
+  for (let k = 0; k < 14; k++) { const a = rand(0, 6.283), d = capR * rand(0.2, 0.85); b.box(x + Math.cos(a) * d, capY + h * (0.33 - d / capR * 0.14), s + Math.sin(a) * d, r * 0.05, r * 0.02, r * 0.14, pick(SPRINKLE), { ry: rand(0, 3) }); }
+  if (R() < 0.45) { const sw = pick([0xff8fc8, 0xc89aff, 0xffb86a]); for (let k = 0; k < 4; k++) b.geo("sphere", x + (k % 2 ? 0.08 : -0.08) * r, capY + h * (0.36 + k * 0.075), s, capR * (1.15 - k * 0.27), h * 0.11, capR * (1.15 - k * 0.27), k % 2 ? 0xffffff : sw); b.geo("cone", x, capY + h * 0.7, s, capR * 0.3, h * 0.1, capR * 0.3, sw); }
+  else b.geo("sphere", x, capY + h * 0.4, s, capR * 0.5, capR * 0.5, capR * 0.5, 0xe2203a); // or a cherry
+}
+// A biscuit tower with battlements, under a soft-serve swirl or a striped candy cone.
+function candyTower(b, x, s, h, r = 2.3) {
+  const B = 0xf0a868, B2 = 0xdc9050;
+  b.geo("cyl", x, -3 + (h + 3) / 2, s, r * 2, h + 3, r * 2, B); b.geo("cyl", x, h - 0.2, s, r * 2.3, 0.5, r * 2.3, B2); b.geo("cyl", x, h * 0.45, s, r * 2.06, 0.3, r * 2.06, B2);
+  for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; b.box(x + Math.cos(a) * r * 1.02, h, s + Math.sin(a) * r * 1.02, r * 0.42, r * 0.42, r * 0.42, B, { ry: -a }); }
+  for (let k = 0; k < 4; k++) { const a = k / 4 * 6.283 + 0.4; b.box(x + Math.cos(a) * r * 0.98, h * 0.62, s + Math.sin(a) * r * 0.98, r * 0.34, r * 0.6, r * 0.2, 0x7a3a1c, { ry: -a + Math.PI / 2 }); }
+  if (R() < 0.5) { const sw = pick([0xff8fc8, 0xc89aff]); b.geo("sphere", x, h + r * 0.5, s, r * 2.1, r * 0.9, r * 2.1, sw); // soft-serve roof with drips
+    for (let k = 0; k < 7; k++) { const a = k / 7 * 6.283; b.geo("sphere", x + Math.cos(a) * r * 0.95, h + r * 0.15, s + Math.sin(a) * r * 0.95, r * 0.4, r * rand(0.5, 0.9), r * 0.4, sw); }
+    for (let k = 1; k < 4; k++) b.geo("sphere", x + (k % 2 ? 0.1 : -0.1), h + r * (0.5 + k * 0.62), s, r * (1.7 - k * 0.42), r * 0.8, r * (1.7 - k * 0.42), k % 2 ? 0xffffff : sw);
+    b.geo("cone", x, h + r * 3.1, s, r * 0.5, r * 0.9, r * 0.5, sw);
+  } else { const g = new THREE.ConeGeometry(r * 1.25, r * 3, 28, 1, true), uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * 5, uv.getY(i) * 2.2); // striped cone roof
+    b.withMat(caneMat, g.translate(x, h + 0.3 + r * 1.5, -s)); b.geo("sphere", x, h + 0.3 + r * 3, s, r * 0.3, r * 0.3, r * 0.3, 0xffd23a); }
+}
+function chocTree(b, x, y, s, h) { b.box(x, y, s, h * 0.12, h * 0.3, h * 0.12, 0x3a2012); b.geo("cone", x, y + h * 0.62, s, h * 0.5, h * 0.78, h * 0.5, pick([0x5a3420, 0x6a3e24, 0x4a2a18])); }
+function waferStack(b, x, y, s, w) { for (let k = 0; k < 5; k++) b.box(x, y + k * w * 0.16, s, w, w * 0.16, w * 0.7, k % 2 ? 0x4a2a18 : 0xf2dcae); }
+// ---- floating islands ----
+const SKYROCK = [0x8a7a6a, 0x9c8c7a, 0x76685a, 0xa89884];
+// A floating island whose top surface is at y: a grassy (or sandy) cap over rock that tapers away in layers to hanging points.
+function skyIsland(b, x, y, s, r, red) {
+  const rock = red ? DROCK : SKYROCK, grass = red ? 0xe6c58c : pick([0x6fc04a, 0x5fb044, 0x7fd055]);
+  b.geo("cyl", x, y - 0.3, s, r * 2, 0.6, r * 2, grass); b.geo("cyl", x, y - 0.78, s, r * 2.07, 0.36, r * 2.07, mixHex(grass, red ? 0xb44a34 : 0x2a5a2a, 0.4));
+  let yy = y - 0.95, rr = r * 0.97, i = 0;
+  while (rr > r * 0.24) { const t = rand(0.7, 1.4) * Math.max(1, r / 4.5); b.geo(i % 2 ? "cyl" : "cyl6", x + rand(-0.06, 0.06) * r, yy - t / 2, s + rand(-0.06, 0.06) * r, rr * 2, t, rr * 2 * rand(0.88, 1), jit(rock[i % 4], 0.03), { ry: rand(0, 3) }); yy -= t; rr *= rand(0.68, 0.86); i++; }
+  for (let k = 0; k < 3; k++) b.geo("cone", x + rand(-0.7, 0.7) * rr, yy - r * 0.3, s + rand(-0.7, 0.7) * rr, rr * 1.2, r * rand(0.6, 1.2), rr * 1.2, jit(rock[0], 0.03), { rx: Math.PI });
+}
+function skyTree(b, x, y, s, h) { const c = pick([0x3f9a3a, 0x4fae45, 0x2f8a35, 0x6cc050]); b.box(x, y, s, h * 0.14, h * 0.55, h * 0.14, 0x6b4a2c);
+  b.geo("ico", x, y + h * 0.7, s, h * 0.7, h * 0.55, h * 0.7, c); b.geo("ico", x + h * 0.2, y + h * 0.95, s - h * 0.1, h * 0.45, h * 0.4, h * 0.45, mixHex(c, 0xffffff, 0.12)); }
+function waterfall(b, x, y, s, len, w = 0.6) { b.box(x, y - len, s, w, len, w * 0.5, 0x9fe4ff, { glow: true }); b.box(x + w * 0.2, y - len * 0.8, s + 0.05, w * 0.4, len * 0.8, w * 0.3, 0xdff6ff, { glow: true });
+  for (let k = 0; k < 3; k++) b.geo("ico", x + rand(-1, 1) * w * 2, y - len, s + rand(-1, 1) * w, w * 3, w * 1.6, w * 3, 0xffffff); }
+// A white and gold rotunda: steps, a ring of columns, a drum and a dome with a spire.
+function rotunda(b, x, y, s, R) {
+  const W1 = 0xf4efe2, GOLD = 0xe8c860;
+  b.geo("cyl", x, y + 0.2, s, R * 2.3, 0.4, R * 2.3, 0xe6dfcc); b.geo("cyl", x, y + 0.6, s, R * 2.05, 0.4, R * 2.05, W1);
+  for (let k = 0; k < 10; k++) { const a = k / 10 * 6.283; b.geo("cyl", x + Math.cos(a) * R * 0.9, y + 0.8 + R * 0.55, s + Math.sin(a) * R * 0.9, R * 0.16, R * 1.1, R * 0.16, W1); }
+  b.geo("cyl", x, y + 0.8 + R * 0.5, s, R * 1.2, R, R * 1.2, 0xe9e2d0); b.geo("cyl", x, y + 0.8 + R * 1.2, s, R * 2.1, R * 0.2, R * 2.1, GOLD); b.geo("cyl", x, y + 0.8 + R * 1.42, s, R * 1.9, R * 0.24, R * 1.9, W1);
+  b.geo("cyl", x, y + 0.8 + R * 1.85, s, R * 1.25, R * 0.62, R * 1.25, W1); b.geo("cyl", x, y + 0.8 + R * 2.2, s, R * 1.4, R * 0.1, R * 1.4, GOLD);
+  b.geo("sphere", x, y + 0.8 + R * 2.22, s, R * 1.3, R * 1.25, R * 1.3, 0xf2e3a6); b.geo("cyl", x, y + 0.8 + R * 2.95, s, R * 0.2, R * 0.3, R * 0.2, GOLD); b.geo("cone", x, y + 0.8 + R * 3.35, s, R * 0.16, R * 0.6, R * 0.16, GOLD);
+  for (let k = 0; k < 6; k++) { const a = k / 6 * 6.283 + 0.3; b.geo("ico", x + Math.cos(a) * R * 1.05, y + 0.8 + R * 1.62, s + Math.sin(a) * R * 1.05, R * 0.4, R * 0.3, R * 0.4, 0x5fb044); } // greenery on the balcony
+}
+// A small grey keep with a red roof, a corner tower and a flag.
+function skyCastle(b, x, y, s, w) {
+  const ST = 0x8f8f98, RF = 0xb04a3a;
+  b.box(x, y, s, w, w * 0.6, w * 0.8, ST); b.box(x, y + w * 0.6, s, w * 1.06, w * 0.08, w * 0.86, 0x7a7a84);
+  for (let k = -2; k <= 2; k++) for (const e of [-1, 1]) b.box(x + k * w * 0.22, y + w * 0.68, s + e * w * 0.4, w * 0.12, w * 0.1, w * 0.08, ST);
+  b.geo("cone4", x, y + w * 0.92, s, w * 1.1, w * 0.5, w * 0.9, RF, { ry: Math.PI / 4 });
+  const tx = x + w * 0.5, ts = s - w * 0.4; b.box(tx, y, ts, w * 0.34, w * 1.15, w * 0.34, 0x9a9aa4); b.geo("cone4", tx, y + w * 1.38, ts, w * 0.5, w * 0.5, w * 0.5, RF, { ry: Math.PI / 4 });
+  b.box(tx, y + w * 1.6, ts, 0.06, w * 0.4, 0.06, 0x3a3a3a); b.box(tx + w * 0.12, y + w * 1.88, ts, w * 0.24, w * 0.12, 0.03, 0xffffff);
+  b.box(x, y, s + w * 0.41, w * 0.2, w * 0.3, 0.05, 0x3a2a1c); for (const e of [-1, 1]) b.box(x + e * w * 0.3, y + w * 0.3, s + w * 0.41, w * 0.1, w * 0.14, 0.04, 0x2a3a5a);
+}
 function caneMesh(parent, geos) {
   if (!geos.length) return; const g = mergeGeometries(geos); geos.forEach((x) => x.dispose());
   const mesh = new THREE.Mesh(g, caneMat); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh);
@@ -1663,6 +1765,11 @@ const THEMES = {
           if (R() < 0.6) b.geo("ico", x + rand(-1, 1), -3 + h + 2.2, s + rand(-1, 1), rand(3, 4.5), rand(2, 3), rand(3, 4.5), jit(0x5ea345, 0.05));
           if (R() < 0.3) b.box(x - side * tw * 0.5, -3 + h * 0.5, s, 0.1, h * 0.5, 0.1, 0x3b6a24);
         }
+        for (let s = 15; s < nend; s += rand(2.6, 4.6)) leafFan(b, side * (HALF + rand(1.6, 5)), rand(-1.4, -0.4), s, rand(1.6, 2.8), pick([0x3fae3f, 0x2f9a3a, 0x58c04a])); // broad leaves along the road
+        for (let s = rand(34, 50); s < nend - 10; s += rand(48, 70)) { const x = side * (HALF + rand(11, 14)); if (!(b.skip && b.skip(x, s))) { temple(b, x, -1.6, s, -side); for (let k = 0; k < 4; k++) palm(b, x + rand(-9, 9), -1.2, s + rand(7, 11) * (k % 2 ? 1 : -1), rand(6, 9)); } } // temples in the trees
+        for (let s = 22; s < end; s += rand(14, 24)) { const x = side * (HALF + rand(16, 44)), r = rand(4, 8); if (b.skip && b.skip(x, s)) continue; // grey rock outcrops, mossy on top
+          b.geo("dode", x, -3 + r * 0.5, s, r * 2, r * 1.5, r * 1.8, jit(pick([0x8a8f8a, 0x9aa09a, 0x7a807c]), 0.03), { ry: rand(0, 3) }); b.geo("dode", x + r * 0.6, -3 + r * 0.3, s + r * 0.5, r * 1.2, r, r * 1.2, jit(0x8a8f8a, 0.03), { ry: rand(0, 3) }); b.geo("ico", x, -3 + r * 1.2, s, r * 1.3, r * 0.4, r * 1.2, 0x4d9a3a); }
+        for (let s = 16; s < nend; s += rand(3.2, 5.5)) { const x = side * (HALF + rand(5.5, 16)), y = rand(5, 11); for (let k = 0; k < 3; k++) b.box(x + rand(-2.5, 2.5), y - rand(2, 5), s + rand(-2, 2), 0.09, rand(2, 5), 0.09, 0x5fae3a); } // vines trailing from the canopy
         for (let s = 18; s < end; s += rand(3, 5.5)) { // deep forest
           const x = side * (HALF + rand(16, 58)), h = rand(12, 24), tw = rand(1, 1.8);
           b.box(x, -3, s, tw, h, tw, jit(0x5a3f26, 0.05));
@@ -1687,13 +1794,16 @@ const THEMES = {
         }
       }
     },
-    endWall(b, run, sides) {
+    endWall(b, run, sides) { // a temple wall of stone blocks under the canopy, with a stair up to a dark doorway
       const L = run.L;
-      b.box(0, -3, L + 3, W + 34, 12, 4, jit(0x8a8268));
-      for (let i = 0; i < 10; i++) b.box(rand(-HALF - 14, HALF + 14), rand(0, 7), L + 0.95, rand(0.6, 1.6), rand(0.6, 1.6), 0.15, 0x6f6852);
-      b.box(0, 9, L + 3, W + 34, 0.6, 4.2, 0x5a8f3a);
-      for (const side of sides) b.box(side * (HALF + 3), -3, L - W / 2 - 6, 4, 10, W + 18, jit(0x7f785f));
-      for (let i = 0; i < 12; i++) b.geo("ico", rand(-HALF - 14, HALF + 14), 9.4, L + rand(2, 4), rand(2, 4), rand(1.5, 3), rand(2, 4), jit(0x4d8f35));
+      for (let x = -HALF - 20; x < HALF + 20; ) { const w = rand(5, 9), top = strata(b, x + w / 2, -3, L + 1 + 3.2, w + 0.2, 6, rand(10.5, 13), JSTONE, true); b.box(x + w / 2, top, L + 4.2, w + 0.4, 0.5, 6.4, 0x5a8f3a); x += w; }
+      for (const side of sides) for (let sc = L - W - 14; sc < L + 1; ) { const d = rand(5, 9), top = strata(b, side * (HALF + 1 + 3.2), -3, sc + d / 2, 6, d + 0.2, rand(9.5, 12), JSTONE, true); b.box(side * (HALF + 4.2), top, sc + d / 2, 6.4, 0.5, d + 0.4, 0x5a8f3a); sc += d; }
+      b.box(0, 0, L + 0.98, 3.4, 5.4, 0.1, 0x1c1a14); archway(b, 0, 0, L + 0.8, 3.8, 3.6, JSTONE[4], 1, 0.5);
+      for (const o of [-3.6, 3.6]) { b.box(o, 0, L + 0.6, 1.1, 2.6, 0.9, JSTONE[3]); b.box(o, 2.6, L + 0.6, 1.4, 0.3, 1.2, JSTONE[4]); fireBowl(b, o, 2.9, L + 0.6); }
+      for (let k = 0; k < 14; k++) { const x = rand(-HALF - 18, HALF + 18), y = rand(4, 10); b.box(x, y - rand(2, 5), L + 0.9, 0.1, rand(2, 5), 0.1, 0x5fae3a); } // vines down the face
+      for (let k = 0; k < 16; k++) { const x = rand(-HALF - 19, HALF + 19); b.geo("ico", x, rand(11.5, 13.5), L + rand(3, 7), rand(4, 7), rand(3, 4.5), rand(4, 7), jit(pick([0x3e8a35, 0x2f7a2c, 0x55993b]), 0.05)); }
+      for (const side of sides) for (let k = 0; k < 10; k++) b.geo("ico", side * (HALF + rand(3, 7)), rand(10.5, 12.5), L - rand(0, W + 14), rand(4, 7), rand(3, 4.5), rand(4, 7), jit(pick([0x3e8a35, 0x2f7a2c, 0x55993b]), 0.05));
+      for (let x = -HALF - 18; x <= HALF + 18; x += 8) CAKES.push({ run, x, s: L + 6, r: 7 });
     },
     gate(b, s) {
       for (const sx of [-1, 1]) { b.box(sx * (HALF + 1), -3, s, 1.4, 10.5, 1.4, 0x9a9174); b.box(sx * (HALF + 1), 7.5, s, 1.8, 0.4, 1.8, 0x8b836a); }
@@ -1809,12 +1919,26 @@ const THEMES = {
       for (const side of [-1, 1]) {
         const end = lim[side], nend = near[side];
         for (let s = 14; s < nend; s += rand(3, 5)) b.geo("ico", side * (HALF + rand(3, 6)), rand(-2.4, -1.4), s, rand(3, 5), rand(2, 3.4), rand(3, 5), jit(0xf3f7fb, 0.02));
-        const pine = (x, s, h) => {
-          b.box(x, -3, s, 0.5, h * 0.3, 0.5, 0x5a3d26);
-          for (let i = 0; i < 3; i++) {
-            const t = i / 3, r = (1 - t * 0.55) * h * 0.38, hh = h * 0.42, y = -3 + h * 0.22 + t * h * 0.5;
-            b.geo("cone", x, y + hh / 2, s, r * 2, hh, r * 2, jit(0x2c5a3f, 0.04));
-            b.geo("cone", x, y + hh * 0.86, s, r * 0.7, hh * 0.3, r * 0.7, 0xf6f9fc);
+        // the valley: stepped snow terraces climbing away from the track on both sides, and a frozen river along one side of the floor
+        const T0 = HALF + 21, TW = 6.5, TH = 3.1, terr = (x) => Math.abs(x) < T0 ? 0 : Math.min(8, Math.floor((Math.abs(x) - T0) / TW) + 1) * TH;
+        const river = side === (run.idx % 2 ? 1 : -1), inRiver = (x) => river && Math.abs(x) > HALF + 7.5 && Math.abs(x) < HALF + 17.5;
+        for (let k = 0; k < 8; k++) for (let s = 12; s < end; ) { const len = Math.min(rand(9, 18), end - s), x = side * (T0 + k * TW + TW / 2 + rand(-0.8, 0.8));
+          if (!(b.skip && b.skip(x, s + len / 2))) { const h = (k + 1) * TH + rand(-0.7, 0.7); b.box(x, -3, s + len / 2, TW + 1.6, h, len + 0.5, pick([0xe4edf8, 0xd6e2f2, 0xf2f6fc, 0xdde8f5])); b.box(x - side * (TW / 2 + 0.6), -3, s + len / 2, 0.5, h - rand(0.5, 1.2), len * rand(0.5, 0.9), 0xb9c9e0);
+            if (R() < 0.25) b.geo("dode", x - side * TW * 0.4, -3 + h - 0.3, s + rand(0, len), rand(1.6, 3), rand(1.4, 2.4), rand(1.6, 3), jit(0x7b8798, 0.03), { ry: rand(0, 3) }); }
+          s += len; }
+        if (river) { for (let s = 12; s < nend; ) { const len = Math.min(rand(14, 26), nend - s), x = side * (HALF + 12.5 + rand(-0.8, 0.8)); if (!(b.skip && b.skip(x, s + len / 2))) {
+              b.box(x, -2.97, s + len / 2, 9.5, 0.1, len + 1, 0x8fc4e6); b.box(x + rand(-1.5, 1.5), -2.9, s + len / 2, 5, 0.05, len * 0.8, 0xa9d6f0); // ice
+              for (let k = 0; k < 4; k++) b.box(x + rand(-3.5, 3.5), -2.86, s + rand(0, len), rand(1, 2.6), 0.1, rand(1, 2.6), 0xf4f9fd, { ry: rand(0, 3) });                // snow on the ice
+              for (let k = 0; k < 3; k++) b.box(x + rand(-4, 4), -2.85, s + rand(0, len), 0.06, 0.04, rand(1.5, 4), 0x5f9cc4, { ry: rand(-0.8, 0.8) });                       // cracks
+              for (const e of [-1, 1]) for (let k = 0; k < 3; k++) b.geo("ico", x + e * rand(4.6, 5.6), -2.9, s + rand(0, len), rand(1.6, 3), rand(0.8, 1.5), rand(2, 4), 0xf1f6fb); } // snowy banks
+            s += len; } }
+        const pine = (x, s, h) => { // dark boughs under heavy snow, standing on whatever terrace is below
+          if (inRiver(x)) return; const y0 = -3 + terr(x);
+          b.box(x, y0, s, 0.5, h * 0.3, 0.5, 0x4a3222);
+          for (let i = 0; i < 4; i++) {
+            const t = i / 4, r = (1 - t * 0.62) * h * 0.36, hh = h * 0.36, y = y0 + h * 0.2 + t * h * 0.56;
+            b.geo("cone", x, y + hh / 2, s, r * 2, hh, r * 2, jit(0x234a3a, 0.04));
+            b.geo("cone", x, y + hh * 0.72, s, r * 1.25, hh * 0.56, r * 1.25, 0xf6f9fc);
           }
         };
         for (let s = 16; s < nend; s += rand(2.6, 5)) pine(side * (HALF + rand(5, 18)), s, rand(5, 11));
@@ -2081,11 +2205,39 @@ Object.assign(THEMES, {
           for (let k = 0; k < 6; k++) b.box(x + 0.7 + Math.cos(k) * 1.4, -3 + 2.4 + h - 0.3, s + Math.sin(k) * 1.4, 2.6, 0.12, 0.7, 0x4f9a3a, { ry: -k, rz: -0.3 });
         }
         for (let s = 26; s < nend; s += rand(14, 26)) { const x = side * (HALF + rand(3.5, 8)), h = rand(2, 6); b.geo("cyl", x, -3 + 2.4 + h / 2, s, 1.2, h, 1.2, jit(0xd6b273)); b.box(x, -3 + 2.4 + h, s, 1.5, 0.4, 1.5, 0xc8a062); }
+        // red canyon mesas in layers, some carrying ruins on top
+        for (let s = 24; s < end; s += rand(16, 26)) { const w = rand(9, 17), d = rand(9, 16), x = side * (HALF + w / 2 + rand(13, 40)), h = rand(9, 22); if (b.skip && b.skip(x, s)) continue;
+          const top = strata(b, x, -3, s, w, d, h, DROCK);
+          if (R() < 0.45) { strata(b, x + rand(-2, 2), top, s + rand(-2, 2), w * 0.5, d * 0.5, rand(3, 7), DROCK); }
+          else if (R() < 0.6) { for (let k = -1; k <= 1; k++) archway(b, x + k * 2.6, top, s, 2, 2.6, 0xc9a070, 1, 0.6); }
+          for (let k = 0; k < 3; k++) b.geo("dode", x + rand(-w, w) * 0.6, -2.6, s + rand(-d, d) * 0.6, rand(1.5, 3.2), rand(1, 2), rand(1.5, 3.2), jit(pick(DROCK), 0.03), { ry: rand(0, 3) }); }
+        // ruins by the road: a run of arches, broken columns and fallen blocks, half buried
+        for (let s = rand(30, 46); s < nend - 6; s += rand(34, 52)) { const x0 = side * (HALF + rand(7, 10)), stone = pick([0xc9a070, 0xbf9566, 0xd4ac7c]); if (b.skip && b.skip(x0, s)) continue;
+          const n = randi(2, 4); for (let k = 0; k < n; k++) if (R() < 0.85) archway(b, x0 + side * k * 3.4, -0.6, s, 2.6, rand(3.2, 4.4), stone, 1, 0.85);
+          b.box(x0 + side * (n - 1) * 1.7, -0.9, s, n * 3.4 + 1.4, 0.5, 1.6, stone);
+          if (R() < 0.6) { const tx = x0 + side * (n * 3.4 + 2.2), th = rand(6, 10); b.box(tx, -1, s, 4.2, th, 4.2, stone); b.box(tx, -1 + th, s, 4.8, 0.5, 4.8, 0xb08a5c); for (const [ox, os] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) b.box(tx + ox * 1.9, -1 + th + 0.5, s + os * 1.9, 0.9, 0.9, 0.9, stone); b.box(tx, 1.4, s - 2.12, 1.3, 2.4, 0.1, 0x4a3424); b.box(tx, 3.8, s - 2.12, 1.3, 0.7, 0.1, 0x4a3424); }
+          for (let k = 0; k < 5; k++) { const cx = x0 + side * rand(-2, 12), cs = s + rand(-6, 6), ch = rand(0.8, 3.2); b.geo("cyl", cx, -0.8 + ch / 2, cs, 0.8, ch, 0.8, stone); if (R() < 0.5) b.box(cx, -0.8 + ch, cs, 1.1, 0.25, 1.1, 0xb08a5c); }
+          for (let k = 0; k < 6; k++) b.box(x0 + side * rand(-2, 12), -0.9, s + rand(-6, 6), rand(0.6, 1.3), rand(0.4, 0.8), rand(0.6, 1.3), stone, { ry: rand(0, 3), rz: rand(-0.3, 0.3) }); }
+        // an oasis now and then: a green pool ringed with palms
+        for (let s = rand(50, 90); s < nend - 12; s += rand(90, 140)) { const x = side * (HALF + rand(15, 22)), r = rand(5, 7.5); if (b.skip && b.skip(x, s)) continue;
+          b.geo("cyl", x, -0.72, s, r * 2.5, 0.5, r * 2.2, 0xf0d9a0); b.geo("cyl", x, -0.5, s, r * 2, 0.1, r * 1.7, 0x2f9a86); b.geo("cyl", x + 0.6, -0.46, s - 0.4, r * 1.2, 0.06, r, 0x3fb8a0);
+          for (let k = 0; k < 5; k++) { const a = rand(0, 6.28); palm(b, x + Math.cos(a) * r * 1.15, -0.7, s + Math.sin(a) * r, rand(5, 8)); }
+          for (let k = 0; k < 10; k++) { const a = rand(0, 6.28); b.box(x + Math.cos(a) * r * 1.05, -0.5, s + Math.sin(a) * r * 0.9, 0.12, rand(0.6, 1.3), 0.12, 0x4f9a3a); } }
         for (let s = 20; s < end; s += rand(8, 14)) b.geo("ico", side * (HALF + rand(16, 60)), -3, s, rand(16, 30), rand(6, 14), rand(14, 24), jit(0xe6c385, 0.04)); // dune sea
         for (let s = rand(45, 60); s < end - 20; s += rand(35, 55)) { const x = side * rand(70, 98), r = Math.min(rand(14, 24), s - 12); if (r < 8) continue; b.geo("cone4", x, -3 + r * 0.7, s, r * 2, r * 1.4, r * 2, jit(0xdcb470, 0.03), { ry: Math.PI / 4 }); }
       });
     },
-    endWall(b, run, sides) { STD.wall(b, run, sides, 0xcfa868, 14, (L) => { for (let i = 0; i < 14; i++) b.box(rand(-HALF - 14, HALF + 14), rand(0, 9), L + 0.95, rand(0.6, 1.4), rand(0.6, 1.4), 0.12, pick([0x6a4a22, 0xe8b830])); b.box(0, 11, L + 1, 6, 1.4, 0.2, 0xffd060, { glow: true }); }); },
+    endWall(b, run, sides) { // a layered canyon cliff with a ruined gateway cut into it
+      const L = run.L;
+      for (let x = -HALF - 20; x < HALF + 20; ) { const w = rand(7, 12); strata(b, x + w / 2, -3, L + 1 + 3.2, w + 0.3, 6, rand(13, 19), DROCK, true); x += w; }
+      for (let x = -HALF - 18; x < HALF + 18; x += rand(9, 14)) strata(b, x, -3, L + 12 + rand(0, 4), rand(10, 16), rand(8, 12), rand(18, 28), DROCK);
+      for (const side of sides) { for (let sc = L - W - 14; sc < L + 1; ) { const d = rand(7, 12); strata(b, side * (HALF + 1 + 3.2), -3, sc + d / 2, 6, d + 0.3, rand(12, 18), DROCK, true); sc += d; }
+        for (let sc = L - W - 10; sc < L; sc += rand(9, 14)) strata(b, side * (HALF + 12 + rand(0, 4)), -3, sc, rand(8, 12), rand(10, 16), rand(18, 26), DROCK); }
+      for (const o of [-6.5, 0, 6.5]) { archway(b, o, 0.4, L + 0.75, 3.6, 4.6, 0xc9a070, 1, 0.5); b.box(o, 0.4, L + 0.98, 3.2, 5.6, 0.1, 0x3a2418); }
+      b.box(0, 0, L + 0.8, 22, 0.4, 0.5, 0xb08a5c); b.box(0, 8.2, L + 0.8, 22, 0.5, 0.5, 0xb08a5c); b.box(0, 9.6, L + 0.98, 5, 1.2, 0.12, 0xffd060, { glow: true });
+      for (let x = -HALF - 18; x <= HALF + 18; x += 8) CAKES.push({ run, x, s: L + 11, r: 10 });
+      for (const side of sides) for (let sc = L - W - 12; sc <= L; sc += 8) CAKES.push({ run, x: side * (HALF + 11), s: sc, r: 10 });
+    },
     gate(b, s) { STD.arch(b, s, 0xd0aa68, 0xc29a5e, 0xffd060); },
     hop: { sea: 0xc08c4a, ripple: 0xd9a860, base: 0xa8834e, top: 0xdcbf86, bits: [0xe6c890, 0xcfa868], edge: 0xffd27a, death: "Sank into the quicksand", hit: "Ran into a sphinx statue",
       chaser: { fur: 0xc08840, fur2: 0x8a6030, name: "Chased down by a desert jackal" },
@@ -2155,7 +2307,7 @@ Object.assign(THEMES, {
   candy: {
     key: "candy", name: "Candy Kingdom", piece: "hop", pieceName: "Chocolate River", step: "stone", stepTop: "stone", fall: "Fell into the chocolate",
     msg: { low: "Tripped over a candy cane", long: "Ran into a cake", block: "Bounced off a cupcake", beam: "Clotheslined by licorice" },
-    env: { top: 0xff8fcf, bot: 0xfff0c8, fog: 0xffd2ea, near: 30, far: 150, hs: 0xfff6fc, hg: 0xb0609a, hi: 1.25, sun: 0xfffaf0, si: 2.3, ground: 0x9fe8c0, sunDir: [0.4, 0.6, -0.6], exp: 0.92 },
+    env: { top: 0xff8fcf, bot: 0xfff0c8, fog: 0xffd2ea, near: 30, far: 150, hs: 0xfff6fc, hg: 0xb0609a, hi: 1.25, sun: 0xfffaf0, si: 2.3, ground: 0xf7c4e2, sunDir: [0.4, 0.6, -0.6], exp: 0.92 }, // pink sugar ground
     longH: 1.9, mover: { len: 2.3, h: 2.3, v: 12, name: "Squashed by a giant gobstopper", roll: true, rollY: 1.15 },
     weights: { blocks: 2.4, low: 2, high: 1.8, gap: 2, mix: 3, long: 1.6, mover: 2.4, roofs: 1.6, slides: 1.4 },
     floor(b, a, e) { STD.slabs(b, a, e, 0xb87a48, [0xf2c98a, 0xe8bb78, 0xf6d49a], 0xff9ad0, 0.15); for (let t = a + 1; t < e; t += rand(1, 3)) b.box(rand(-HALF + 0.3, HALF - 0.3), -0.02, t, 0.25, 0.04, 0.08, pick([0xffffff, 0x7fd0ff, 0xffe14f, 0x7be08f, 0xff5d73]), { ry: rand(0, 3) }); },
@@ -2183,18 +2335,33 @@ Object.assign(THEMES, {
       const pastel = [0xff9ad0, 0xbfe6ff, 0xfff0a0, 0xc8f2c0, 0xe0c8ff], canes = [], lollies = new Map(); let li = randi(0, LOLLY_COLS.length - 1);
       const sk = b.skip; b.skip = (x, s) => (sk && sk(x, s)) || inCake(run, x, s);
       sideLoop(lim, near, (side, end, nend) => {
+        // a blue syrup river down one side, with sugar banks and ring sweets floating on it
+        const river = side === (run.idx % 2 ? -1 : 1), inRiver = (x) => river && Math.abs(x) > HALF + 10 && Math.abs(x) < HALF + 20;
+        if (river) for (let s = 12; s < nend; ) { const len = Math.min(rand(14, 24), nend - s), x = side * (HALF + 15 + rand(-0.7, 0.7)); if (!(b.skip && b.skip(x, s + len / 2))) {
+            b.box(x, -2.96, s + len / 2, 9, 0.1, len + 1, 0x6fcff5); b.box(x + rand(-1.5, 1.5), -2.88, s + len / 2, 4.5, 0.04, len * 0.8, 0x9fe2ff);
+            for (let k = 0; k < 4; k++) b.box(x + rand(-3.5, 3.5), -2.84, s + rand(0, len), rand(0.8, 2), 0.03, 0.14, 0xffffff, { ry: rand(-0.5, 0.5) });
+            for (const e of [-1, 1]) for (let k = 0; k < 3; k++) b.geo("ico", x + e * rand(4.6, 5.4), -2.95, s + rand(0, len), rand(1.6, 3), rand(0.7, 1.2), rand(2, 4), pick([0xffd6ee, 0xffffff, 0xffe6f4]));
+            if (R() < 0.7) b.geo("donut", x + rand(-2.5, 2.5), -2.7, s + rand(0, len), 2.2, 2.2, 2.2, pick(SPRINKLE.slice(0, 5)), { ry: rand(0, 3) }); }
+          s += len; }
+        for (let s = 16; s < end; s += rand(5, 9)) { const x = side * (HALF + rand(7, 34)); if (!inRiver(x) && !(b.skip && b.skip(x, s))) chocTree(b, x, -3, s, rand(2.2, 4.5)); } // chocolate trees
+        for (let s = rand(34, 50); s < nend - 10; s += rand(50, 72)) { const x = side * (HALF + (river ? rand(22, 26) : rand(11, 16))); if (b.skip && b.skip(x, s)) continue; // a biscuit tower with wafers and jelly at its foot
+          candyTower(b, x, s, rand(9, 14)); waferStack(b, x + rand(3, 4.5), -3, s + rand(-3, 3), 2.6); waferStack(b, x - rand(3, 4.5), -3, s + rand(-3, 3), 2);
+          for (let k = 0; k < 3; k++) b.box(x + rand(-5, 5), -3, s + rand(3.5, 6) * (k % 2 ? 1 : -1), 1.6, rand(1.2, 2), 1.6, pick([0xb46bff, 0xff5d73, 0x7be08f]), { ry: rand(0, 1) }); }
         for (let s = 14; s < nend; s += rand(3, 5)) b.geo("cone", side * (HALF + rand(2, 5)), -2, s, rand(2.5, 4), rand(2.5, 4), rand(2.5, 4), pick([0xff5d73, 0x7be08f, 0xffb020, 0x9a6ae0, 0x5fd7ff])); // gumdrops
         for (let s = 16; s < end; s += rand(3.5, 7)) { // lollipop trees
           const x = side * (HALF + rand(6, 40)), h = rand(5, 11), r = rand(2, 3.8);
-          if (b.skip && b.skip(x, s)) continue;
+          if ((b.skip && b.skip(x, s)) || inRiver(x)) continue;
           b.geo("cyl", x, -3 + h / 2 + r * 0.2, s, 0.32, h + r * 0.4, 0.32, 0xf2b46a); // stick
           const hex = LOLLY_COLS[li++ % LOLLY_COLS.length], g = LOLLY_UNIT.clone().rotateZ(rand(0, Math.PI * 2)).scale(r, r, r).rotateY(rand(-0.35, 0.35)).translate(x, -3 + h + r * 0.4, -s);
           if (!lollies.has(hex)) lollies.set(hex, []); lollies.get(hex).push(g);
         }
         for (let s = 20; s < nend; s += rand(10, 18)) { const x = side * (HALF + rand(4, 10)), h = rand(4, 7) - 3; // spiral-striped canes, hooks toward the track
           if (!(b.skip && b.skip(x, s)) && !run.beams.some((bm) => Math.abs(bm.s0 - s) < 5)) canes.push(...caneStand(x, s, h, rand(0.3, 0.42), -side, -3)); }
-        for (let s = 20; s < end; s += rand(7, 12)) b.geo("ico", side * (HALF + rand(14, 60)), -3, s, rand(14, 26), rand(6, 12), rand(14, 22), jit(pick(pastel), 0.02)); // frosting hills
+        for (let s = 20; s < end; s += rand(7, 12)) { const x = side * (HALF + rand(24, 60)); if (b.skip && b.skip(x, s)) continue; // frosted peaks and soft frosting hills
+          if (R() < 0.55) frostedPeak(b, x, s, rand(6, 10), rand(11, 20), pick([0x8fd4ff, 0xff9ad0, 0xb8a0ff, 0xffc890, 0x9fe8c8]));
+          else b.geo("ico", x, -3, s, rand(14, 26), rand(6, 12), rand(14, 22), jit(pick(pastel), 0.02)); }
         for (let s = rand(45, 60); s < end - 20; s += rand(32, 48)) { const x = side * rand(70, 98), r = Math.min(rand(12, 20), s - 12); if (r < 8) continue; // cupcake mountains
+          if (R() < 0.6) { frostedPeak(b, x, s, r * 1.1, r * rand(2.2, 3), pick([0x8fd4ff, 0xff9ad0, 0xb8a0ff, 0xffc890])); continue; }
           b.geo("cyl", x, -3 + r * 0.6, s, r * 1.8, r * 1.2, r * 1.8, 0xf2c98a); b.geo("ico", x, -3 + r * 1.4, s, r * 2.2, r * 1.4, r * 2.2, pick([0xff9ad0, 0xfff0f6, 0xbfe6ff, 0xc8f2c0])); b.geo("ico", x, -3 + r * 2.15, s, r * 0.35, r * 0.35, r * 0.35, 0xe2203a); }
       });
       caneMesh(run.group, canes); lollyMeshes(run.group, lollies);
@@ -2398,17 +2565,31 @@ Object.assign(THEMES, {
     },
     moverMesh(b) { b.geo("cyl", 0, 0, 0, 1.6, 1.4, 1.6, 0x8a5a30, { rz: Math.PI / 2 }); for (const ex of [-0.45, 0.45]) b.geo("cyl", ex, 0, 0, 1.66, 0.12, 1.66, 0x4a4a4a, { rz: Math.PI / 2 }); },
     scenery(b, run, lim, near) {
-      const island = (x, y, s, r) => { b.geo("ico", x, y, s, r * 2, r * 0.5, r * 2, 0x6fc04a); b.geo("cone", x, y - r * 0.7, s, r * 1.8, r * 1.6, r * 1.8, jit(0x8a7a6a, 0.04), { rx: Math.PI });
-        if (R() < 0.7) { b.box(x, y, s, 0.4, r * 0.8, 0.4, 0x6b4a2c); b.geo("ico", x, y + r * 0.9, s, r * 0.9, r * 0.7, r * 0.9, 0x3f9a3a); }
-        if (R() < 0.35) b.box(x + r * 0.6, y - r * 2.2, s, 0.5, r * 2.4, 0.4, 0xdff4ff, { glow: true }); };
+      const island = (x, y, s, r, feature) => { // top surface at y
+        if (b.skip && b.skip(x, s)) return; const red = R() < 0.22; skyIsland(b, x, y, s, r, red);
+        if (feature === "rotunda") rotunda(b, x, y, s, r * 0.42);
+        else if (feature === "castle") skyCastle(b, x - r * 0.1, y, s, r * 0.62);
+        else if (red) { const top = strata(b, x, y, s, r * 1.1, r * 0.9, rand(3, 7) * Math.max(1, r / 6), DROCK); if (R() < 0.6) archway(b, x, top, s, r * 0.35, r * 0.4, 0xc9a070, 1, 0.5); }
+        const n = feature ? randi(4, 7) : red ? randi(0, 2) : randi(2, 5);
+        for (let k = 0; k < n; k++) { const a = rand(0, 6.283), d = r * (feature || red ? rand(0.7, 0.9) : rand(0.1, 0.8)); skyTree(b, x + Math.cos(a) * d, y, s + Math.sin(a) * d, red ? rand(1.2, 2) : rand(1.6, 3.2) * Math.max(1, r / 6)); }
+        for (let k = 0, m = R() < 0.4 || feature ? randi(1, 3) : 0; k < m; k++) { const a = rand(0, 6.283); waterfall(b, x + Math.cos(a) * r * 0.96, y - 0.3, s + Math.sin(a) * r * 0.96, rand(14, 30), Math.max(0.5, r * 0.09)); }
+      };
       sideLoop(lim, near, (side, end, nend) => {
         for (let s = 14; s < end; s += rand(2.5, 5)) b.geo("ico", side * (HALF + rand(2, 50)), -3, s, rand(6, 14), rand(2.5, 5), rand(5, 10), pick([0xffffff, 0xf0f8ff, 0xe6f2ff])); // cloud sea
-        for (let s = 18; s < end; s += rand(8, 16)) island(side * (HALF + rand(8, 50)), rand(2, 22), s, rand(2.5, 6));
-        for (let s = rand(45, 60); s < end - 20; s += rand(32, 48)) { const r = Math.min(rand(10, 18), s - 12); if (r < 7) continue; island(side * rand(70, 98), rand(10, 40), s, r); }
+        for (let s = 18; s < end; s += rand(9, 16)) { const r = rand(2.5, 6); island(side * (HALF + r + rand(5.5, 44)), rand(-1, 16), s, r); }
+        for (let s = rand(30, 44); s < end - 14; s += rand(44, 62)) { const r = rand(8, 11); island(side * (HALF + r + rand(9, 20)), rand(-4, 3), s, r, pick(["rotunda", "castle", "castle", "rotunda"])); } // landmark islands you can look down onto
+        for (let s = rand(45, 60); s < end - 20; s += rand(32, 48)) { const r = Math.min(rand(10, 18), s - 12); if (r < 7) continue; island(side * rand(70, 98), rand(-8, 22), s, r, R() < 0.5 ? "rotunda" : null); }
       });
     },
-    endWall(b, run, sides) { const L = run.L; for (let x = -HALF - 14; x <= HALF + 14; x += rand(5, 7)) { const r = rand(3, 5); b.geo("ico", x, rand(0, 4), L + 5, r * 2, r * 0.6, r * 2, 0x6fc04a); b.geo("cone", x, rand(-2, 1), L + 5, r * 1.8, r * 2, r * 1.8, 0x8a7a6a, { rx: Math.PI }); b.geo("ico", x, rand(4, 8), L + 5, r * 1.2, r, r * 1.2, 0x3f9a3a); }
-      for (const side of sides) b.geo("ico", side * (HALF + 5), 0, L - W / 2 - 8, 8, 3, 14, 0x6fc04a); },
+    endWall(b, run, sides) { // a great island with a rotunda straight ahead, smaller islands either side
+      const L = run.L;
+      skyIsland(b, 0, 1.2, L + 15, 13); rotunda(b, 0, 1.2, L + 16, 5.2);
+      for (let k = 0; k < 9; k++) { const a = rand(0, 6.283); skyTree(b, Math.cos(a) * 11, 1.2, L + 15 + Math.sin(a) * 11, rand(2.5, 4.5)); }
+      for (const e of [-1, 1]) { waterfall(b, e * 9, 0.9, L + 6.5, rand(18, 30), 1.1); const r = rand(5, 7), x = e * (15 + r), y = rand(0, 5); skyIsland(b, x, y, L + 6 + r, r); for (let k = 0; k < 4; k++) skyTree(b, x + rand(-r, r) * 0.6, y, L + 6 + r + rand(-r, r) * 0.6, rand(2, 3.6)); if (R() < 0.6) waterfall(b, x - e * r * 0.9, y - 0.3, L + 6 + r, rand(14, 24)); }
+      for (const side of sides) for (let sc = L - W - 10; sc < L; sc += rand(11, 15)) { const r = rand(4, 6), x = side * (HALF + 2 + r), y = rand(0.5, 4); skyIsland(b, x, y, sc, r); for (let k = 0; k < 3; k++) skyTree(b, x + rand(-r, r) * 0.6, y, sc + rand(-r, r) * 0.6, rand(2, 3.6)); }
+      for (let x = -16; x <= 16; x += 8) CAKES.push({ run, x, s: L + 14, r: 12 });
+      for (const side of sides) for (let sc = L - W - 10; sc <= L; sc += 8) CAKES.push({ run, x: side * (HALF + 8), s: sc, r: 8 });
+    },
     gate(b, s) { STD.arch(b, s, 0x6a4a2c, 0x7a5532); for (let i = 0; i < 9; i++) b.box(-HALF - 1.5 + i * 1.3, 6.0, s - 0.66, 0.6, 0.6, 0.02, pick([0xd8423a, 0x3a7fd4, 0xf2c230, 0x3fae5a])); },
     hop: { sea: null, death: "Fell through the clouds", hit: "Bumped into a balloon's burner", edge: 0xffd27a, noEdge: true, seg: [7, 14], gap: [2.6, 3.4],
       platform(b, xc, w, a0, e0) { // a line of hot-air balloons wedged together; you run across their crowns
