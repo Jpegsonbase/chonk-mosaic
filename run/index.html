@@ -3312,7 +3312,11 @@ $("submitBtn").onclick = async () => {
     $("submitBtn").disabled = false; $("lbStatus").className = "status err";
     const cl = PROFILE.claim, mine = cl && nameKey(cl.name) === nameKey(name);
     if (/name_claimed/.test(e.message)) { $("lbStatus").textContent = mine ? "Your wallet needs to sign again on this device. Tap the link above." : `"${name}" is locked to someone's wallet. Pick another name, or sign with your wallet if it's yours.`; $("claimOverBtn").hidden = false; }
-    else $("lbStatus").textContent = "Couldn't submit that score. Try again.";
+    else { // show the server's reason so a rejected score can be diagnosed
+      let why = ""; try { const j = JSON.parse(e.message); why = j.message || j.details || j.hint || j.code || ""; } catch { why = String(e.message || ""); }
+      why = why.replace(/\s+/g, " ").trim().slice(0, 140); console.warn("Chonk Run submit failed:", e.message);
+      $("lbStatus").textContent = `Couldn't submit that score${why ? ` (${why})` : ""}. Try again.`;
+    }
   }
 };
 $("nameIn").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("submitBtn").click(); } });
