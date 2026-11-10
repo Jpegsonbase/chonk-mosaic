@@ -1479,6 +1479,56 @@ function cakeWedge(b, run, side, L) {
   for (let i = 0; i < 5; i++) { const a = t0 + tl * (i + 0.5) / 5, rr = R * 0.45; b.geo("sphere", cx + Math.sin(a) * rr, y + 0.5, cs - Math.cos(a) * rr, 1.5, 1.1, 1.5, 0xfffaf2); b.geo("ico", cx + Math.sin(a) * rr, y + 1.3, cs - Math.cos(a) * rr, 0.6, 0.6, 0.6, 0xc8102e); } // cream and cherries on top
   CAKES.push({ run, x: cx, s: cs, r: R + 3 });
 }
+// Molten lava: a tiling texture of dark crust split by glowing veins. One copy drifts slowly (lakes), one runs fast (falls).
+const [lavaMat, lavaFallMat] = (() => {
+  const N = 256, c = document.createElement("canvas"); c.width = c.height = N; const x = c.getContext("2d"), img = x.createImageData(N, N), T = Math.PI * 2;
+  const ramp = [[0, 46, 6, 2], [0.3, 120, 14, 2], [0.55, 226, 60, 6], [0.8, 255, 140, 20], [1, 255, 232, 120]];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const u = i / N, v = j / N; // every term is periodic in u and v, so the tile repeats without a seam
+    const wx = u + 0.09 * Math.sin(T * (2 * v + 0.3)) + 0.05 * Math.sin(T * (3 * u + v)), wy = v + 0.09 * Math.sin(T * (2 * u + 0.7)) + 0.05 * Math.sin(T * (u - 3 * v));
+    const n = Math.sin(T * (3 * wx + wy)) + 0.8 * Math.sin(T * (-2 * wx + 4 * wy) + 1.3) + 0.6 * Math.sin(T * (5 * wx + 2 * wy) + 2.1) + 0.4 * Math.sin(T * (wx - 6 * wy) + 0.5);
+    let e = Math.pow(1 - Math.min(1, Math.abs(n) / 1.15), 3.6) + (Math.random() - 0.5) * 0.05; e = Math.max(0, Math.min(1, e));
+    let k = 0; while (k < ramp.length - 2 && e > ramp[k + 1][0]) k++;
+    const a = ramp[k], b2 = ramp[k + 1], t = (e - a[0]) / (b2[0] - a[0]), o = (j * N + i) * 4;
+    img.data[o] = a[1] + (b2[1] - a[1]) * t; img.data[o + 1] = a[2] + (b2[2] - a[2]) * t; img.data[o + 2] = a[3] + (b2[3] - a[3]) * t; img.data[o + 3] = 255;
+  }
+  x.putImageData(img, 0, 0);
+  const mk = () => { const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return new THREE.MeshBasicMaterial({ map: t, side: THREE.DoubleSide }); };
+  return [mk(), mk()];
+})();
+// A flat sheet of lava in run space, texture laid out in metres.
+function lavaSheet(b, x0, x1, s0, s1, y, tile = 18) {
+  const g = new THREE.PlaneGeometry(x1 - x0, s1 - s0).rotateX(-Math.PI / 2).translate((x0 + x1) / 2, y, -(s0 + s1) / 2), p = g.attributes.position, uv = g.attributes.uv;
+  for (let i = 0; i < p.count; i++) uv.setXY(i, p.getX(i) / tile, -p.getZ(i) / tile);
+  b.withMat(lavaMat, g);
+}
+// A ribbon of lava running from a high point to a low one; the texture runs downhill.
+function lavaFall(b, top, bot, w) {
+  const dx = bot[0] - top[0], dy = bot[1] - top[1], ds = bot[2] - top[2], len = Math.hypot(dx, dy, ds), h = Math.hypot(dx, ds) || 1, px = -ds / h * w / 2, ps = dx / h * w / 2;
+  const g = new THREE.BufferGeometry(), P = [top[0] - px, top[1], -(top[2] - ps), top[0] + px, top[1], -(top[2] + ps), bot[0] - px * 1.5, bot[1], -(bot[2] - ps * 1.5), bot[0] + px * 1.5, bot[1], -(bot[2] + ps * 1.5)];
+  g.setAttribute("position", new THREE.Float32BufferAttribute(P, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute([0, 1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0], 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute([0, 0, w / 5, 0, 0, len / 7, w / 5, len / 7], 2)); g.setIndex([0, 2, 1, 1, 2, 3]);
+  b.withMat(lavaFallMat, g);
+}
+// A jagged volcanic massif: leaning spires on a base of boulders, with lava spilling down the side that faces (fx, fs).
+const VROCK = [0x5c3626, 0x6e4030, 0x4a2a20, 0x7a4a34, 0x3c221c];
+function massif(b, x, s, sc, fx, fs) {
+  let top = 0, tx = x, ts = s;
+  for (let i = 0, n = randi(4, 6); i < n; i++) {
+    const ox = rand(-0.9, 0.9) * sc, os = rand(-0.9, 0.9) * sc, h = sc * rand(1.5, 3.3) * (i ? 1 : 1.25), wd = sc * rand(0.55, 0.95);
+    b.geo("cone4", x + ox, -3 + h / 2 - 0.4, s + os, wd, h, wd * rand(0.7, 1.1), jit(pick(VROCK), 0.04), { ry: rand(0, 3), rz: rand(-0.22, 0.22), rx: rand(-0.22, 0.22) });
+    if (h > top) { top = h; tx = x + ox; ts = s + os; }
+  }
+  for (let i = 0; i < 4; i++) b.geo("dode", x + rand(-1.2, 1.2) * sc, -2.6, s + rand(-1.2, 1.2) * sc, sc * rand(0.6, 1.1), sc * rand(0.4, 0.8), sc * rand(0.6, 1.1), jit(pick(VROCK), 0.04), { ry: rand(0, 3) });
+  for (let i = 0, n = randi(1, 2); i < n; i++) { // lava down the face, pooling at the foot
+    const side = i ? -0.5 : 0.5, bx = x + fx * sc * 1.05 - fs * side * sc, bs = s + fs * sc * 1.05 + fx * side * sc, y = -3 + top * rand(0.5, 0.72);
+    lavaFall(b, [tx + fx * sc * 0.22, y, ts + fs * sc * 0.22], [bx, -2.86, bs], sc * rand(0.16, 0.28));
+  }
+}
+// The volcano's ground is a lake of lava: a second ground sheet that fades in with that world, like the ground colour does.
+const lavaGround = (() => { const t = lavaMat.map.clone(); t.needsUpdate = true; t.repeat.set(40, 40);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1600, 1600), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0, depthWrite: false }));
+  m.rotation.x = -Math.PI / 2; m.position.y = -2.94; m.visible = false; m.renderOrder = -0.5; scene.add(m); return m; })();
 function caneMesh(parent, geos) {
   if (!geos.length) return; const g = mergeGeometries(geos); geos.forEach((x) => x.dispose());
   const mesh = new THREE.Mesh(g, caneMat); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh);
@@ -2067,17 +2117,23 @@ Object.assign(THEMES, {
     moverMesh(b) { b.geo("dode", 0, 0, 0, 2.3, 2.3, 2.3, 0xff2414, { glow: true }); for (let i = 0; i < 7; i++) b.geo("dode", rand(-0.7, 0.7), rand(-0.7, 0.7), rand(-0.7, 0.7), 1.2, 1.0, 1.2, 0x2a2222); },
     scenery(b, run, lim, near) {
       sideLoop(lim, near, (side, end, nend) => {
-        for (let s = 14; s < nend; s += rand(3, 6)) b.geo("dode", side * (HALF + rand(2, 6)), -2.2, s, rand(2.5, 4.5), rand(2, 3.4), rand(2.5, 4.5), jit(0x2a2424, 0.03), { ry: rand(0, 3) });
-        for (let s = 16; s < end; s += rand(4, 8)) { const x = side * (HALF + rand(7, 40)), h = rand(4, 14); b.geo("cone4", x, -3 + h / 2, s, rand(2, 4), h, rand(2, 4), jit(0x1c1622, 0.04), { ry: rand(0, 3) }); }
-        for (let s = 20; s < end; s += rand(10, 18)) { const x = side * (HALF + rand(8, 50)); b.box(x, -2.95, s, rand(1, 2), 0.06, rand(10, 20), 0xff5a1a, { glow: true, ry: rand(-0.6, 0.6) }); }
+        for (let s = 14; s < nend; s += rand(3, 6)) b.geo("dode", side * (HALF + rand(2, 6)), -2.2, s, rand(2.5, 4.5), rand(2, 3.4), rand(2.5, 4.5), jit(pick(VROCK), 0.04), { ry: rand(0, 3) });
+        for (let s = 18; s < end; s += rand(8, 13)) { const sc = rand(2.4, 5.5), x = side * (HALF + sc * 1.6 + rand(5, 34)); if (!(b.skip && b.skip(x, s))) massif(b, x, s, sc, -side, 0); } // rock massifs running with lava
         for (let s = 18; s < nend; s += 24) { const x = side * (HALF + 0.3); b.box(x, 0.4, s, 0.5, 0.5, 0.5, 0x2a2424); b.box(x, 0.9, s, 0.35, 0.5, 0.35, 0xff8a2a, { glow: true }); }
-        for (let s = rand(45, 60); s < end - 20; s += rand(32, 48)) { const x = side * rand(70, 98), r = Math.min(rand(18, 30), s - 12), h = rand(30, 60); if (r < 10) continue;
-          b.geo("cone", x, -3 + h / 2, s, r * 2, h, r * 2, jit(0x241a1c, 0.04)); b.geo("cyl", x, -3 + h - 1, s, r * 0.5, 2, r * 0.5, 0xff5a1a, { glow: true }); b.box(x - side * r * 0.4, -3 + h * 0.45, s, 1.2, h * 0.9, 1.2, 0xff6a1a, { glow: true, rz: side * 0.45 }); }
+        for (let s = rand(45, 60); s < end - 20; s += rand(32, 48)) { const x = side * rand(70, 98), r = Math.min(rand(18, 30), s - 12), h = rand(30, 60); if (r < 10) continue; // volcanoes in the distance, lava running down the side facing you
+          b.geo("cone", x, -3 + h / 2, s, r * 2, h, r * 2, jit(pick(VROCK), 0.04)); b.geo("cyl", x, -3 + h - 1, s, r * 0.5, 2, r * 0.5, 0xff8a2a, { glow: true });
+          for (const k of [-0.5, 0.4]) lavaFall(b, [x - side * r * 0.3, -3 + h * 0.86, s + k * r * 0.2], [x - side * r * 1.02, -2.8, s + k * r * 1.1], rand(1.6, 3)); }
       });
     },
-    endWall(b, run, sides) { STD.wall(b, run, sides, 0x241e1e, 16, (L) => { for (let i = 0; i < 5; i++) b.box(rand(-HALF - 12, HALF + 12), -3, L + 0.9, rand(0.8, 1.6), 16, 0.2, 0xff6a1a, { glow: true }); }); },
+    endWall(b, run, sides) { // a wall of jagged rock with lava pouring through it
+      const L = run.L;
+      for (let x = -HALF - 20; x <= HALF + 20; x += rand(6, 9)) { const sc = rand(5, 7.5); massif(b, x, L + 1.6 + sc * 1.45, sc, 0, -1); }
+      for (const side of sides) for (let sc2 = L - W - 12; sc2 < L + 2; sc2 += rand(6, 9)) { const sc = rand(5, 7.5); massif(b, side * (HALF + 1.6 + sc * 1.45), sc2, sc, -side, 0); }
+      for (let x = -HALF - 18; x <= HALF + 18; x += 8) CAKES.push({ run, x, s: L + 12, r: 11 });
+      for (const side of sides) for (let sc2 = L - W - 12; sc2 <= L; sc2 += 8) CAKES.push({ run, x: side * (HALF + 12), s: sc2, r: 11 });
+    },
     gate(b, s) { STD.arch(b, s, 0x1c1622, 0x2a2424, 0xff5a1a); },
-    hop: { sea: 0xd8400e, seaGlow: true, ripple: null, edge: 0xffa040, noEdge: true, death: "Sank into the lava", hit: "Ran into an obsidian spire",
+    hop: { sea: 0xd8400e, seaGlow: true, lava: true, ripple: null, edge: 0xffa040, noEdge: true, death: "Sank into the lava", hit: "Ran into an obsidian spire",
       platform(b, xc, w, a, e) { // a raft of cooled basalt: lumpy boulders, cracked crust, glowing seams
         b.box(xc, -0.32, (a + e) / 2, w - 0.3, 0.3, e - a - 0.3, 0x2a2222);
         for (let t = a + 0.4; t < e - 0.2; t += rand(0.9, 1.5)) for (let x = xc - w / 2 + 0.6; x < xc + w / 2 - 0.3; x += rand(0.9, 1.5))
@@ -2673,7 +2729,7 @@ const SPECIALS = {
   // At most two lanes of footing at a time (left pair, right pair, or the two outside lanes), so you have to pick your line.
   hop(run, b, T) {
     const H = T.hop, z = run.zone, c = (z.s0 + z.s1) / 2, len = z.s1 - z.s0;
-    if (H.sea != null) b.box(0, -0.66, c, 140, 0.08, len + 0.4, H.sea, { glow: !!H.seaGlow });
+    if (H.lava) lavaSheet(b, -70, 70, c - len / 2 - 0.2, c + len / 2 + 0.2, -0.62, 12); else if (H.sea != null) b.box(0, -0.66, c, 140, 0.08, len + 0.4, H.sea, { glow: !!H.seaGlow });
     if (H.ripple != null) for (let i = 0; i < len / 2; i++) b.box(rand(-60, 60), -0.57, rand(z.s0, z.s1), rand(1, 3), 0.02, rand(0.1, 0.2), H.ripple, { glow: true });
     if (H.sides) H.sides(b, z, run);
     const span = (a, e, lanes) => {
@@ -2976,12 +3032,12 @@ function resetWorld() {
 /* =====================================================================
    9. Environment (sky, fog, light) blends between worlds
    ===================================================================== */
-const envNow = { top: new THREE.Color(), bot: new THREE.Color(), fog: new THREE.Color(), hs: new THREE.Color(), hg: new THREE.Color(), sun: new THREE.Color(), ground: new THREE.Color(), hi: 1, si: 2, near: 30, far: 140, exp: 1, sunDir: new THREE.Vector3(0.5, 0.5, -0.7), fx: new THREE.Vector4(), moon: 0 };
+const envNow = { top: new THREE.Color(), bot: new THREE.Color(), fog: new THREE.Color(), hs: new THREE.Color(), hg: new THREE.Color(), sun: new THREE.Color(), ground: new THREE.Color(), hi: 1, si: 2, near: 30, far: 140, exp: 1, sunDir: new THREE.Vector3(0.5, 0.5, -0.7), fx: new THREE.Vector4(), moon: 0, lava: 0 };
 let envTarget = null, envKey = null;
 function applyEnv(key, instant) {
   envKey = key; HORIZONS[key] ??= buildHorizon(key); // the rest are built in the background as you approach them
   if (instant) for (const k in HORIZONS) { HORIZONS[k].userData.op = k === key ? 1 : 0; } const e = THEMES[key].env;
-  envTarget = { gy: e.gy ?? -3, top: new THREE.Color(e.top), bot: new THREE.Color(e.bot), fog: new THREE.Color(e.fog), hs: new THREE.Color(e.hs), hg: new THREE.Color(e.hg), sun: new THREE.Color(e.sun), ground: new THREE.Color(e.ground), hi: e.hi, si: e.si, near: e.near, far: e.far, exp: e.exp, sunDir: new THREE.Vector3(...e.sunDir).normalize(), fx: new THREE.Vector4(...(SKY_FX[key] || [0, 0, 0, 0.4]).slice(0, 4)), moon: (SKY_FX[key] || [])[4] || 0 };
+  envTarget = { gy: e.gy ?? -3, top: new THREE.Color(e.top), bot: new THREE.Color(e.bot), fog: new THREE.Color(e.fog), hs: new THREE.Color(e.hs), hg: new THREE.Color(e.hg), sun: new THREE.Color(e.sun), ground: new THREE.Color(e.ground), hi: e.hi, si: e.si, near: e.near, far: e.far, exp: e.exp, sunDir: new THREE.Vector3(...e.sunDir).normalize(), fx: new THREE.Vector4(...(SKY_FX[key] || [0, 0, 0, 0.4]).slice(0, 4)), moon: (SKY_FX[key] || [])[4] || 0, lava: key === "volcano" ? 1 : 0 };
   if (instant) stepEnv(1);
 }
 function stepEnv(t) {
@@ -2989,7 +3045,8 @@ function stepEnv(t) {
   for (const k of ["top", "bot", "fog", "hs", "hg", "sun", "ground"]) a[k].lerp(b[k], t);
   for (const k of ["hi", "si", "near", "far", "exp", "gy"]) a[k] = lerp(a[k] ?? b[k], b[k], t);
   ground.position.y = a.gy;
-  a.sunDir.lerp(b.sunDir, t).normalize(); a.fx.lerp(b.fx, t); a.moon = lerp(a.moon, b.moon, t);
+  a.sunDir.lerp(b.sunDir, t).normalize(); a.fx.lerp(b.fx, t); a.moon = lerp(a.moon, b.moon, t); a.lava = lerp(a.lava, b.lava, t);
+  lavaGround.material.opacity = a.lava; lavaGround.visible = a.lava > 0.01; lavaGround.position.y = a.gy + 0.06;
   skyMat.uniforms.fogCol.value.copy(a.fog); skyMat.uniforms.fx.value.copy(a.fx); skyMat.uniforms.moon.value = a.moon;
   skyMat.uniforms.top.value.copy(a.top); skyMat.uniforms.bot.value.copy(a.bot); skyMat.uniforms.sunCol.value.copy(a.sun); skyMat.uniforms.sunDir.value.copy(a.sunDir);
   scene.fog.color.copy(a.fog); scene.fog.near = a.near; scene.fog.far = a.far;
@@ -3405,7 +3462,7 @@ function place(dt) {
   for (const k in HORIZONS) { const h = HORIZONS[k]; h.userData.op = lerp(h.userData.op, k === envKey ? 1 : 0, damp(dt, 1.3)); h.visible = h.userData.op > 0.01;
     for (const m of h.userData.mats) m.opacity = h.userData.op; h.position.set(camera.position.x, 0, camera.position.z); }
   weatherTick(dt, t); birdTick(dt, t);
-  ground.position.x = Math.round(camera.position.x / 20) * 20; ground.position.z = Math.round(camera.position.z / 20) * 20;
+  ground.position.x = Math.round(camera.position.x / 20) * 20; ground.position.z = Math.round(camera.position.z / 20) * 20; lavaGround.position.x = ground.position.x; lavaGround.position.z = ground.position.z;
   sun.target.position.copy(P); sun.position.copy(P).addScaledVector(envNow.sunDir, 50);
   if (sun.position.y < P.y + 20) sun.position.y = P.y + 20;
 
@@ -4225,7 +4282,7 @@ renderer.setAnimationLoop((now) => {
   else { const want = [...live].map((r) => r.theme).find((k) => !HORIZONS[k]); if (want) HORIZONS[want] = buildHorizon(want); }
   place(dt); trailTick(dt);
   if (G.state === "run" || G.state === "count") hudTick();
-  skyMat.uniforms.time.value = G.time;
+  skyMat.uniforms.time.value = G.time; lavaMat.map.offset.set(Math.sin(G.time * 0.11) * 0.03, -G.time * 0.012); lavaFallMat.map.offset.y = G.time * 0.22; lavaGround.material.map.offset.set(lavaGround.position.x / 40 + Math.sin(G.time * 0.11) * 0.02, -lavaGround.position.z / 40 - G.time * 0.008); // pinned to the world, so it doesn't jump when the ground sheet follows the camera
   renderer.render(scene, camera);
 });
 if (new URLSearchParams(location.search).has("debug")) window.__chonkrun = { G, pl, groundAt, camera, playerRoot, info: () => ({ calls: renderer.info.render.calls, tris: renderer.info.render.triangles, geos: renderer.info.memory.geometries, live: live.size }), get cur() { return cur; }, queue, startRun, loadChonk, THEMES, live, PROFILE, doRevive, skipRevive, die, resolveName, namehash, applyHeadStart, refreshMenuStore, renderStore,
