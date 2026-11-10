@@ -1401,6 +1401,7 @@ function caneStand(x, s, h, r, face, y0 = -1) {
 }
 // Lollipops: a coiled rope of candy with stripes running along it, on a stick. One material per colour, cached.
 const LOLLY_COLS = [0xff4fa3, 0x4fa8ff, 0x3fcf86, 0xffa23a, 0xa86bff, 0xff5a64];
+let lollyTurn = 0;
 const lollyMats = new Map();
 function lollyMat(hex) {
   if (lollyMats.has(hex)) return lollyMats.get(hex);
@@ -1446,7 +1447,8 @@ const GEO = {
 };
 const _m = new THREE.Matrix4(), _q = new THREE.Quaternion(), _e = new THREE.Euler(), _p = new THREE.Vector3(), _s = new THREE.Vector3();
 class Builder {
-  constructor() { this.solid = []; this.glow = []; }
+  constructor() { this.solid = []; this.glow = []; this.custom = new Map(); }
+  withMat(mat, geo) { if (!this.custom.has(mat)) this.custom.set(mat, []); this.custom.get(mat).push(geo); } // textured pieces (lollipops), merged per material at build
   add(glow, geo, x, y, z, sx, sy, sz, color, o) {
     if (this.skip && this.skip(x, -z)) return;
     const g = geo.clone();
@@ -1471,7 +1473,8 @@ class Builder {
         parent.add(mesh); out.push(mesh);
       }
     }
-    this.solid = []; this.glow = [];
+    for (const [mat, list] of this.custom) { const g = mergeGeometries(list); list.forEach((p) => p.dispose()); const mesh = new THREE.Mesh(g, mat); mesh.castShadow = shadow; mesh.receiveShadow = true; parent.add(mesh); out.push(mesh); }
+    this.solid = []; this.glow = []; this.custom = new Map();
     return out;
   }
 }
@@ -2055,7 +2058,10 @@ Object.assign(THEMES, {
     low(b, x0, x1, sc) { STD.stripes(b, (x0 + x1) / 2, 0.15, sc, x1 - x0 + 0.3, 0.7, 0.6, Math.max(3, Math.round((x1 - x0) / 0.5)), 0xffffff, 0xe2403a, "x"); },
     high(b, sc) { b.box(0, BEAM_Y0, sc, W + 1.8, 0.7, 0.7, 0x2a1a22); for (const sx of [-1, 1]) STD.stripes(b, sx * (HALF + 0.55), -0.14, sc, 0.7, 2.2, 0.7, 1, 0xffffff, 0xe2403a); for (const sx of [-1, 1]) for (let k = 0; k < 4; k++) b.box(sx * (HALF + 0.55), -0.14 + k * 0.55, sc, 0.72, 0.28, 0.72, 0xe2403a); },
     gantry(b, sc) { b.box(0, 4.3, sc, W + 2.6, 0.45, 0.5, 0x2a1a22); for (const sx of [-1, 1]) { b.box(sx * (HALF + 1), -3, sc, 0.6, 7.8, 0.6, 0xffffff); for (let k = 0; k < 8; k++) b.box(sx * (HALF + 1), -2.6 + k * 0.95, sc, 0.62, 0.45, 0.62, 0xe2403a); } },
-    hang(b, x, sc) { b.geo("cyl", x, BEAM_Y0 + 0.45, sc, 1.8, 0.25, 1.8, pick([0xff5d73, 0x7be08f, 0x7fd0ff, 0xffb020]), { rx: Math.PI / 2 }); b.geo("cyl", x, BEAM_Y0 + 0.45, sc - 0.14, 0.8, 0.04, 0.8, 0xffffff, { rx: Math.PI / 2 }); b.box(x, BEAM_Y0 + 1.3, sc, 0.12, 3.0, 0.12, 0xffffff); },
+    hang(b, x, sc) { // a swirl lollipop hanging upside down on its stick
+      const r = 0.84, cy = BEAM_Y0 + 0.45, hex = LOLLY_COLS[(lollyTurn++) % LOLLY_COLS.length];
+      b.withMat(lollyMat(hex), LOLLY_UNIT.clone().rotateZ(rand(0, Math.PI * 2)).scale(r, r, r).translate(x, cy, -sc));
+      b.geo("cyl", x, (cy + r + 4.4) / 2, sc, 0.16, 4.4 - cy - r + 0.2, 0.16, 0xf2b46a); },
     long(b, x, s0, s1, h, ramp) {
       const c = (s0 + s1) / 2, len = s1 - s0, cols = [0xff9ad0, 0xfff0f6, 0x8a4a2a];
       for (let i = 0; i < 3; i++) b.box(x, i * h / 3, c, 2.0, h / 3, len, cols[i % 3]);
