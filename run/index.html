@@ -204,6 +204,7 @@ kbd{font:600 10.5px var(--mono);color:var(--fg);background:rgba(255,255,255,.09)
 .shop .crate .box::after{content:"?";position:absolute;inset:0;display:grid;place-items:center;font:400 22px var(--display);color:#3a2400}
 .shop .crate .btn{grid-column:3}
 .shop .crate p{grid-column:2}
+.shop .crate .odds{grid-column:1/-1;font-size:10.5px;color:var(--muted);opacity:.8}
 .reveal{margin-top:10px;padding:14px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.06);animation:pop .45s cubic-bezier(.2,1.6,.4,1)}
 .reveal b{display:block;font:400 18px var(--display);margin:6px 0 4px}
 .reveal.r-common{border-color:#cfd6e4}.reveal.r-rare{border-color:#5fd7ff}.reveal.r-epic{border-color:#c08bff;box-shadow:0 0 24px rgba(192,139,255,.35)}.reveal.r-legendary{border-color:#ffb347;box-shadow:0 0 30px rgba(255,179,71,.5)}
@@ -3394,49 +3395,58 @@ const TRAILS = [
   ["rainbow", "Rainbow", "rainbow", 5000],
   ["holder", "Holder Aura", ["#5fd7ff", "#c08bff"], 0, true],
   // premium, animated  [id, name, colours, price, holderOnly, effect, crateOnly, rarity]
-  ["comet", "Comet", ["#ffffff", "#9fe7ff"], 15000, false, "comet", false, "rare"],
-  ["inferno", "Inferno", ["#ff3a1a", "#ffd24a"], 20000, false, "rise", false, "rare"],
-  ["galaxy", "Galaxy", ["#7a5cff", "#ff6bd8"], 30000, false, "orbit", false, "epic"],
-  ["storm", "Storm", ["#ffffff", "#5fd7ff"], 40000, false, "storm", false, "epic"],
-  ["solar", "Solar Flare", ["#ffb347", "#fff4b8"], 50000, false, "flare", false, "legendary"],
-  ["prism", "Prism", "rainbow", 0, false, "orbit", true, "legendary"],
+  ["comet", "Comet", ["#ffffff", "#9fe7ff"], 15000, false, "comet"],
+  ["inferno", "Inferno", ["#ff3a1a", "#ffd24a"], 20000, false, "rise"],
+  ["galaxy", "Galaxy", ["#7a5cff", "#ff6bd8"], 30000, false, "orbit"],
+  ["storm", "Storm", ["#ffffff", "#5fd7ff"], 40000, false, "storm"],
+  ["solar", "Solar Flare", ["#ffb347", "#fff4b8"], 50000, false, "flare"],
+  // only from the Mystery Crate
+  ["sakura", "Sakura", ["#ffb7d5", "#fff0f6"], 0, false, "rise", true, "common"],
+  ["bubbles", "Bubbles", ["#9fe7ff", "#e8fbff"], 0, false, "comet", true, "rare"],
   ["ghost", "Ghost", ["#e8f0ff", "#9aa6c8"], 0, false, "rise", true, "epic"],
+  ["prism", "Prism", "rainbow", 0, false, "orbit", true, "legendary"],
 ];
 // coin skins, landing and crash effects  [id, name, colours, price, crateOnly, rarity]
 const COIN_SKINS = [
   ["gold", "Gold", [0xffc83d, 0xa86e00], 0],
-  ["silver", "Silver", [0xe8edf5, 0x5a6478], 6000, false, "common"],
-  ["ruby", "Ruby", [0xff3b5c, 0x7a0018], 12000, false, "rare"],
-  ["emerald", "Emerald", [0x3fe08a, 0x0a5a2e], 12000, false, "rare"],
-  ["diamond", "Diamond", [0xb8f6ff, 0x3aa8c8], 25000, false, "epic"],
+  ["silver", "Silver", [0xe8edf5, 0x5a6478], 6000],
+  ["ruby", "Ruby", [0xff3b5c, 0x7a0018], 12000],
+  ["emerald", "Emerald", [0x3fe08a, 0x0a5a2e], 12000],
+  ["diamond", "Diamond", [0xb8f6ff, 0x3aa8c8], 25000],
+  ["copper", "Copper", [0xd9824a, 0x5a2a0a], 0, true, "common"],
+  ["jade", "Jade", [0x7fd8a8, 0x1a5a3a], 0, true, "rare"],
   ["onyx", "Onyx", [0x2a2433, 0xff5d73], 0, true, "epic"],
   ["rainbow", "Rainbow", "rainbow", 0, true, "legendary"],
 ];
 const LAND_FX = [
   ["none", "None", null, 0],
-  ["dust", "Dust Puff", ["#e8d8b8", "#b8a888"], 4000, false, "common"],
-  ["sparks", "Sparks", ["#ffd24a", "#ff7a1a"], 8000, false, "common"],
-  ["hearts", "Love Hops", ["#ff6bd8", "#ff3b5c"], 12000, false, "rare"],
-  ["shock", "Shockwave", ["#5fd7ff", "#ffffff"], 20000, false, "epic"],
+  ["dust", "Dust Puff", ["#e8d8b8", "#b8a888"], 4000],
+  ["sparks", "Sparks", ["#ffd24a", "#ff7a1a"], 8000],
+  ["hearts", "Love Hops", ["#ff6bd8", "#ff3b5c"], 12000],
+  ["shock", "Shockwave", ["#5fd7ff", "#ffffff"], 20000],
+  ["leaf", "Leaf Flutter", ["#7be08f", "#c8f2a0"], 0, true, "common"],
   ["stars", "Starfall", ["#fff4b8", "#ffb347", "#ffffff"], 0, true, "epic"],
 ];
 const CRASH_FX = [
   ["none", "None", null, 0],
-  ["confetti", "Confetti", ["#ff3b5c", "#3a7fd4", "#ffd020", "#2fb36b", "#c08bff"], 6000, false, "common"],
-  ["pixels", "Pixel Pop", ["#ffffff", "#ffb347", "#2a2433"], 12000, false, "rare"],
-  ["firework", "Firework", ["#ff5d73", "#5fd7ff", "#fff4b8"], 25000, false, "epic"],
+  ["confetti", "Confetti", ["#ff3b5c", "#3a7fd4", "#ffd020", "#2fb36b", "#c08bff"], 6000],
+  ["pixels", "Pixel Pop", ["#ffffff", "#ffb347", "#2a2433"], 12000],
+  ["firework", "Firework", ["#ff5d73", "#5fd7ff", "#fff4b8"], 25000],
+  ["bubblepop", "Bubble Pop", ["#9fe7ff", "#ffffff", "#ff9ad0"], 0, true, "rare"],
   ["supernova", "Supernova", ["#ffffff", "#ffd24a", "#ff6bd8", "#7a5cff"], 0, true, "legendary"],
 ];
-const RARITY = { common: 60, rare: 28, epic: 9, legendary: 3 }, CRATE_COST = 1000, CRATE_REFUND = 400;
-const COS_KINDS = { trail: ["Trail", () => TRAILS.filter((t) => t[7])], coin: ["Coin skin", () => COIN_SKINS.slice(1)], land: ["Landing", () => LAND_FX.slice(1)], crash: ["Crash", () => CRASH_FX.slice(1)] };
+const RARITY = { common: 60, rare: 28, epic: 9, legendary: 3 }, CRATE_COST = 1000, CRATE_REFUND = 250;
+const COS_KINDS = { trail: ["Trail", () => TRAILS.filter((t) => t[6])], coin: ["Coin skin", () => COIN_SKINS.filter((t) => t[4])], land: ["Landing", () => LAND_FX.filter((t) => t[4])], crash: ["Crash", () => CRASH_FX.filter((t) => t[4])] };
+const cratePool = () => { const out = []; for (const k in COS_KINDS) for (const it of COS_KINDS[k][1]()) out.push([k, it]); return out; };
+const crateLeft = () => cratePool().filter(([k, it]) => !owns(k, it[0])).length;
 const owns = (kind, id) => kind === "trail" ? PROFILE.trails.own.includes(id) : PROFILE.cos.own.includes(`${kind}:${id}`);
 function grant(kind, id) { if (kind === "trail") { if (!PROFILE.trails.own.includes(id)) PROFILE.trails.own.push(id); } else if (!owns(kind, id)) PROFILE.cos.own.push(`${kind}:${id}`); }
 function equip(kind, id) { if (kind === "trail") { PROFILE.trails.on = id; trailReset(); } else { PROFILE.cos[kind] = id; if (kind === "coin") applyCoinSkin(); } saveProfile(); }
 const rarityOf = (kind, it) => kind === "trail" ? it[7] : it[5];
 const crateOnly = (kind, it) => kind === "trail" ? it[6] : it[4];
 function openCrate() {
-  if (PROFILE.bank < CRATE_COST) return null;
-  const pool = []; for (const k in COS_KINDS) for (const it of COS_KINDS[k][1]()) pool.push([k, it]);
+  if (PROFILE.bank < CRATE_COST || !crateLeft()) return null;
+  const pool = cratePool();
   let tot = 0; for (const [k, it] of pool) tot += RARITY[rarityOf(k, it)] || 1;
   let r = Math.random() * tot, got = pool[0];
   for (const e of pool) { r -= RARITY[rarityOf(e[0], e[1])] || 1; if (r <= 0) { got = e; break; } }
@@ -3455,11 +3465,13 @@ function landFx() {
   if (id === "shock") trailBurst(cols, 36, { v: 7, up: 0.15, fade: 2.6, spread: 0 });
   else if (id === "hearts") trailBurst(cols, 14, { v: 2, up: 3.5, fade: 1.4 });
   else if (id === "stars") trailBurst(cols, 22, { v: 3, up: 5, fade: 1.2 });
+  else if (id === "leaf") trailBurst(cols, 16, { v: 1.5, up: 2.5, fade: 1.1 });
   else trailBurst(cols, id === "dust" ? 18 : 24, { v: id === "dust" ? 2.5 : 5, up: id === "dust" ? 0.8 : 3, fade: 2 });
 }
 function crashFx() {
   const id = PROFILE.cos.crash, cols = fxCols(CRASH_FX, id); if (!cols) return;
   if (id === "firework") { trailBurst(cols, 90, { v: 9, up: 6, fade: 0.9 }); setTimeout(() => trailBurst(cols, 70, { v: 6, up: 8, fade: 1 }), 250); }
+  else if (id === "bubblepop") trailBurst(cols, 70, { v: 2, up: 4, fade: 0.9, spread: 3 });
   else if (id === "supernova") { trailBurst(cols, 160, { v: 14, up: 2, fade: 0.7 }); setTimeout(() => trailBurst(["#ffffff"], 60, { v: 3, up: 1, fade: 0.8 }), 120); }
   else trailBurst(cols, id === "pixels" ? 90 : 120, { v: id === "pixels" ? 5 : 7, up: id === "pixels" ? 7 : 5, fade: 0.8 });
 }
@@ -3498,7 +3510,8 @@ function renderStore() {
       return `<div><b><span class="swatch" style="${sw}"></span>${name}${rar ? `<span class="rar r-${rar}">${rar.toUpperCase()}</span>` : ""}</b><button class="btn ${on ? "on" : ""}" type="button" data-kind="${kind}" data-id="${k}" ${dis}>${label}</button>${kind === "trail" && it[4] && !own ? `<p>For wallets holding a Chonk. Lock your name in the Leaderboard to verify.</p>` : co && !own ? `<p>Only from the Mystery Crate.</p>` : ""}</div>`;
     };
     const rv = lastCrate ? `<div class="reveal r-${rarityOf(lastCrate.kind, lastCrate.it)}"><span class="rar r-${rarityOf(lastCrate.kind, lastCrate.it)}">${rarityOf(lastCrate.kind, lastCrate.it).toUpperCase()} ${COS_KINDS[lastCrate.kind][0].toUpperCase()}</span><b>${escHtml(lastCrate.it[1])}</b>${lastCrate.dup ? `<small style="color:var(--muted)">You already had it, so ${CRATE_REFUND} coins came back.</small>` : `<button class="btn" type="button" data-kind="${lastCrate.kind}" data-id="${lastCrate.it[0]}">USE IT NOW</button>`}</div>` : "";
-    body.innerHTML = `<div class="shop"><div class="crate"><i class="box"></i><b>Mystery Crate</b><button class="btn" type="button" id="crateBtn" ${PROFILE.bank < CRATE_COST ? "disabled" : ""}>${cost(CRATE_COST)}</button><p>A random trail, coin skin, landing or crash effect, including some you can't buy. Already own it? ${CRATE_REFUND} coins back.</p></div></div>${rv}
+    const pool = cratePool(), left = crateLeft();
+    body.innerHTML = `<div class="shop"><div class="crate"><i class="box"></i><b>Mystery Crate</b><button class="btn" type="button" id="crateBtn" ${PROFILE.bank < CRATE_COST || !left ? "disabled" : ""}>${left ? cost(CRATE_COST) : "ALL FOUND"}</button><p>${left ? `One of ${pool.length} crate-only cosmetics you can't buy in the shop. Already own it? ${CRATE_REFUND} coins back. You've found ${pool.length - left} of ${pool.length}.` : `You've found all ${pool.length} crate cosmetics.`}</p><small class="odds">Common 60% · Rare 28% · Epic 9% · Legendary 3% (split across the items in each tier)</small></div></div>${rv}
       <div class="shop"><span class="sec">TRAILS</span>${TRAILS.map((t) => card("trail", t, PROFILE.trails.on === t[0])).join("")}
       <span class="sec">COIN SKINS</span>${COIN_SKINS.map((t) => card("coin", t, PROFILE.cos.coin === t[0])).join("")}
       <span class="sec">LANDING EFFECTS</span>${LAND_FX.map((t) => card("land", t, PROFILE.cos.land === t[0])).join("")}
