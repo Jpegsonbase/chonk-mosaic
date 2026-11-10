@@ -1359,6 +1359,50 @@ function weatherTick(dt, t) {
    ===================================================================== */
 const solidMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.88, metalness: 0, flatShading: true });
 const glowMat = new THREE.MeshBasicMaterial({ vertexColors: true });
+// candy canes: one red band running corner to corner of a tile, so tiled over a cane it spirals like the real thing
+const caneMat = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d");
+  x.fillStyle = "#fff4f2"; x.fillRect(0, 0, 128, 128); x.fillStyle = "#d4192f"; x.beginPath();
+  for (const o of [-128, 0, 128]) { x.moveTo(o, 0); x.lineTo(o + 54, 0); x.lineTo(o + 182, 128); x.lineTo(o + 128, 128); x.closePath(); }
+  x.fill(); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.38, metalness: 0 });
+})();
+const CANE_RED_UV = [0.2, 0.02]; // a point inside the red band, for solid red tips and end faces
+// A cane lying along the track: rounded-rectangle cross-section so the top is flat to run on, stripes wrapped round it.
+function canePlank(xc, w, a, e, R) {
+  const D = w + 0.5, H = R * 2, rc = Math.min(R * 0.95, D / 2 - 0.05), prof = [];
+  for (const [cx, cy, t0] of [[D / 2 - rc, -rc, Math.PI / 2], [D / 2 - rc, -H + rc, 0], [-D / 2 + rc, -H + rc, -Math.PI / 2], [-D / 2 + rc, -rc, Math.PI]])
+    for (let i = 0; i <= 8; i++) { const t = t0 - i / 8 * Math.PI / 2; prof.push([cx + rc * Math.cos(t), cy + rc * Math.sin(t), Math.cos(t), Math.sin(t)]); }
+  prof.push(prof[0]);
+  let per = 0; const L = [0]; for (let i = 1; i < prof.length; i++) { per += Math.hypot(prof[i][0] - prof[i - 1][0], prof[i][1] - prof[i - 1][1]); L.push(per); }
+  const tile = 1.7, n = Math.max(1, Math.round(per / tile)), pos = [], nor = [], uv = [], idx = [];
+  for (const s of [a, e]) for (let i = 0; i < prof.length; i++) { const [px, py, nx, ny] = prof[i]; pos.push(xc + px, py, -s); nor.push(nx, ny, 0); uv.push(s / tile, L[i] / per * n); }
+  const m = prof.length; for (let i = 0; i < m - 1; i++) idx.push(i, i + 1, m + i, i + 1, m + i + 1, m + i);
+  for (const [s, dir] of [[a, 1], [e, -1]]) { // solid red end faces
+    const c0 = pos.length / 3; pos.push(xc, -R, -s); nor.push(0, 0, dir); uv.push(...CANE_RED_UV);
+    for (let i = 0; i < m; i++) { pos.push(xc + prof[i][0], prof[i][1], -s); nor.push(0, 0, dir); uv.push(...CANE_RED_UV); }
+    for (let i = 0; i < m - 1; i++) dir > 0 ? idx.push(c0, c0 + 1 + i + 1, c0 + 1 + i) : idx.push(c0, c0 + 1 + i, c0 + 1 + i + 1);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
+  g.setAttribute("uv", new THREE.Float32BufferAttribute(uv, 2)); g.setIndex(idx); return g;
+}
+// An upright cane: shaft out of the chocolate, crook bending over toward `face`, red tip.
+function caneStand(x, s, h, r, face) {
+  const cr = r * 2.6, pts = [];
+  for (let y = -1; y < h; y += 1) pts.push(new THREE.Vector3(x, y, -s));
+  for (let i = 0; i <= 14; i++) { const t = i / 14 * Math.PI; pts.push(new THREE.Vector3(x + face * (cr - cr * Math.cos(t)), h + cr * Math.sin(t), -s)); }
+  pts.push(new THREE.Vector3(x + face * cr * 2, h - cr * 0.45, -s));
+  const curve = new THREE.CatmullRomCurve3(pts, false, "centripetal"), len = curve.getLength();
+  const g = new THREE.TubeGeometry(curve, Math.ceil(len * 3), r, 14, false), uv = g.attributes.uv, circ = Math.PI * 2 * r, n = 2, tile = circ / n * 1.25;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * len / tile, uv.getY(i) * n);
+  const tip = new THREE.SphereGeometry(r, 14, 8), tu = tip.attributes.uv; for (let i = 0; i < tu.count; i++) tu.setXY(i, ...CANE_RED_UV);
+  const end = pts[pts.length - 1]; tip.translate(end.x, end.y, end.z);
+  return [g, tip];
+}
+function caneMesh(parent, geos) {
+  if (!geos.length) return; const g = mergeGeometries(geos); geos.forEach((x) => x.dispose());
+  const mesh = new THREE.Mesh(g, caneMat); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh);
+}
 const legMats = {};
 const solidMatPlain = new THREE.MeshStandardMaterial({ color: 0xfaf7ee, emissive: 0x3a3830, roughness: 0.9, flatShading: true });
 function prep(g) { g = g.index ? g.toNonIndexed() : g; g.deleteAttribute("uv"); return g; }
@@ -2012,30 +2056,21 @@ Object.assign(THEMES, {
     endWall(b, run, sides) { STD.wall(b, run, sides, 0xfff0f6, 12, (L) => { const cols = [0xff9ad0, 0x8a4a2a, 0xfff0f6, 0xff9ad0]; for (let i = 0; i < 4; i++) b.box(0, -3 + i * 3, L + 0.95, W + 34, 3, 0.2, cols[i]); for (let x = -HALF - 15; x < HALF + 15; x += 2) b.geo("ico", x, 9.2, L + 2, 1.6, 1.2, 1.6, 0xffffff); }); },
     gate(b, s) { for (const sx of [-1, 1]) for (let k = 0; k < 11; k++) b.box(sx * (HALF + 1), -3 + k, s, 1, 1, 1, k % 2 ? 0xffffff : 0xe2403a); b.box(0, 7.4, s, W + 4.4, 1.2, 1.2, 0xff9ad0); b.box(0, 8.6, s, W + 4.6, 0.3, 1.3, 0xffffff); },
     hop: { sea: 0x5a2e18, ripple: 0x8a5030, death: "Fell into the chocolate river", hit: "Bounced off a gumdrop", edge: 0xff6fb0, noEdge: true, seg: [12.5, 20], gap: [2.8, 3.4],
-      platform(b, xc, w, a, e) { // a giant candy cane lying in the chocolate; run along it, jump at the glowing line
-        const len = e - a, mid = (a + e) / 2, R = 1.0, D = w + 0.5, red = 0xe2203a, white = 0xfff6f6, mint = pick([0x2fb36b, 0xe2203a, 0x3a9fe0]);
-        // shaft in red and white bands with a thin accent line, top sitting at the footing
-        let s2 = a, k = 0; const bands = [[1.3, white], [0.75, red], [0.18, white], [0.16, mint], [0.18, white], [0.75, red]];
-        while (s2 < e - 0.01) { const [bl, col] = bands[k++ % bands.length], l = Math.min(bl, e - s2); b.geo("cane", xc, -R, s2 + l / 2, D, l + 0.01, R * 2, col, { rx: Math.PI / 2 }); s2 += l; }
-        for (const ee of [a, e]) b.geo("sphere", xc, -R, ee, D, R * 2, 1.2, white);        // rounded ends
-        for (let k = 0; k < len / 2; k++) b.box(xc + rand(-D / 3, D / 3), 0.005, rand(a + 0.5, e - 0.5), rand(0.3, 0.7), 0.02, rand(0.08, 0.16), 0xffffff, { ry: rand(-0.3, 0.3) }); // sugary shine
+      platform(b, xc, w, a, e, run) { // a giant candy cane lying in the chocolate; run along it, jump at the glowing line
+        const len = e - a, mid = (a + e) / 2, R = 1.0, D = w + 0.5;
+        caneMesh(run.group, [canePlank(xc, w, a, e, R)]);
         b.geo("cyl", xc, -0.62, mid, D + 1.2, 0.08, len + 1.0, 0x3a1c0e); // chocolate lapping at its sides
         b.box(xc, 0.06, e - 0.35, w * 0.8, 0.07, 0.35, 0xff2f8f, { glow: true }); // jump here
         for (const lx of LANES) if (Math.abs(lx - xc) < w / 2) { b.box(lx, 0.07, e - 1.6, 0.9, 0.05, 0.25, 0xff2f8f, { glow: true, ry: 0.5 }); b.box(lx, 0.07, e - 1.6, 0.9, 0.05, 0.25, 0xff2f8f, { glow: true, ry: -0.5 }); }
       },
       obstacle(b, x, sc) { b.geo("cone", x, 1.2, sc, 2.0, 2.4, 1.7, pick([0x7be08f, 0xffb020, 0x9a6ae0])); },
       sides(b, z, run) { for (const sx of [-1, 1]) for (let s = z.s0; s < z.s1; s += rand(4, 9)) b.box(sx * rand(HALF + 4, 40), -0.62, s, rand(1, 2), rand(0.8, 1.4), rand(1, 2), pick([0xffffff, 0xffe0f0]), { ry: rand(0, 3) });
-        const stand = (x, s, h, r, face) => { // an upright cane: striped shaft and a crook bending over toward `face`
-          for (let y = -0.7, k = 0; y < h; y += r * 1.6, k++) b.geo("cane", x, y + r * 0.8, s, r * 2, r * 1.6, r * 2, k % 2 ? 0xe2203a : 0xfff6f6);
-          const cr = r * 2.6; let px = x, py = h;
-          for (let i = 1; i <= 9; i++) { const t = i / 9 * Math.PI, nx = x + face * (cr - cr * Math.cos(t)), ny = h + cr * Math.sin(t);
-            b.geo("cane", (px + nx) / 2, (py + ny) / 2, s, r * 2, Math.hypot(nx - px, ny - py) + r * 0.5, r * 2, i % 2 ? 0xe2203a : 0xfff6f6, { rz: Math.atan2(nx - px, ny - py) * -1 }); px = nx; py = ny; }
-          b.geo("sphere", px, py, s, r * 2, r * 2, r * 2, 0xfff6f6);
-        };
+        const canes = [], stand = (x, s, h, r, face) => canes.push(...caneStand(x, s, h, r, face));
         for (const sx of [-1, 1]) for (let s = z.s0 + rand(4, 9); s < Math.min(z.s1, run.L - 16); s += rand(12, 20)) { const r = rand(0.45, 0.7); stand(sx * rand(HALF + 5, HALF + 9), s, rand(5, 8), r, -sx); }
         // big background canes: like other far scenery they stop well short of a corner, so they never stand on the next stretch
         for (const sx of [-1, 1]) { const end = Math.min(z.s1, run.opts.includes(sx < 0 ? "L" : "R") ? run.L - 62 : run.L - 20);
           for (let s = z.s0 + 6; s < end; s += rand(16, 30)) { const r = rand(0.8, 1.2); stand(sx * rand(18, 28), s, rand(9, 14), r, -sx); } }
+        caneMesh(run.group, canes);
         for (const sx of [-1, 1]) for (let s = z.s0 + 3; s < z.s1; s += rand(9, 15)) { // floating peppermint swirls
           const d = rand(3, 5.5), x = sx * rand(HALF + 7, 40), y = -0.58;
           b.geo("cyl", x, y, s, d, 0.35, d, 0xfff6f6);
