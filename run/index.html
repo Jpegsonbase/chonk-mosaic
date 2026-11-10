@@ -1399,6 +1399,31 @@ function caneStand(x, s, h, r, face, y0 = -1) {
   const end = pts[pts.length - 1]; tip.translate(end.x, end.y, end.z);
   return [g, tip];
 }
+// Lollipops: a coiled rope of candy with stripes running along it, on a stick. One material per colour, cached.
+const LOLLY_COLS = [0xff4fa3, 0x4fa8ff, 0x3fcf86, 0xffa23a, 0xa86bff, 0xff5a64];
+const lollyMats = new Map();
+function lollyMat(hex) {
+  if (lollyMats.has(hex)) return lollyMats.get(hex);
+  const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d");
+  x.fillStyle = "#fff1e8"; x.fillRect(0, 0, 128, 128); x.fillStyle = "#" + hex.toString(16).padStart(6, "0"); x.beginPath();
+  for (const o of [-128, 0, 128]) { x.moveTo(o, 0); x.lineTo(o + 64, 0); x.lineTo(o + 192, 128); x.lineTo(o + 128, 128); x.closePath(); }
+  x.fill(); const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  const m = new THREE.MeshStandardMaterial({ map: t, roughness: 0.3, metalness: 0 }); lollyMats.set(hex, m); return m;
+}
+const LOLLY_UNIT = (() => { // radius 1, facing along the track; cloned and scaled for each lollipop
+  const N = 3, t = 1 / (2 * N + 1.2), k = 2 * t / (Math.PI * 2), r0 = t * 0.7, pts = [];
+  for (let th = 0; th <= Math.PI * 2 * N; th += 0.18) { const r = r0 + k * th; pts.push(new THREE.Vector3(Math.cos(th) * r, Math.sin(th) * r, 0)); }
+  const curve = new THREE.CatmullRomCurve3(pts), len = curve.getLength(), g = new THREE.TubeGeometry(curve, pts.length, t * 1.04, 7, false), uv = g.attributes.uv, tile = Math.PI * 2 * t * 1.15;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * len / tile, uv.getY(i) * 2);
+  const back = new THREE.CylinderGeometry(r0 + k * Math.PI * 2 * N, r0 + k * Math.PI * 2 * N, t * 1.3, 28).rotateX(Math.PI / 2), bu = back.attributes.uv; // fills any chink between coils
+  for (let i = 0; i < bu.count; i++) bu.setXY(i, 0.75, 0.5);
+  const cap = new THREE.SphereGeometry(t * 1.04, 8, 6), cu = cap.attributes.uv; for (let i = 0; i < cu.count; i++) cu.setXY(i, 0.75, 0.5); cap.translate(pts[pts.length - 1].x, pts[pts.length - 1].y, 0);
+  const out = mergeGeometries([g, back, cap]); [g, back, cap].forEach((x) => x.dispose()); return out;
+})();
+function lollyMeshes(parent, byCol) {
+  for (const [hex, geos] of byCol) { if (!geos.length) continue; const g = mergeGeometries(geos); geos.forEach((x) => x.dispose());
+    const mesh = new THREE.Mesh(g, lollyMat(hex)); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh); }
+}
 function caneMesh(parent, geos) {
   if (!geos.length) return; const g = mergeGeometries(geos); geos.forEach((x) => x.dispose());
   const mesh = new THREE.Mesh(g, caneMat); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh);
@@ -2039,13 +2064,15 @@ Object.assign(THEMES, {
     },
     moverMesh(b) { b.geo("ico", 0, 0, 0, 2.3, 2.3, 2.3, 0xff5d73); for (let i = 0; i < 4; i++) b.box(0, 0, 0, 2.36, 0.25, 2.36, pick([0xffffff, 0xffe14f, 0x7fd0ff]), { rx: i * Math.PI / 4 }); },
     scenery(b, run, lim, near) {
-      const pastel = [0xff9ad0, 0xbfe6ff, 0xfff0a0, 0xc8f2c0, 0xe0c8ff], canes = [];
+      const pastel = [0xff9ad0, 0xbfe6ff, 0xfff0a0, 0xc8f2c0, 0xe0c8ff], canes = [], lollies = new Map(); let li = randi(0, LOLLY_COLS.length - 1);
       sideLoop(lim, near, (side, end, nend) => {
         for (let s = 14; s < nend; s += rand(3, 5)) b.geo("cone", side * (HALF + rand(2, 5)), -2, s, rand(2.5, 4), rand(2.5, 4), rand(2.5, 4), pick([0xff5d73, 0x7be08f, 0xffb020, 0x9a6ae0, 0x5fd7ff])); // gumdrops
         for (let s = 16; s < end; s += rand(3.5, 7)) { // lollipop trees
           const x = side * (HALF + rand(6, 40)), h = rand(5, 11), r = rand(2, 3.8);
-          b.box(x, -3, s, 0.3, h, 0.3, 0xffffff); b.geo("cyl", x, -3 + h + r * 0.4, s, r * 2, 0.5, r * 2, pick([0xff5d73, 0x7be08f, 0x7fd0ff, 0xffb020, 0xff9ad0]), { rx: Math.PI / 2 });
-          b.geo("cyl", x, -3 + h + r * 0.4, s - 0.27, r * 1.1, 0.04, r * 1.1, 0xffffff, { rx: Math.PI / 2 });
+          if (b.skip && b.skip(x, s)) continue;
+          b.geo("cyl", x, -3 + h / 2 + r * 0.2, s, 0.32, h + r * 0.4, 0.32, 0xf2b46a); // stick
+          const hex = LOLLY_COLS[li++ % LOLLY_COLS.length], g = LOLLY_UNIT.clone().rotateZ(rand(0, Math.PI * 2)).scale(r, r, r).rotateY(rand(-0.35, 0.35)).translate(x, -3 + h + r * 0.4, -s);
+          if (!lollies.has(hex)) lollies.set(hex, []); lollies.get(hex).push(g);
         }
         for (let s = 20; s < nend; s += rand(10, 18)) { const x = side * (HALF + rand(4, 10)), h = rand(4, 7) - 3; // spiral-striped canes, hooks toward the track
           if (!(b.skip && b.skip(x, s))) canes.push(...caneStand(x, s, h, rand(0.3, 0.42), -side, -3)); }
@@ -2053,7 +2080,7 @@ Object.assign(THEMES, {
         for (let s = rand(45, 60); s < end - 20; s += rand(32, 48)) { const x = side * rand(70, 98), r = Math.min(rand(12, 20), s - 12); if (r < 8) continue; // cupcake mountains
           b.geo("cyl", x, -3 + r * 0.6, s, r * 1.8, r * 1.2, r * 1.8, 0xf2c98a); b.geo("ico", x, -3 + r * 1.4, s, r * 2.2, r * 1.4, r * 2.2, pick([0xff9ad0, 0xfff0f6, 0xbfe6ff, 0xc8f2c0])); b.geo("ico", x, -3 + r * 2.15, s, r * 0.35, r * 0.35, r * 0.35, 0xe2203a); }
       });
-      caneMesh(run.group, canes);
+      caneMesh(run.group, canes); lollyMeshes(run.group, lollies);
     },
     endWall(b, run, sides) { STD.wall(b, run, sides, 0xfff0f6, 12, (L) => { const cols = [0xff9ad0, 0x8a4a2a, 0xfff0f6, 0xff9ad0]; for (let i = 0; i < 4; i++) b.box(0, -3 + i * 3, L + 0.95, W + 34, 3, 0.2, cols[i]); for (let x = -HALF - 15; x < HALF + 15; x += 2) b.geo("ico", x, 9.2, L + 2, 1.6, 1.2, 1.6, 0xffffff); }); },
     gate(b, s) { for (const sx of [-1, 1]) for (let k = 0; k < 11; k++) b.box(sx * (HALF + 1), -3 + k, s, 1, 1, 1, k % 2 ? 0xffffff : 0xe2403a); b.box(0, 7.4, s, W + 4.4, 1.2, 1.2, 0xff9ad0); b.box(0, 8.6, s, W + 4.6, 0.3, 1.3, 0xffffff); },
