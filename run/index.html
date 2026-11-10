@@ -1425,6 +1425,32 @@ function lollyMeshes(parent, byCol) {
   for (const [hex, geos] of byCol) { if (!geos.length) continue; const g = mergeGeometries(geos); geos.forEach((x) => x.dispose());
     const mesh = new THREE.Mesh(g, lollyMat(hex)); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh); }
 }
+// Red velvet sponge: a crumbly texture, mapped by world position so big slabs don't stretch it.
+const spongeMat = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 128; const x = c.getContext("2d");
+  x.fillStyle = "#a8192c"; x.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 900; i++) { x.fillStyle = Math.random() < 0.55 ? "rgba(90,8,22,0.55)" : "rgba(214,60,82,0.5)"; const r = 0.6 + Math.random() * 2.2; x.beginPath(); x.arc(Math.random() * 128, Math.random() * 128, r, 0, 7); x.fill(); }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  return new THREE.MeshStandardMaterial({ map: t, roughness: 0.95, metalness: 0 });
+})();
+function spongeBox(b, x, y0, s, w, h, d) {
+  const g = new THREE.BoxGeometry(w, h, d).translate(x, y0 + h / 2, -s), p = g.attributes.position, n = g.attributes.normal, uv = g.attributes.uv, k = 0.45;
+  for (let i = 0; i < p.count; i++) { const ax = Math.abs(n.getX(i)), ay = Math.abs(n.getY(i));
+    uv.setXY(i, ax > 0.5 ? p.getZ(i) * k : p.getX(i) * k, ay > 0.5 ? p.getZ(i) * k : p.getY(i) * k); }
+  b.withMat(spongeMat, g);
+}
+// A red velvet layer cake slab: sponge layers with cream between, a cream top and piped swirls along the top edge.
+function cakeSlab(b, x, y0, s, w, h, d, edge) {
+  const CREAM = 0xfffaf2, layers = Math.max(2, Math.round(h / 3)), cream = 0.7, sp = (h - cream * layers) / layers;
+  let y = y0;
+  for (let i = 0; i < layers; i++) { spongeBox(b, x, y, s, w, sp, d); y += sp; b.box(x, y, s, w + 0.12, cream, d + 0.12, CREAM); y += cream; }
+  const [ex, es, len, along] = edge; // a row of piped cream swirls along one top edge
+  for (let t = -len / 2 + 0.7; t < len / 2 - 0.4; t += 1.35) {
+    const px = along === "x" ? x + t : ex, ps = along === "x" ? es : s + t;
+    b.geo("sphere", px, y + 0.36, ps, 1.15, 0.85, 1.15, CREAM); b.geo("sphere", px + 0.06, y + 0.78, ps, 0.62, 0.42, 0.62, CREAM);
+  }
+  for (let k = 0; k < w * d / 6; k++) b.box(x + rand(-w / 2, w / 2), y - 0.02, s + rand(-d / 2, d / 2), rand(0.15, 0.35), 0.1, rand(0.15, 0.35), pick([0xb8203a, 0x8a1426])); // crumbs dusted on top
+}
 function caneMesh(parent, geos) {
   if (!geos.length) return; const g = mergeGeometries(geos); geos.forEach((x) => x.dispose());
   const mesh = new THREE.Mesh(g, caneMat); mesh.castShadow = mesh.receiveShadow = true; parent.add(mesh);
@@ -2088,7 +2114,12 @@ Object.assign(THEMES, {
       });
       caneMesh(run.group, canes); lollyMeshes(run.group, lollies);
     },
-    endWall(b, run, sides) { STD.wall(b, run, sides, 0xfff0f6, 12, (L) => { const cols = [0xff9ad0, 0x8a4a2a, 0xfff0f6, 0xff9ad0]; for (let i = 0; i < 4; i++) b.box(0, -3 + i * 3, L + 0.95, W + 34, 3, 0.2, cols[i]); for (let x = -HALF - 15; x < HALF + 15; x += 2) b.geo("ico", x, 9.2, L + 2, 1.6, 1.2, 1.6, 0xffffff); }); },
+    endWall(b, run, sides) { // a red velvet layer cake standing at the corner, cut face toward you
+      const L = run.L;
+      cakeSlab(b, 0, -3, L + 3, W + 34, 12, 4, [0, L + 1.6, W + 34, "x"]);
+      for (const side of sides) cakeSlab(b, side * (HALF + 3), -3, L - W / 2 - 6, 4, 9.6, W + 18, [side * (HALF + 1.6), 0, W + 18, "s"]);
+      for (let k = 0; k < 40; k++) b.box(rand(-HALF - 4, HALF + 4), -0.02, L + rand(-6, 0.8), rand(0.12, 0.3), 0.08, rand(0.12, 0.3), pick([0xb8203a, 0x8a1426])); // crumbs fallen on the floor
+    },
     gate(b, s) { for (const sx of [-1, 1]) for (let k = 0; k < 11; k++) b.box(sx * (HALF + 1), -3 + k, s, 1, 1, 1, k % 2 ? 0xffffff : 0xe2403a); b.box(0, 7.4, s, W + 4.4, 1.2, 1.2, 0xff9ad0); b.box(0, 8.6, s, W + 4.6, 0.3, 1.3, 0xffffff); },
     hop: { sea: 0x5a2e18, ripple: 0x8a5030, death: "Fell into the chocolate river", hit: "Bounced off a gumdrop", edge: 0xff6fb0, noEdge: true, seg: [12.5, 20], gap: [2.8, 3.4],
       platform(b, xc, w, a, e, run) { // a giant candy cane lying in the chocolate; run along it, jump at the glowing line
