@@ -228,7 +228,7 @@ const TOOLS = [
   { id: "gallery", clip: true, group: "play", cat: "3D", name: "Gallery", href: "gallery.html", tint: "--p-sage", desc: "A 3D gallery for your mosaics. Walk it in first person.", keys: "3d museum walk statue hologram" },
   { id: "wars", clip: true, group: "play", cat: "Game", name: "Chonk Wars", href: "wars/", tint: "--p-lilac", desc: "200 Chonks battle over the live Bitcoin price. Every trade is a blow, and you can jump in and play as any Chonk.", keys: "game battle bitcoin btc cavalry war", isNew: true, live: true, cta: "Play now",
     points: ["Live BTC price drives every hit", "Airstrikes and a 10-a-side cavalry charge", "Load any wallet as your army"] },
-  { id: "run", group: "play", cat: "Game", name: "Chonk Run", href: "run/", tint: "--p-rose", desc: "A 3D endless runner starring any Chonk. Dodge, jump and slide through 9 worlds, and chase the leaderboard.", keys: "game runner run temple subway endless 3d leaderboard daily", isNew: true, live: true, cta: "Play now",
+  { id: "run", clip: true, group: "play", cat: "Game", name: "Chonk Run", href: "run/", tint: "--p-rose", desc: "A 3D endless runner starring any Chonk. Dodge, jump and slide through 9 worlds, and chase the leaderboard.", keys: "game runner run temple subway endless 3d leaderboard daily", isNew: true, live: true, cta: "Play now",
     points: ["Load any Chonk or wallet", "9 worlds, a Daily Run and a store", "Lock your name with your wallet"] },
   { id: "gifs", clip: true, group: "watch", cat: "Animation", name: "GIFs", href: "gifs/", tint: "--p-sky", desc: "Blender animations. Download the MP4 or a GIF to post.", keys: "gif mp4 video blender gm animation", isNew: true },
 ];
@@ -249,8 +249,8 @@ $("q").addEventListener("input", render);
 
 // the still shown first (a clip's own first frame, so nothing jumps when it starts) and the clip itself
 // bump CLIP_V whenever a clip or its still changes, so browsers fetch the new file
-const CLIP_V = 2;
-const still = (t, wide) => t.clip ? `img/hub/clips/${t.id}.webp?v=${CLIP_V}` : `img/hub/${wide && (t.id === "wars" || t.id === "run") ? t.id + "-wide" : t.id}.webp`;
+const CLIP_V = 3;
+const still = (t, wide) => t.clip ? `img/hub/clips/${t.id}.webp?v=${CLIP_V}` : `img/hub/${wide && t.id === "wars" ? "wars-wide" : t.id}.webp`;
 const clipTag = (t) => t.clip ? `<video muted loop playsinline preload="none" aria-hidden="true"><source src="img/hub/clips/${t.id}.webm?v=${CLIP_V}" type="video/webm"><source src="img/hub/clips/${t.id}.mp4?v=${CLIP_V}" type="video/mp4"></video>` : "";
 const btcTag = (t) => t.id === "wars" ? `<span class="btc" data-btc><i></i><span class="px">BTC live</span><span class="chg"></span></span>` : "";
 function render() {
