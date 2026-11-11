@@ -213,7 +213,7 @@ a { color: inherit; text-decoration: none; }
 
 <script>
 // The big tile at the top of the grid. Set it to any tool's id below (mosaic, studio, ascii, sketch, gallery, wars, gifs).
-const FEATURED = "wars";
+const FEATURED = "run";
 
 // Every page on the site. Add a page = add one line here.
 const SITE = "";
@@ -250,7 +250,7 @@ $("q").addEventListener("input", render);
 // the still shown first (a clip's own first frame, so nothing jumps when it starts) and the clip itself
 // bump CLIP_V whenever a clip or its still changes, so browsers fetch the new file
 const CLIP_V = 2;
-const still = (t, wide) => t.clip ? `img/hub/clips/${t.id}.webp?v=${CLIP_V}` : `img/hub/${wide && t.id === "wars" ? "wars-wide" : t.id}.webp`;
+const still = (t, wide) => t.clip ? `img/hub/clips/${t.id}.webp?v=${CLIP_V}` : `img/hub/${wide && (t.id === "wars" || t.id === "run") ? t.id + "-wide" : t.id}.webp`;
 const clipTag = (t) => t.clip ? `<video muted loop playsinline preload="none" aria-hidden="true"><source src="img/hub/clips/${t.id}.webm?v=${CLIP_V}" type="video/webm"><source src="img/hub/clips/${t.id}.mp4?v=${CLIP_V}" type="video/mp4"></video>` : "";
 const btcTag = (t) => t.id === "wars" ? `<span class="btc" data-btc><i></i><span class="px">BTC live</span><span class="chg"></span></span>` : "";
 function render() {
